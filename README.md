@@ -1,5 +1,7 @@
 # AbilityCombat
 
+> README available in Korean: [README_ko.md](README_ko.md)
+
 AbilityCombat is a Bukkit/Spigot(Paper) plugin that provides an ability-based PvP battle mode inspired by _Ability War_.
 
 ## What is this project?
