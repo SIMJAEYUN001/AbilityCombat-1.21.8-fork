@@ -101,6 +101,7 @@ import java.util.UUID;
 public class GameManager implements Listener {
     private static final double START_SPAWN_RADIUS = 20.0;
     private static final int START_SPAWN_ATTEMPTS = 12;
+    private static final int SWORD_PRIMARY_TARGET_CHECK_RANGE = 8;
 
     private final AbilityCombat plugin;
     private final AbilityRegistry abilityRegistry;
@@ -113,6 +114,7 @@ public class GameManager implements Listener {
     private final Map<UUID, Boolean> storedAi = new HashMap<>();
     private final Map<UUID, Integer> lastInteractTick = new HashMap<>();
     private final Random random = new Random();
+    private long randomSelectionSeed = 0;
     private final RegionSnapshot regionSnapshot;
     private final NamespacedKey victoryFireworkKey;
     private final NamespacedKey abilityArmorStandKey;
@@ -121,6 +123,7 @@ public class GameManager implements Listener {
     private static final int FIXED_FOOD_LEVEL = 19;
     private static final float FIXED_SATURATION = 19.0f;
     private static final double NO_ATTACK_COOLDOWN_ATTACK_SPEED = 1024.0;
+    private static final double NO_SWEEPING_DAMAGE_RATIO = 0.0;
     private static final double FIXED_AXE_ATTACK_DAMAGE = 5.0;
     private static final double FIXED_AXE_DAMAGE_MODIFIER = FIXED_AXE_ATTACK_DAMAGE - 1.0;
     private static final String FIXED_AXE_DAMAGE_KEY = "fixed_axe_damage";
@@ -129,6 +132,7 @@ public class GameManager implements Listener {
     private static final String SELECTION_HUD_KEY = "aw:selection";
     private static final int SELECTION_HUD_PRIORITY = 1;
     private static final String VICTORY_FIREWORK_KEY = "victory_firework";
+    private static final int BORDER_DAMAGE_INTERVAL_SECONDS = 2;
     private GameState state = GameState.IDLE;
     private BukkitTask selectionTask;
     private BukkitTask gameTask;
@@ -157,6 +161,7 @@ public class GameManager implements Listener {
 	    private int borderShrinkRemaining;
 	    // Remaining time in the current phase before the next shrink starts (seconds).
 	    private int phaseRemaining;
+	    private int borderDamageIntervalRemaining = BORDER_DAMAGE_INTERVAL_SECONDS;
 	    private int startAliveCount;
 	    private boolean startedSolo;
 	    private boolean mapRestoreEnabled;
@@ -958,7 +963,7 @@ public class GameManager implements Listener {
             return new ArrayList<>();
         }
         List<AbilityDefinition> options = new ArrayList<>(pool);
-        Collections.shuffle(options, random);
+        sortBySelectionHash(options);
         if (options.size() <= count) {
             return options;
         }
@@ -975,8 +980,38 @@ public class GameManager implements Listener {
         if (filtered.isEmpty()) {
             return null;
         }
-        Collections.shuffle(filtered, random);
+        sortBySelectionHash(filtered);
         return filtered.get(0);
+    }
+
+    private void sortBySelectionHash(List<AbilityDefinition> options) {
+        long seed = nextSelectionSeed();
+        options.sort((a, b) -> {
+            long hashA = hashSelection(a.getName(), seed);
+            long hashB = hashSelection(b.getName(), seed);
+            return Long.compare(hashA, hashB);
+        });
+    }
+
+    private long nextSelectionSeed() {
+        randomSelectionSeed += 0x9e3779b97f4a7c15L;
+        return randomSelectionSeed ^ System.nanoTime();
+    }
+
+    private long hashSelection(String input, long seed) {
+        long x = seed;
+        if (input != null) {
+            for (int i = 0; i < input.length(); i++) {
+                x ^= (0x9e3779b97f4a7c15L * (input.charAt(i) + 1L));
+                x = Long.rotateLeft(x, 17) + 0x9e3779b97f4a7c15L;
+            }
+        }
+        x ^= (x >>> 33);
+        x *= 0xff51afd7ed558ccdL;
+        x ^= (x >>> 33);
+        x *= 0xc4ceb9fe1a85ec53L;
+        x ^= (x >>> 33);
+        return x;
     }
 
     private void startSelectionTimer() {
@@ -1041,6 +1076,7 @@ public class GameManager implements Listener {
 	        invincible = invincibilityRemaining > 0;
 	        borderShrinkRemaining = 0;
 	        phaseRemaining = 0;
+	        borderDamageIntervalRemaining = BORDER_DAMAGE_INTERVAL_SECONDS;
 	        startAliveCount = alivePlayers.size();
 	        startedSolo = startAliveCount <= 1;
 	        setupWorldBorder();
@@ -1183,8 +1219,13 @@ public class GameManager implements Listener {
         if (worldBorder == null || alivePlayers.isEmpty()) {
             return;
         }
+        borderDamageIntervalRemaining = Math.max(0, borderDamageIntervalRemaining - 1);
+        if (borderDamageIntervalRemaining > 0) {
+            return;
+        }
+        borderDamageIntervalRemaining = BORDER_DAMAGE_INTERVAL_SECONDS;
         int phase = Math.max(1, currentPhaseIndex);
-        double damagePerSecond = phase;
+        double damagePerTick = phase;
         for (UUID uuid : alivePlayers) {
             Player player = Bukkit.getPlayer(uuid);
             if (player == null || !player.isOnline() || player.isDead()) {
@@ -1196,7 +1237,7 @@ public class GameManager implements Listener {
             if (worldBorder.isInside(player.getLocation())) {
                 continue;
             }
-            player.damage(damagePerSecond);
+            player.damage(damagePerTick);
         }
     }
 
@@ -1446,6 +1487,18 @@ public class GameManager implements Listener {
                 : NO_ATTACK_COOLDOWN_ATTACK_SPEED;
         if (Double.compare(attackSpeed.getBaseValue(), targetAttackSpeed) != 0) {
             attackSpeed.setBaseValue(targetAttackSpeed);
+        }
+        applySweepingDamageSetting(player);
+    }
+
+    private void applySweepingDamageSetting(Player player) {
+        AttributeInstance sweepingDamage = player.getAttribute(Attribute.SWEEPING_DAMAGE_RATIO);
+        if (sweepingDamage == null) {
+            return;
+        }
+        double targetSweepingDamage = attackCooldownEnabled ? sweepingDamage.getDefaultValue() : NO_SWEEPING_DAMAGE_RATIO;
+        if (Double.compare(sweepingDamage.getBaseValue(), targetSweepingDamage) != 0) {
+            sweepingDamage.setBaseValue(targetSweepingDamage);
         }
     }
 
@@ -2765,17 +2818,31 @@ public class GameManager implements Listener {
     }
 
     private void suppressSwordSweep(EntityDamageByEntityEvent event) {
-        if (!(event.getDamager() instanceof Player player) || event.getCause() != EntityDamageEvent.DamageCause.ENTITY_ATTACK) {
+        if (!(event.getDamager() instanceof Player player)) {
             return;
         }
         ItemStack mainHand = player.getInventory().getItemInMainHand();
         if (!isSwordWeapon(mainHand)) {
             return;
         }
+        EntityDamageEvent.DamageCause cause = event.getCause();
+        if (cause == EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) {
+            event.setCancelled(true);
+            return;
+        }
+        if (cause != EntityDamageEvent.DamageCause.ENTITY_ATTACK) {
+            return;
+        }
 
         UUID attackerId = player.getUniqueId();
         UUID targetId = event.getEntity().getUniqueId();
         int currentTick = Bukkit.getCurrentTick();
+
+        Entity aimedTarget = player.getTargetEntity(SWORD_PRIMARY_TARGET_CHECK_RANGE);
+        if (aimedTarget instanceof LivingEntity && !aimedTarget.getUniqueId().equals(targetId)) {
+            event.setCancelled(true);
+            return;
+        }
 
         SwordSwingRecord record = lastSwordSwings.get(attackerId);
         if (record == null || record.tick != currentTick) {

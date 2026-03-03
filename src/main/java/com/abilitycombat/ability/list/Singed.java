@@ -4,6 +4,8 @@ import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.ability.AbilityTickManager;
 import com.abilitycombat.ability.handler.ActiveHandler;
+import com.abilitycombat.AbilityCombat;
+import com.abilitycombat.game.GameManager;
 import com.abilitycombat.game.Participant;
 import com.abilitycombat.utils.LocationUtil;
 import com.abilitycombat.utils.ParticleUtil;
@@ -100,6 +102,9 @@ public class Singed extends AbilityBase implements ActiveHandler {
         if (material != Material.IRON_INGOT || clickType != ClickType.RIGHT_CLICK) {
             return false;
         }
+        if (isInvincible()) {
+            return false;
+        }
         if (cooldown.isCooldown()) {
             notifyCooldown(cooldown);
             return false;
@@ -125,6 +130,9 @@ public class Singed extends AbilityBase implements ActiveHandler {
     }
 
     private void onMove(PlayerMoveEvent event) {
+        if (isInvincible()) {
+            return;
+        }
         if (trailNodes.isEmpty()) {
             return;
         }
@@ -168,6 +176,9 @@ public class Singed extends AbilityBase implements ActiveHandler {
     }
 
     private void applyPoison(Player target) {
+        if (isInvincible()) {
+            return;
+        }
         int amplifier = isMadnessActive() ? 1 : 0;
         target.addPotionEffect(
                 new PotionEffect(PotionEffectType.POISON, POISON_DURATION_TICKS, amplifier, true, false));
@@ -200,6 +211,9 @@ public class Singed extends AbilityBase implements ActiveHandler {
             unregisterTick();
             return;
         }
+        if (isInvincible()) {
+            return;
+        }
         if (tick % TRAIL_SPAWN_INTERVAL_TICKS == 0) {
             addTrailNode(tick);
         }
@@ -209,6 +223,9 @@ public class Singed extends AbilityBase implements ActiveHandler {
     }
 
     private void addTrailNode(int tick) {
+        if (isInvincible()) {
+            return;
+        }
         Player player = getPlayer();
         if (player == null) {
             return;
@@ -247,6 +264,9 @@ public class Singed extends AbilityBase implements ActiveHandler {
     }
 
     private void spawnTrailParticle(Location location) {
+        if (isInvincible()) {
+            return;
+        }
         if (location == null || location.getWorld() == null) {
             return;
         }
@@ -259,6 +279,9 @@ public class Singed extends AbilityBase implements ActiveHandler {
     }
 
     private void applyPoisonOnNode(TrailNode node) {
+        if (isInvincible()) {
+            return;
+        }
         Player owner = getPlayer();
         if (owner == null) {
             return;
@@ -289,5 +312,17 @@ public class Singed extends AbilityBase implements ActiveHandler {
             this.location = location;
             this.expireTick = expireTick;
         }
+    }
+
+    private boolean isInvincible() {
+        AbilityCombat plugin = AbilityCombat.getPlugin();
+        if (plugin == null) {
+            return false;
+        }
+        GameManager gameManager = plugin.getGameManager();
+        if (gameManager == null) {
+            return false;
+        }
+        return gameManager.isInvincible();
     }
 }

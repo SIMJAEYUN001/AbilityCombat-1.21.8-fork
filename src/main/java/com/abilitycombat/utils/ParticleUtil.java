@@ -2,6 +2,7 @@ package com.abilitycombat.utils;
 
 import com.abilitycombat.AbilityCombat;
 import com.abilitycombat.ability.AbilityTickManager;
+import com.abilitycombat.combat.SweepEffectAllowance;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.World;
@@ -52,6 +53,9 @@ public final class ParticleUtil {
         double distance = maxDistance > 0 ? maxDistance : plugin.getConfig().getDouble(CONFIG_MAX_DISTANCE, 64.0);
         if (distance > 0 && !hasNearbyViewer(world, location, distance)) {
             return;
+        }
+        if (particle == Particle.SWEEP_ATTACK) {
+            SweepEffectAllowance.markAbilitySweepParticle();
         }
         if (data == null) {
             world.spawnParticle(particle, location, count, offsetX, offsetY, offsetZ, extra);

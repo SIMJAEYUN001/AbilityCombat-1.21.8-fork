@@ -1,3 +1,5 @@
+version: "${project.version}"
+
 abilities:
   - name: "제우스 (Zeus)"
     rank: S
@@ -432,6 +434,14 @@ abilities:
     icon: SLIME_BALL
     summary:
       - "사망 시 처치자에게 감염"
+  - name: "급조모루 (MakeshiftAnvil)"
+    rank: A
+    icon: ANVIL
+    summary:
+      - "페이즈/처치 시 갑옷·검 1개 무작위 강화"
+      - "철→다이아, 다이아→네더라이트"
+      - "인챈트 전승 + 소실 저주 부여"
+      - "보유자 처치 시 처치자도 무작위 강화"
   - name: "사냥꾼 (Hunter)"
     rank: S
     icon: CROSSBOW

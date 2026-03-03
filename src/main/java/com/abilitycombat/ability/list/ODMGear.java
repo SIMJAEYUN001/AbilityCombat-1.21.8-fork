@@ -2,6 +2,7 @@ package com.abilitycombat.ability.list;
 
 import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
+import com.abilitycombat.combat.SweepEffectAllowance;
 import com.abilitycombat.game.Participant;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -189,6 +190,7 @@ public class ODMGear extends AbilityBase {
 
         player.setVelocity(direction);
         player.playSound(playerLoc, Sound.ENTITY_FISHING_BOBBER_RETRIEVE, 1.0f, 1.5f);
+        SweepEffectAllowance.markAbilitySweepSound();
         player.getWorld().playSound(playerLoc, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8f, 1.2f);
     }
 }

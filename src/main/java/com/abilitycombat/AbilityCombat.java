@@ -45,6 +45,7 @@ import com.abilitycombat.ability.list.Lorem;
 import com.abilitycombat.ability.list.MachineArm;
 import com.abilitycombat.ability.list.Magnet;
 import com.abilitycombat.ability.list.Magician;
+import com.abilitycombat.ability.list.MakeshiftAnvil;
 import com.abilitycombat.ability.list.Morpheus;
 import com.abilitycombat.ability.list.Nex;
 import com.abilitycombat.ability.list.ODMGear;
@@ -78,6 +79,7 @@ import com.abilitycombat.ability.list.Zeus;
 import com.abilitycombat.ability.list.Zombie;
 import com.abilitycombat.command.AbilityCombatCommand;
 import com.abilitycombat.ability.AbilityTickManager;
+import com.abilitycombat.combat.SweepPacketSuppressor;
 import com.abilitycombat.entity.CustomEntityManager;
 import com.abilitycombat.effect.Bleed;
 import com.abilitycombat.effect.Infection;
@@ -102,6 +104,7 @@ public final class AbilityCombat extends JavaPlugin {
     private ActionbarChannel actionbarChannel;
     private BossBarManager bossBarManager;
     private EventBridge eventBridge;
+    private SweepPacketSuppressor sweepPacketSuppressor;
 
     @Override
     public void onEnable() {
@@ -124,6 +127,8 @@ public final class AbilityCombat extends JavaPlugin {
         Infection.start(this);
         CustomEntityManager.start(this);
         AbilityTickManager.start(this);
+        sweepPacketSuppressor = new SweepPacketSuppressor(this);
+        sweepPacketSuppressor.start();
         eventBridge = new EventBridge();
         getServer().getPluginManager().registerEvents(eventBridge, this);
         cleanupGlobalEntities();
@@ -151,6 +156,10 @@ public final class AbilityCombat extends JavaPlugin {
         Infection.stop();
         CustomEntityManager.stop();
         AbilityTickManager.stop();
+        if (sweepPacketSuppressor != null) {
+            sweepPacketSuppressor.stop();
+            sweepPacketSuppressor = null;
+        }
         if (eventBridge != null) {
             eventBridge.clear();
         }
@@ -245,6 +254,7 @@ public final class AbilityCombat extends JavaPlugin {
         AbilityFactory.register(Lorem.class);
         AbilityFactory.register(MachineArm.class);
         AbilityFactory.register(Magnet.class);
+        AbilityFactory.register(MakeshiftAnvil.class);
         AbilityFactory.register(SoulEncroach.class);
         AbilityFactory.register(Soul.class);
         AbilityFactory.register(PenetrationArrow.class);

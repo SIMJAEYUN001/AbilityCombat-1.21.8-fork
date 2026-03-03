@@ -4,6 +4,7 @@ import com.abilitycombat.AbilityCombat;
 import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.ability.handler.ActiveHandler;
+import com.abilitycombat.combat.SweepEffectAllowance;
 import com.abilitycombat.game.Participant;
 import com.abilitycombat.utils.FastMath;
 import com.abilitycombat.utils.LocationPool;
@@ -320,6 +321,7 @@ public class SwordMaster extends AbilityBase implements ActiveHandler {
 
         // 발사체 등록
         projectiles.add(new ShootingProjectile(sword.armorStand, sword.damage, dir, player));
+        SweepEffectAllowance.markAbilitySweepSound();
         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.0f, 1.0f);
         return true;
     }

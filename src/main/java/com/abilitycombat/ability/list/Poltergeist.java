@@ -44,6 +44,7 @@ public class Poltergeist extends AbilityBase implements ActiveHandler {
     private static final double LIFT_HEIGHT = 7.0;
     private static final int SLAM_DELAY_TICKS = 80; // 4초
     private static final double SLAM_DAMAGE = 15.0;
+    private static final int COOLDOWN_REDUCTION_PER_TARGET = 5;
 
     private final Cooldown cooldown = new Cooldown(COOLDOWN_SECONDS);
     private Snowball activeSnowball;
@@ -155,9 +156,19 @@ public class Poltergeist extends AbilityBase implements ActiveHandler {
             return;
         }
 
+        reduceCooldownByTargetCount(liftedPlayers.size());
+
         // 4초 후 내리찍기
         Bukkit.getScheduler().runTaskLater(AbilityCombat.getPlugin(), () -> slamPlayers(hitLocation, liftedPlayers),
                 SLAM_DELAY_TICKS);
+    }
+
+    private void reduceCooldownByTargetCount(int targetCount) {
+        if (!cooldown.isCooldown() || targetCount <= 0) {
+            return;
+        }
+        int reduceSeconds = Math.min(targetCount * COOLDOWN_REDUCTION_PER_TARGET, cooldown.getCount());
+        cooldown.setCount(cooldown.getCount() - reduceSeconds);
     }
 
     private void liftPlayer(Player target, Location center) {

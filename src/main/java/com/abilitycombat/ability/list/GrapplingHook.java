@@ -4,6 +4,7 @@ import com.abilitycombat.AbilityCombat;
 import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.ability.handler.ActiveHandler;
+import com.abilitycombat.combat.SweepEffectAllowance;
 import com.abilitycombat.effect.Stun;
 import com.abilitycombat.game.Participant;
 import com.abilitycombat.utils.LocationPool;
@@ -259,6 +260,7 @@ public class GrapplingHook extends AbilityBase implements ActiveHandler {
         Vector leap = player.getLocation().getDirection().normalize().multiply(AMBUSH_LEAP_SPEED);
         leap.setY(AMBUSH_LEAP_Y);
         player.setVelocity(leap);
+        SweepEffectAllowance.markAbilitySweepSound();
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.9f, 1.2f);
     }
 

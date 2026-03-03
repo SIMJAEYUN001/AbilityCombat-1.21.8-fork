@@ -3,6 +3,8 @@ package com.abilitycombat.ability.list;
 import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.ability.handler.ActiveHandler;
+import com.abilitycombat.AbilityCombat;
+import com.abilitycombat.game.GameManager;
 import com.abilitycombat.game.Participant;
 import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
@@ -43,6 +45,9 @@ public class FireFightWithFire extends AbilityBase implements ActiveHandler {
         if (material != Material.IRON_INGOT || clickType != ActiveHandler.ClickType.RIGHT_CLICK) {
             return false;
         }
+        if (isInvincible()) {
+            return false;
+        }
         if (cooldown.isCooldown()) {
             notifyCooldown(cooldown);
             return false;
@@ -64,6 +69,9 @@ public class FireFightWithFire extends AbilityBase implements ActiveHandler {
         if (!event.getEntity().equals(getPlayer())) {
             return;
         }
+        if (isInvincible()) {
+            return;
+        }
         if (event.getCause() == EntityDamageEvent.DamageCause.FIRE
                 || event.getCause() == EntityDamageEvent.DamageCause.FIRE_TICK
                 || event.getCause() == EntityDamageEvent.DamageCause.LAVA
@@ -73,5 +81,17 @@ public class FireFightWithFire extends AbilityBase implements ActiveHandler {
             double maxHealth = player.getAttribute(Attribute.MAX_HEALTH).getValue();
             player.setHealth(Math.min(maxHealth, player.getHealth() + event.getDamage()));
         }
+    }
+
+    private boolean isInvincible() {
+        AbilityCombat plugin = AbilityCombat.getPlugin();
+        if (plugin == null) {
+            return false;
+        }
+        GameManager gameManager = plugin.getGameManager();
+        if (gameManager == null) {
+            return false;
+        }
+        return gameManager.isInvincible();
     }
 }

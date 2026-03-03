@@ -18,15 +18,15 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
-@AbilityManifest(name = "대기만성 (LateBloom)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
-        "§e§l[패시브 - 수행]",
-        "§7받는 피해가 §c+20%§7 증가합니다.",
-        "§7주는 피해가 §c-20%§7 감소합니다. (기본)",
-        "",
-        "§7자기장 페이즈당 §6(페이즈 × 10) - 10§7 수행 스택을 획득합니다.",
-        "§7최대 공격 게이지로 타격 시 §6+1 스택§7 획득",
-        "§7수행 1스택당 추가 피해 §a+1%§7 증가",
-        "§8(50스택 시: -20% + 50% = +30% 추가 피해)",
+    @AbilityManifest(name = "대기만성 (LateBloom)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+            "§e§l[패시브 - 수행]",
+            "§7받는 피해가 §c+10%§7 증가합니다.",
+            "§7주는 피해가 §c-10%§7 감소합니다. (기본)",
+            "",
+            "§7자기장 페이즈당 §6(페이즈 - 1) × 5§7 수행 스택을 획득합니다.",
+            "§7최대 공격 게이지로 타격 시 §6+1 스택§7 획득",
+            "§7수행 1스택당 추가 피해 §a+0.5%§7 증가",
+            "§8(50스택 시: -10% + 25% = +15% 추가 피해)",
         "",
         "§e§l[철괴 좌클릭 - 잠력폭발]",
         "§7수행 스택을 모두 소모하고 주변 §f4칸§7 적에게",
@@ -41,10 +41,10 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 })
 public class LateBloom extends AbilityBase implements ActiveHandler {
 
-    private static final double DAMAGE_TAKEN_MULTIPLIER = 1.2; // 받는 피해 +20%
-    private static final double BASE_DAMAGE_MODIFIER = -0.2; // 기본 추가 피해 -20%
-    private static final double STACK_DAMAGE_PER = 0.01; // 스택당 +1%
-    private static final int PHASE_STACK_MULTIPLIER = 10; // 페이즈 × 10 스택
+    private static final double DAMAGE_TAKEN_MULTIPLIER = 1.1; // 받는 피해 +10%
+    private static final double BASE_DAMAGE_MODIFIER = -0.1; // 기본 추가 피해 -10%
+    private static final double STACK_DAMAGE_PER = 0.005; // 스택당 +0.5%
+    private static final int PHASE_STACK_MULTIPLIER = 5; // (페이즈 - 1) × 5 스택
     private static final float ATTACK_COOLDOWN_THRESHOLD = 0.99f; // 최대 공격 게이지 기준
     private static final double EXPLOSION_RANGE = 4.0;
     private static final double EXPLOSION_DAMAGE_PER_STACK = 0.2; // 스택 × 20% 피해
@@ -190,7 +190,7 @@ public class LateBloom extends AbilityBase implements ActiveHandler {
                 int phasesToAdd = currentPhase - Math.max(0, lastPhaseIndex);
                 for (int i = 1; i <= phasesToAdd; i++) {
                     int phaseNum = (lastPhaseIndex < 0 ? 0 : lastPhaseIndex) + i;
-                    stacks += Math.max(0, (phaseNum * PHASE_STACK_MULTIPLIER) - 10);
+                    stacks += Math.max(0, (phaseNum - 1) * PHASE_STACK_MULTIPLIER);
                 }
                 lastPhaseIndex = currentPhase;
             }
