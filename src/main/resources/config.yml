@@ -1,0 +1,48 @@
+game:
+  invincibility-seconds: 70
+  duration-seconds: 720
+  allow-debug-during-game: false
+ability:
+  selection-seconds: 50
+  reroll-count: 1
+world-border:
+  initial-radius: 200
+  shrink-seconds: 3
+  phases:
+    - time: 60
+      radius: 200
+    - time: 60
+      radius: 150
+    - time: 60
+      radius: 100
+    - time: 60
+      radius: 20
+    - time: 60
+      radius: 3
+spectator:
+  hide-from-alive: true
+map-restore:
+  enabled: true
+mob-spawn:
+  block-natural: true
+durability:
+  infinite: true
+combat:
+  attack-cooldown: true
+crafting:
+  enabled: true
+lobby:
+  allow-block-break: true
+  allow-block-place: true
+  invincible: false
+  location:
+    world: ""
+    x: 0
+    y: 0
+    z: 0
+    yaw: 0
+    pitch: 0
+visual-effects:
+  enabled: true
+  min-interval-ticks: 1
+  max-distance: 64

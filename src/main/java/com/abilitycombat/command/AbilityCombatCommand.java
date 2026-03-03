@@ -1,0 +1,288 @@
+package com.abilitycombat.command;
+
+import com.abilitycombat.AbilityCombat;
+import com.abilitycombat.ability.AbilityDefinition;
+import com.abilitycombat.ability.AbilityRegistry;
+import com.abilitycombat.game.GameManager;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class AbilityCombatCommand implements CommandExecutor, TabCompleter {
+
+    private static final String PERM_ADMIN = "abilitycombat.admin";
+
+    private final AbilityCombat plugin;
+    private final GameManager gameManager;
+    private final AbilityRegistry abilityRegistry;
+
+    public AbilityCombatCommand(AbilityCombat plugin, GameManager gameManager, AbilityRegistry abilityRegistry) {
+        this.plugin = plugin;
+        this.gameManager = gameManager;
+        this.abilityRegistry = abilityRegistry;
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (args.length == 0) {
+            sendUsage(sender, label);
+            return true;
+        }
+        String sub = args[0].toLowerCase();
+        switch (sub) {
+            case "start" -> {
+                if (!hasAdminPermission(sender)) {
+                    sender.sendMessage("§c권한이 없습니다.");
+                    return true;
+                }
+                gameManager.startGame(sender);
+                sender.sendMessage("§a게임을 시작합니다.");
+                return true;
+            }
+            case "stop" -> {
+                if (!hasAdminPermission(sender)) {
+                    sender.sendMessage("§c권한이 없습니다.");
+                    return true;
+                }
+                gameManager.stopGame();
+                sender.sendMessage("§c게임을 종료합니다.");
+                return true;
+            }
+            case "debug" -> {
+                if (!hasAdminPermission(sender)) {
+                    sender.sendMessage("§c권한이 없습니다.");
+                    return true;
+                }
+                if (sender instanceof Player player) {
+                    com.abilitycombat.game.GameState state = gameManager.getState();
+                    boolean allowDuringGame = plugin.getConfig().getBoolean("game.allow-debug-during-game", false);
+                    if (state != com.abilitycombat.game.GameState.IDLE && !allowDuringGame) {
+                        sender.sendMessage("§c게임 진행 중에는 디버그 GUI를 열 수 없습니다.");
+                        return true;
+                    }
+                    gameManager.openDebugGui(player);
+                } else {
+                    sender.sendMessage("플레이어만 사용할 수 있습니다.");
+                }
+                return true;
+            }
+            case "info" -> {
+                // 일반 유저 허용
+                if (sender instanceof Player player) {
+                    gameManager.sendAbilityInfo(player);
+                } else {
+                    sender.sendMessage("플레이어만 사용할 수 있습니다.");
+                }
+                return true;
+            }
+            case "config" -> {
+                if (!hasAdminPermission(sender)) {
+                    sender.sendMessage("§c권한이 없습니다.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    if (sender instanceof Player player) {
+                        gameManager.openConfigGui(player);
+                    } else {
+                        sender.sendMessage("플레이어만 사용할 수 있습니다.");
+                    }
+                    return true;
+                }
+                if (args.length >= 2) {
+                    String action = args[1].toLowerCase();
+                    switch (action) {
+                        case "reload" -> {
+                            plugin.reloadConfig();
+                            abilityRegistry.load();
+                            sender.sendMessage("§a설정을 다시 불러왔습니다.");
+                            return true;
+                        }
+                        case "setspawn", "setstart" -> {
+                            if (!(sender instanceof Player player)) {
+                                sender.sendMessage("플레이어만 사용할 수 있습니다.");
+                                return true;
+                            }
+                            gameManager.saveStartLocation(player.getLocation(), sender);
+                            sender.sendMessage("§a게임 시작 위치를 설정했습니다.");
+                            return true;
+                        }
+                        case "gui" -> {
+                            if (sender instanceof Player player) {
+                                gameManager.openConfigGui(player);
+                            } else {
+                                sender.sendMessage("플레이어만 사용할 수 있습니다.");
+                            }
+                            return true;
+                        }
+                        default -> {
+                            sender.sendMessage("사용법: /" + label + " config | /" + label + " config reload | /" + label
+                                    + " config setspawn");
+                            return true;
+                        }
+                    }
+                }
+                sender.sendMessage(
+                        "사용법: /" + label + " config | /" + label + " config reload | /" + label + " config setspawn");
+                return true;
+            }
+            case "abilities", "ability" -> {
+                // 일반 유저 허용 - 조회 전용 GUI
+                if (sender instanceof Player player) {
+                    gameManager.openDebugGui(player, 0, true);
+                } else {
+                    List<String> names = new ArrayList<>();
+                    for (AbilityDefinition ability : abilityRegistry.getAll()) {
+                        names.add(ability.getName());
+                    }
+                    sender.sendMessage("§e능력 목록: §f" + String.join(", ", names));
+                }
+                return true;
+            }
+            case "toolkit" -> {
+                if (!hasAdminPermission(sender)) {
+                    sender.sendMessage("§c권한이 없습니다.");
+                    return true;
+                }
+                if (sender instanceof Player player) {
+                    gameManager.openToolkitGui(player);
+                } else {
+                    sender.sendMessage("플레이어만 사용할 수 있습니다.");
+                }
+                return true;
+            }
+            case "test" -> {
+                if (!hasAdminPermission(sender)) {
+                    sender.sendMessage("§c권한이 없습니다.");
+                    return true;
+                }
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage("플레이어만 사용할 수 있습니다.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    sender.sendMessage("사용법: /" + label + " test <횟수>");
+                    return true;
+                }
+                int count;
+                try {
+                    count = Integer.parseInt(args[1]);
+                } catch (NumberFormatException e) {
+                    sender.sendMessage("§c올바른 숫자를 입력하세요.");
+                    return true;
+                }
+                if (count <= 0 || count > 1000) {
+                    sender.sendMessage("§c1~1000 사이의 숫자를 입력하세요.");
+                    return true;
+                }
+                runAbilityDrawTest(player, count);
+                return true;
+            }
+            default -> {
+                sendUsage(sender, label);
+                return true;
+            }
+        }
+    }
+
+    private boolean hasAdminPermission(CommandSender sender) {
+        return sender.isOp() || sender.hasPermission(PERM_ADMIN);
+    }
+
+    private void sendUsage(CommandSender sender, String label) {
+        boolean isAdmin = hasAdminPermission(sender);
+
+        sender.sendMessage("§6=== AbilityCombat 명령어 ===");
+
+        // 관리자 전용 명령어
+        if (isAdmin) {
+            sender.sendMessage("§e/" + label + " start §7- 게임 시작");
+            sender.sendMessage("§e/" + label + " stop §7- 게임 종료");
+            sender.sendMessage("§e/" + label + " debug §7- 능력 디버그 GUI");
+        }
+
+        // 일반 유저 허용 명령어
+        sender.sendMessage("§e/" + label + " info §7- 내 능력 정보");
+        sender.sendMessage("§e/" + label + " abilities §7- 능력 목록");
+
+        // 관리자 전용 명령어
+        if (isAdmin) {
+            sender.sendMessage("§e/" + label + " toolkit §7- 기본 지급템 설정");
+            sender.sendMessage("§e/" + label + " config §7- 게임 설정 GUI");
+            sender.sendMessage("§e/" + label + " config reload §7- 설정 리로드");
+            sender.sendMessage("§e/" + label + " config setspawn §7- 게임 시작 위치 지정");
+            sender.sendMessage("§e/" + label + " test <횟수> §7- 능력 추첨 테스트");
+        }
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        boolean isAdmin = hasAdminPermission(sender);
+
+        if (args.length == 1) {
+            List<String> completions = new ArrayList<>();
+            // 일반 유저 허용
+            completions.add("info");
+            completions.add("abilities");
+            completions.add("ability");
+            // 관리자 전용
+            if (isAdmin) {
+                completions.add("start");
+                completions.add("stop");
+                completions.add("debug");
+                completions.add("toolkit");
+                completions.add("config");
+                completions.add("test");
+            }
+            return completions;
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("config") && isAdmin) {
+            return List.of("reload", "setspawn", "setstart", "gui");
+        }
+        return List.of();
+    }
+
+    private void runAbilityDrawTest(Player player, int drawCount) {
+        Map<String, Integer> stats = new HashMap<>();
+        int optionsPerDraw = 3;
+
+        player.sendMessage("§6=== 능력 추첨 테스트 시작 ===");
+        player.sendMessage("§7총 " + drawCount + "회 추첨, 회당 " + optionsPerDraw + "개 능력 등장");
+
+        for (int i = 0; i < drawCount; i++) {
+            List<AbilityDefinition> options = abilityRegistry.getRandomOptions(optionsPerDraw);
+            for (AbilityDefinition ability : options) {
+                String name = ability.getName();
+                stats.put(name, stats.getOrDefault(name, 0) + 1);
+            }
+        }
+
+        // 통계 정렬 및 출력
+        player.sendMessage("");
+        player.sendMessage("§6=== 능력 등장 통계 ===");
+        player.sendMessage("§7(총 " + (drawCount * optionsPerDraw) + "회 등장 중)");
+        player.sendMessage("");
+
+        // 등장 횟수 내림차순 정렬
+        List<Map.Entry<String, Integer>> sorted = new ArrayList<>(stats.entrySet());
+        sorted.sort((a, b) -> b.getValue().compareTo(a.getValue()));
+
+        for (Map.Entry<String, Integer> entry : sorted) {
+            String name = entry.getKey();
+            int count = entry.getValue();
+            double percentage = (double) count / (drawCount * optionsPerDraw) * 100;
+            player.sendMessage(String.format("§e%s §7- §f%d회 §7(%.1f%%)", name, count, percentage));
+        }
+
+        player.sendMessage("");
+        player.sendMessage("§6=== 테스트 완료 ===");
+        player.sendMessage("§7등록된 능력 수: §f" + abilityRegistry.getAll().size());
+        player.sendMessage("§7등장한 능력 수: §f" + stats.size());
+    }
+}

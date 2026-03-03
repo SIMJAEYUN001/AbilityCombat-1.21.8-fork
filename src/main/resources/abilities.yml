@@ -1,0 +1,442 @@
+abilities:
+  - name: "제우스 (Zeus)"
+    rank: S
+    icon: LIGHTNING_ROD
+    summary:
+      - "번개 낙뢰"
+      - "순간이동"
+      - "좌클릭: 부양 + 번개 난사"
+      - "광역 기절"
+  - name: "버서커 (Berserker)"
+    rank: S
+    icon: NETHERITE_AXE
+    summary:
+      - "광폭화 (8초)"
+      - "불사 (체력 1 유지)"
+      - "잃은 체력 비례 공격력 증가"
+      - "원거리 피해 감소"
+  - name: "벨리움 (Bellum)"
+    rank: S
+    icon: SHIELD
+    summary:
+      - "기력 소모형 돌진"
+      - "기절"
+  - name: "글래디에이터 (Gladiator)"
+    rank: S
+    icon: IRON_BARS
+    summary:
+      - "1:1 투기장 생성"
+  - name: "글래시어 (Glacier)"
+    rank: S
+    icon: BLUE_ICE
+    summary:
+      - "빙결 스택"
+      - "쇄빙 피해"
+  - name: "스나이퍼 (Sniper)"
+    rank: S
+    icon: SPYGLASS
+    summary:
+      - "초고속 저격 투사체"
+  - name: "소드 마스터 (SwordMaster)"
+    rank: S
+    icon: NETHERITE_SWORD
+    summary:
+      - "검기 충전/발사"
+      - "궁극기"
+  - name: "루베르 (Ruber)"
+    rank: S
+    icon: REDSTONE
+    summary:
+      - "흡혈"
+      - "출혈"
+      - "전염병"
+  - name: "로렘 (Lorem)"
+    rank: S
+    icon: IRON_SWORD
+    summary:
+      - "검기 발사"
+      - "도약"
+      - "연속타격"
+  - name: "영혼 잠식 (SoulEncroach)"
+    rank: S
+    icon: SOUL_LANTERN
+    summary:
+      - "영혼 잠식"
+      - "체력 비례 피해"
+  - name: "시간 역행 (TimeRewind)"
+    rank: S
+    icon: CLOCK
+    summary:
+      - "5초 전 상태 복귀"
+      - "자동 발동"
+  - name: "감쇠광선 (DecayRay)"
+    rank: S
+    icon: END_ROD
+    summary:
+      - "약화 스택 부여"
+      - "크기/데미지 감소"
+  - name: "아레스 (Ares)"
+    rank: A
+    icon: BLAZE_POWDER
+    summary:
+      - "도약"
+      - "끌어당김"
+      - "밀쳐냄"
+  - name: "기계팔 (MachineArm)"
+    rank: A
+    icon: PISTON
+    summary:
+      - "그랩 발사"
+      - "적중 대상 끌어오기"
+      - "적중 시 데미지 10"
+  - name: "암살자 (Assassin)"
+    rank: A
+    icon: POISONOUS_POTATO
+    summary:
+      - "연속 순간이동 타격"
+      - "출혈"
+  - name: "컬스 (Curse)"
+    rank: A
+    icon: WITHER_ROSE
+    summary:
+      - "저주 인형 (대상 스킨)"
+      - "대미지 전이"
+  - name: "유령 (Ghost)"
+    rank: A
+    icon: PHANTOM_MEMBRANE
+    summary:
+      - "벽 통과"
+      - "악령 효과"
+  - name: "로키 (Loki)"
+    rank: A
+    icon: ENDER_PEARL
+    summary:
+      - "스택 순간이동"
+      - "배후 습격"
+  - name: "테미스 (Themis)"
+    rank: A
+    icon: GOLDEN_SWORD
+    summary:
+      - "살인자에게 추가 피해 (+2, 최대 +16)"
+  - name: "넥스 (Nex)"
+    rank: A
+    icon: ELYTRA
+    summary:
+      - "공중 상승 후 내려찍기"
+  - name: "지진강타 (EarthquakeStrike)"
+    rank: A
+    icon: STONE
+    summary:
+      - "철괴 우클릭: 전방 지진파"
+      - "적중: 피해 5 + 스턴/채굴피로/멀미 (6초)"
+  - name: "카쟈드 (Khazhad)"
+    rank: A
+    icon: TRIDENT
+    summary:
+      - "삼지창 충전 (7초, 최대 3개)"
+      - "삼지창 발사 (8 피해 + 빙결)"
+      - "박힌 창 폭발 (1.5)"
+  - name: "뱀파이어 (Vampire)"
+    rank: A
+    icon: FERMENTED_SPIDER_EYE
+    summary:
+      - "철괴 우클릭: 주변 광역 고정 피해 및 스택 획득"
+      - "패시브: 스택당 체력/최대체력 증가 및 추가 데미지(스택당 0.4)"
+  - name: "흡혈마 (BloodFiend)"
+    rank: S
+    icon: NETHER_WART
+    summary:
+      - "흡혈 스택: 스택당 +1 피해"
+      - "철괴 우클릭: 4칸 내 체력 강탈"
+  - name: "좀비 (Zombie)"
+    rank: A
+    icon: ROTTEN_FLESH
+    summary:
+      - "좀비 무리 소환"
+      - "감염"
+  - name: "해파리 (JellyFish)"
+    rank: A
+    icon: HEART_OF_THE_SEA
+    summary:
+      - "근접 공격 시 기절"
+  - name: "해커 (Hacker)"
+    rank: A
+    icon: COMMAND_BLOCK
+    summary:
+      - "해킹 기절"
+      - "좌표 파악"
+  - name: "테러리스트 (Terrorist)"
+    rank: A
+    icon: TNT
+    summary:
+      - "TNT 대량 소환"
+      - "폭발 면역"
+  - name: "이라 (Ira)"
+    rank: A
+    icon: FIRE_CHARGE
+    summary:
+      - "3회 피격마다 폭발"
+  - name: "베르투스 (Virtus)"
+    rank: A
+    icon: TOTEM_OF_UNDYING
+    summary:
+      - "피해 90% 감소"
+      - "지속시간 2.5초"
+  - name: "리버레이터 (Liberator)"
+    rank: A
+    icon: SPECTRAL_ARROW
+    summary:
+      - "영혼 분리 돌진"
+      - "반사 피해"
+  - name: "도플갱어 (Doppelganger)"
+    rank: A
+    icon: PLAYER_HEAD
+    summary:
+      - "게임 시작 시 능력 복제"
+      - "대상 처치 시 체력 +10"
+      - "실패 시 사망"
+  - name: "헤르밋 (Hermit)"
+    rank: A
+    icon: TURTLE_HELMET
+    summary:
+      - "비전투 20초 시 은신 (장비 포함)"
+      - "타게팅 불가"
+  - name: "지금의 일은 나중의 나에게 (Lazyness)"
+    rank: A
+    icon: CLOCK
+    summary:
+      - "피해 3초 지연"
+      - "감소"
+  - name: "거인 (Giant)"
+    rank: A
+    icon: RABBIT_FOOT
+    summary:
+      - "크기 +50%"
+      - "체력/데미지/사거리 증가"
+  - name: "거인 학살자 (GiantSlayer)"
+    rank: A
+    icon: DRAGON_BREATH
+    summary:
+      - "크기 -30%"
+      - "크기 차이당 추가 피해"
+  - name: "탄환세례 (BulletBarrage)"
+    rank: A
+    icon: ARROW
+    summary:
+      - "화살 적중 시 유도 탄환 4발"
+      - "탄환당 1 고정 피해"
+  - name: "마술사 (Magician)"
+    rank: A
+    icon: FIREWORK_STAR
+    summary:
+      - "범위 피해"
+      - "위치 뒤섞기"
+  - name: "관통화살 (PenetrationArrow)"
+    rank: S
+    icon: TIPPED_ARROW
+    summary:
+      - "관통 화살"
+      - "탄환 효과"
+  - name: "마그넷 (Magnet)"
+    rank: A
+    icon: IRON_INGOT
+    summary:
+      - "자력 끌어당기기"
+  - name: "모르페우스 (Morpheus)"
+    rank: A
+    icon: WHITE_BED
+    summary:
+      - "수면 유도"
+      - "30초 쿨타임"
+  - name: "심안 (DarkVision)"
+    rank: B
+    icon: ENDER_EYE
+    summary:
+      - "실명 + 신속 + 적 발광"
+  - name: "생존 본능 (SurvivalInstinct)"
+    rank: B
+    icon: GOLDEN_APPLE
+    summary:
+      - "1회 죽음 방지"
+  - name: "스왑 (Swap)"
+    rank: B
+    icon: CHORUS_FRUIT
+    summary:
+      - "핫바 슬롯 랜덤 변경"
+  - name: "리버스 (Reverse)"
+    rank: A
+    icon: PISTON
+    summary:
+      - "패시브: 넉백 및 끌어당김 반전"
+      - "우클릭: 대상과 체력 비율 교환"
+  - name: "쇼맨쉽 (ShowmanShip)"
+    rank: B
+    icon: FIREWORK_ROCKET
+    summary:
+      - "관중 수에 따른 힘 버프"
+  - name: "신지드 (Singed)"
+    rank: A
+    icon: POTION
+    summary:
+      - "독성 자취 (4초) + 독 부여 시 쿨감"
+      - "철괴 우클릭: 25초 신속2/저항2, 독 강화"
+  - name: "납치 (Kidnap)"
+    rank: B
+    icon: LEAD
+    summary:
+      - "대상 업고 던지기"
+  - name: "구속 (Imprison)"
+    rank: B
+    icon: GLASS
+    summary:
+      - "유리구 감금"
+  - name: "초신성 (SuperNova)"
+    rank: B
+    icon: NETHER_STAR
+    summary:
+      - "사망 시 대폭발"
+  - name: "상위존재 (HigherBeing)"
+    rank: B
+    icon: DRAGON_EGG
+    summary:
+      - "높은 위치에서 추가 피해"
+  - name: "고슴도치 (Hedgehog)"
+    rank: B
+    icon: CACTUS
+    summary:
+      - "3칸 내 적에게 초당 1 고정 피해"
+  - name: "낙법의 달인 (ExpertOfFall)"
+    rank: B
+    icon: FEATHER
+    summary:
+      - "낙하 피해 무효 및 저장 (최대 20)"
+      - "10초 내 공격 시 저장된 피해 반사"
+  - name: "플로라 (Flora)"
+    rank: A
+    icon: SUNFLOWER
+    summary:
+      - "자연 치유"
+  - name: "보이드 (Void)"
+    rank: A
+    icon: OBSIDIAN
+    summary:
+      - "공허 능력"
+  - name: "스토커 (Stalker)"
+    rank: A
+    icon: COMPASS
+    summary:
+      - "집착 스택: 스택당 +3% 피해"
+      - "10초 유지, 철괴/검 우클릭 돌진"
+  - name: "예티 (Yeti)"
+    rank: A
+    icon: SNOW_BLOCK
+    summary:
+      - "모든 눈/얼음 위 버프"
+      - "지형 얼음화 (15칸, 꽁꽁언 얼음)"
+  - name: "제논 (Xenon)"
+    rank: A
+    icon: GLOWSTONE_DUST
+    summary:
+      - "12초마다 보호막 +10 (최대 20)"
+      - "오버클럭: +5 x7"
+      - "보호막 없으면 피해 +30%"
+  - name: "데미갓 (Demigod)"
+    rank: S
+    icon: GOLDEN_HELMET
+    summary:
+      - "반신"
+  - name: "황제 (Emperor)"
+    rank: A
+    icon: GOLDEN_CHESTPLATE
+    summary:
+      - "폭발 + 근위병 2마리 소환 (20초)"
+      - "힘2/저항2/신속2 버프"
+  - name: "이열치열 (FireFightWithFire)"
+    rank: A
+    icon: BLAZE_ROD
+    summary:
+      - "불 반격"
+  - name: "악마의 부츠 (DevilBoots)"
+    rank: B
+    icon: NETHERITE_BOOTS
+    summary:
+      - "용암 위 이동"
+  - name: "호박 (Pumpkin)"
+    rank: A
+    icon: CARVED_PUMPKIN
+    summary:
+      - "호박 강제 착용 (15초)"
+      - "호박 쓴 적 20% 미만 시 처형"
+  - name: "대기만성 (LateBloom)"
+    rank: A
+    icon: GOLDEN_CARROT
+    summary:
+      - "받는 피해↑, 스택당 추가 피해↑"
+      - "철괴 좌클릭: 스택 폭발 → 버프 → 즉사"
+  - name: "정조준 일격 (AimedStrike)"
+    rank: A
+    icon: TARGET
+    summary:
+      - "활 원거리 적중 시 정조준 일격 발사"
+      - "피해 18"
+  - name: "폴터가이스트 (Poltergeist)"
+    rank: A
+    icon: SNOWBALL
+    summary:
+      - "느린 눈덩이 적중 시 주변 4칸 적 공중 부양"
+      - "4초 후 내리찍기 + 드래곤 숨결 이펙트"
+      - "피해 10, 쿨타임 90초"
+  - name: "리바이 병장 (LeviAckerman)"
+    rank: A
+    icon: FISHING_ROD
+    summary:
+      - "낚시대(입체기동장치) 지급, 적중 시 돌진"
+      - "거인 능력자에게 +100% 데미지"
+  - name: "광대 (Clown)"
+    rank: A
+    icon: NOTE_BLOCK
+    summary:
+      - "철괴 우클릭: 전방 순간이동 + 은신"
+      - "재사용 시 원위치 복귀, 주변 적 공포"
+      - "후방 공격 시 공포 + 1.35배 피해"
+  - name: "그래플링 훅 (GrapplingHook)"
+    rank: L
+    icon: TRIPWIRE_HOOK
+    summary:
+      - "낙하 피해 무효"
+      - "철괴 우클릭: 후크 투사체 발사 후 적중 위치로 이동"
+      - "웅크리기: 강하게 도약, 근처 적 기절 및 최대 체력 15% 피해"
+  - name: "레드비어드 (RedBeard)"
+    rank: B
+    icon: RED_WOOL
+    summary:
+      - "철괴 우클릭: 주변 적 밀쳐내기 + 피해(6)"
+      - "자신 힘 버프(10초)"
+  - name: "허수아비 (Scarecrow)"
+    rank: B
+    icon: HAY_BLOCK
+    summary:
+      - "철괴 우클릭: 허수아비 소환"
+      - "허수아비 피해: 50% 반사"
+      - "정지 시 타게팅 불가"
+  - name: "소울 (Soul)"
+    rank: S
+    icon: SOUL_TORCH
+    summary:
+      - "검 우클릭: 두려움 흡수, 대상 밀치기/끌어오기"
+      - "철괴 우클릭: 두려움 소모, 주변 공포 + 유령 소환"
+      - "더블 점프: 유령화 돌진 후 공포"
+      - "낙하 피해 무효"
+  - name: "바이러스 (Virus)"
+    rank: C
+    icon: SLIME_BALL
+    summary:
+      - "사망 시 처치자에게 감염"
+  - name: "사냥꾼 (Hunter)"
+    rank: S
+    icon: CROSSBOW
+    summary:
+      - "근접 피해 40% 감소"
+      - "석궁 자동 장전, 적중시 쿨감"
+      - "정조준: 폭발 화살 (18 광역, 50초)"
+      - "추적: 발광 + 피해↑ (15초, 45초)"
