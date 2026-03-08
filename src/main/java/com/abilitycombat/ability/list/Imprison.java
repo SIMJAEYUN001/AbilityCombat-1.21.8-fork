@@ -26,11 +26,11 @@ import org.bukkit.potion.PotionEffectType;
         "§f15초§7마다 유리구의 강도가 §f1§7씩 증가합니다. (최대 §f4§7)",
         "§7사용 후 강도가 초기화됩니다.",
         "",
-        "§e§l[철괴 좌클릭 - 감금]§f §8(쿨타임: 30초)",
+        "§e§l[철괴 좌클릭 - 감금]§f §8(쿨타임: 20초)",
         "§7바라보는 대상(§f8칸§7 이내)을 유리구 안에 가둡니다.",
         "§7유리구는 §f6초§7간 지속되며 대상은 §8구속1§7에 §f8초§7간 걸립니다.",
         "",
-        "§e§l[철괴 우클릭 - 자가 보호]§f §8(쿨타임: 30초)",
+        "§e§l[철괴 우클릭 - 자가 보호]§f §8(쿨타임: 20초)",
         "§7자신을 보호하는 유리구를 생성하고",
         "§f체력 4를 즉시 회복§7하고 자신을 보호합니다.",
         "",
@@ -41,7 +41,7 @@ import org.bukkit.potion.PotionEffectType;
 })
 public class Imprison extends AbilityBase implements ActiveHandler {
 
-    private static final int COOLDOWN_SECONDS = 30;
+    private static final int COOLDOWN_SECONDS = 20;
     private static final int DURATION_SECONDS = 6;
     private static final int STRENGTH_INTERVAL = 15;
     private static final int MAX_STRENGTH = 4;

@@ -1,9 +1,11 @@
 package com.abilitycombat.ability.list;
 
+import com.abilitycombat.AbilityCombat;
 import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.ability.handler.ActiveHandler;
 import com.abilitycombat.ability.handler.TargetHandler;
+import com.abilitycombat.game.GameManager;
 import com.abilitycombat.game.Participant;
 import com.abilitycombat.utils.LocationUtil;
 import org.bukkit.Bukkit;
@@ -137,7 +139,10 @@ public class Gladiator extends AbilityBase implements TargetHandler, ActiveHandl
 
     private Location buildArenaCenter(Player player) {
         World world = player.getWorld();
-        Location borderCenter = world.getWorldBorder().getCenter();
+        AbilityCombat plugin = AbilityCombat.getPlugin();
+        GameManager gameManager = plugin != null ? plugin.getGameManager() : null;
+        Location borderCenter = gameManager != null ? gameManager.getGameBorderCenter(world)
+                : world.getWorldBorder().getCenter();
         // 자기장(월드 보더) 중심 상공에 결투장 생성
         return new Location(world, borderCenter.getX(), ARENA_Y, borderCenter.getZ());
     }

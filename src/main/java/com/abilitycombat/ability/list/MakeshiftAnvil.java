@@ -39,7 +39,7 @@ import java.util.Random;
 public class MakeshiftAnvil extends AbilityBase {
 
     private final Random random = new Random();
-    private int lastPhaseIndex = 0;
+    private int lastPhaseIndex = -1;
 
     public MakeshiftAnvil(Participant participant) {
         super(participant);
@@ -49,7 +49,7 @@ public class MakeshiftAnvil extends AbilityBase {
     protected void onActivate() {
         registerTick();
         subscribeEvent(PlayerDeathEvent.class);
-        lastPhaseIndex = Math.max(1, getCurrentPhaseIndex());
+        lastPhaseIndex = -1;
     }
 
     @Override
@@ -69,10 +69,18 @@ public class MakeshiftAnvil extends AbilityBase {
         if (tick % 20 != 0) {
             return;
         }
-        int currentPhase = getCurrentPhaseIndex();
-        if (currentPhase <= lastPhaseIndex) {
+        int currentPhase = Math.max(1, getCurrentPhaseIndex());
+
+        // 게임 재시작 등으로 페이즈 인덱스가 내려간 경우 기준점을 재동기화한다.
+        if (lastPhaseIndex < 0 || currentPhase < lastPhaseIndex) {
+            lastPhaseIndex = currentPhase;
             return;
         }
+
+        if (currentPhase == lastPhaseIndex) {
+            return;
+        }
+
         int phaseDiff = currentPhase - lastPhaseIndex;
         lastPhaseIndex = currentPhase;
         for (int i = 0; i < phaseDiff; i++) {

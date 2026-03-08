@@ -68,6 +68,7 @@ import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -132,7 +133,7 @@ public class GameManager implements Listener {
     private static final String SELECTION_HUD_KEY = "aw:selection";
     private static final int SELECTION_HUD_PRIORITY = 1;
     private static final String VICTORY_FIREWORK_KEY = "victory_firework";
-    private static final int BORDER_DAMAGE_INTERVAL_SECONDS = 2;
+    private static final int BORDER_DAMAGE_INTERVAL_SECONDS = 1;
     private GameState state = GameState.IDLE;
     private BukkitTask selectionTask;
     private BukkitTask gameTask;
@@ -1114,29 +1115,32 @@ public class GameManager implements Listener {
 	        if (world == null) {
 	            return;
 	        }
-	        worldBorder = world.getWorldBorder();
+	        WorldBorder actualBorder = world.getWorldBorder();
         gameBorderWorld = world;
 
-	        // 원본 정보가 없을 때만 저장 (게임 최초 시작 시)
-	        // 현재 월드보더가 게임 크기(initialBorderRadius * 2)가 아닐 때만 저장
-	        double currentSize = worldBorder.getSize();
-	        int startRadius = !borderPhases.isEmpty() ? borderPhases.get(0).getRadius() : initialBorderRadius;
-	        double gameSize = startRadius * 2.0;
-	        if (originalBorderWorld == null && Math.abs(currentSize - gameSize) > 1.0) {
+	        if (originalBorderWorld == null) {
 	            originalBorderWorld = world;
-	            originalBorderCenter = worldBorder.getCenter();
-	            originalBorderSize = currentSize;
+	            originalBorderCenter = actualBorder.getCenter();
+	            originalBorderSize = actualBorder.getSize();
 	        }
 
+	        int startRadius = !borderPhases.isEmpty() ? borderPhases.get(0).getRadius() : initialBorderRadius;
+	        double gameSize = startRadius * 2.0;
 	        Location center = startLocation != null ? startLocation : world.getSpawnLocation();
+	        worldBorder = Bukkit.createWorldBorder();
 	        worldBorder.setCenter(center);
 	        worldBorder.setSize(gameSize);
-
-	        // 바닐라 월드보더 데미지는 비활성화하고, 페이즈 기반 고정 초당 데미지를 별도로 적용한다.
 	        worldBorder.setDamageBuffer(0.0);
 	        worldBorder.setDamageAmount(0.0);
-	        worldBorder.setWarningDistance(5); // 경고 거리 5블록
-	        worldBorder.setWarningTimeTicks(15 * 20); // 축소 경고 15초 (300틱)
+	        worldBorder.setWarningDistance(5);
+	        worldBorder.setWarningTimeTicks(15 * 20);
+
+	        actualBorder.setSize(WORLD_BORDER_MAX_SIZE);
+	        actualBorder.setDamageBuffer(5.0);
+	        actualBorder.setDamageAmount(0.2);
+	        actualBorder.setWarningDistance(5);
+	        actualBorder.setWarningTimeTicks(15 * 20);
+	        syncWorldBorderForAllPlayers();
 	    }
 
 	    private void initBorderPhases() {
@@ -1243,12 +1247,12 @@ public class GameManager implements Listener {
 
     private void resetWorldBorder() {
         // 게임이 진행된 월드의 보더를 찾아서 리셋
-        World world = null;
-        if (startLocation != null && startLocation.getWorld() != null) {
+        World world = gameBorderWorld;
+        if (world == null && startLocation != null && startLocation.getWorld() != null) {
             world = startLocation.getWorld();
-        } else if (originalBorderWorld != null) {
+        } else if (world == null && originalBorderWorld != null) {
             world = originalBorderWorld;
-        } else if (!Bukkit.getWorlds().isEmpty()) {
+        } else if (world == null && !Bukkit.getWorlds().isEmpty()) {
             world = Bukkit.getWorlds().get(0);
         }
 
@@ -1282,6 +1286,44 @@ public class GameManager implements Listener {
         originalBorderWorld = null;
         originalBorderCenter = null;
         originalBorderSize = 0;
+        syncWorldBorderForAllPlayers();
+    }
+
+    public boolean isInsideGameBorder(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return true;
+        }
+        if (worldBorder != null && gameBorderWorld != null && gameBorderWorld.equals(location.getWorld())) {
+            return worldBorder.isInside(location);
+        }
+        return location.getWorld().getWorldBorder().isInside(location);
+    }
+
+    public Location getGameBorderCenter(World world) {
+        if (world == null) {
+            return null;
+        }
+        if (worldBorder != null && gameBorderWorld != null && gameBorderWorld.equals(world)) {
+            return worldBorder.getCenter();
+        }
+        return world.getWorldBorder().getCenter();
+    }
+
+    private void syncWorldBorderForAllPlayers() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            syncPlayerWorldBorder(player);
+        }
+    }
+
+    private void syncPlayerWorldBorder(Player player) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        if (worldBorder != null && gameBorderWorld != null && gameBorderWorld.equals(player.getWorld())) {
+            player.setWorldBorder(worldBorder);
+            return;
+        }
+        player.setWorldBorder(player.getWorld().getWorldBorder());
     }
 
     private void startFixedDaytime() {
@@ -2634,12 +2676,11 @@ public class GameManager implements Listener {
                 event.setRespawnLocation(player.getWorld().getSpawnLocation());
             }
             setSpectator(player);
-            return;
-        }
-        if (state == GameState.IDLE) {
+        } else if (state == GameState.IDLE) {
             Location lobby = lobbyLocation != null ? lobbyLocation : player.getWorld().getSpawnLocation();
             event.setRespawnLocation(lobby);
         }
+        Bukkit.getScheduler().runTask(plugin, () -> syncPlayerWorldBorder(player));
     }
 
     private Location loadStartLocation() {
@@ -2693,10 +2734,17 @@ public class GameManager implements Listener {
         applyHungerLock(player);
         if (state == GameState.IDLE) {
             teleportToLobby(player);
-            return;
+        } else {
+            participants.putIfAbsent(player.getUniqueId(), new Participant(player));
+            setSpectator(player);
         }
-        participants.putIfAbsent(player.getUniqueId(), new Participant(player));
-        setSpectator(player);
+        Bukkit.getScheduler().runTask(plugin, () -> syncPlayerWorldBorder(player));
+    }
+
+    @EventHandler
+    public void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
+        Player player = event.getPlayer();
+        Bukkit.getScheduler().runTask(plugin, () -> syncPlayerWorldBorder(player));
     }
 
     @EventHandler

@@ -1,9 +1,11 @@
 package com.abilitycombat.ability.list;
 
+import com.abilitycombat.AbilityCombat;
 import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.ability.handler.ActiveHandler;
 import com.abilitycombat.effect.Stun;
+import com.abilitycombat.game.GameManager;
 import com.abilitycombat.game.Participant;
 import com.abilitycombat.utils.NearbyEntityCache;
 import com.abilitycombat.utils.ParticleUtil;
@@ -267,10 +269,15 @@ public class Bellum extends AbilityBase implements ActiveHandler {
 
     private boolean isBlockObstructing(Location location, Vector direction) {
         Location front = location.clone().add(direction);
-        WorldBorder border = location.getWorld().getWorldBorder();
+        AbilityCombat plugin = AbilityCombat.getPlugin();
+        GameManager gameManager = plugin != null ? plugin.getGameManager() : null;
+        boolean crossesBorder = gameManager != null
+                ? gameManager.isInsideGameBorder(location) && !gameManager.isInsideGameBorder(front)
+                : location.getWorld().getWorldBorder().isInside(location)
+                        && !location.getWorld().getWorldBorder().isInside(front);
         return isSolid(front.getBlock())
                 || isSolid(front.clone().add(0, 1, 0).getBlock())
-                || (border.isInside(location) && !border.isInside(front));
+                || crossesBorder;
     }
 
     private boolean isSolid(Block block) {
