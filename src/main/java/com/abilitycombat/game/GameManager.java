@@ -606,13 +606,43 @@ public class GameManager implements Listener {
 
     private void giveToolkit(Player player) {
         player.getInventory().clear();
-        for (org.bukkit.inventory.ItemStack item : ToolkitGui.getToolkitItems(plugin)) {
-            player.getInventory().addItem(item);
+        var inventory = player.getInventory();
+        for (ItemStack item : ToolkitGui.getToolkitItems(plugin)) {
+            if (item == null || item.getType() == Material.AIR) {
+                continue;
+            }
+            if (!equipToolkitArmor(inventory, item.clone())) {
+                inventory.addItem(item);
+            }
         }
         int level = ToolkitGui.getToolkitLevel(plugin);
         player.setLevel(level);
         player.setExp(0f);
         player.setTotalExperience(0);
+    }
+
+    private boolean equipToolkitArmor(org.bukkit.inventory.PlayerInventory inventory, ItemStack item) {
+        if (inventory == null || item == null) {
+            return false;
+        }
+        Material type = item.getType();
+        if (type.name().endsWith("_HELMET")) {
+            inventory.setHelmet(item);
+            return true;
+        }
+        if (type.name().endsWith("_CHESTPLATE")) {
+            inventory.setChestplate(item);
+            return true;
+        }
+        if (type.name().endsWith("_LEGGINGS")) {
+            inventory.setLeggings(item);
+            return true;
+        }
+        if (type.name().endsWith("_BOOTS")) {
+            inventory.setBoots(item);
+            return true;
+        }
+        return false;
     }
 
     public void saveStartLocation(Location location) {
