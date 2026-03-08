@@ -118,7 +118,7 @@ public class Emperor extends AbilityBase implements ActiveHandler {
         }
         if (isGuard(skeleton)) {
             if (event.getTarget() instanceof LivingEntity living
-                    && !com.abilitycombat.utils.LocationUtil.isValidTarget(living)) {
+                    && !com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), living)) {
                 event.setCancelled(true);
             }
         }
@@ -127,7 +127,7 @@ public class Emperor extends AbilityBase implements ActiveHandler {
     private void onDamageByEntity(EntityDamageByEntityEvent event) {
         // 플레이어가 공격받으면 근위병 타겟 변경
         if (event.getEntity().equals(getPlayer()) && event.getDamager() instanceof LivingEntity damager) {
-            if (com.abilitycombat.utils.LocationUtil.isValidTarget(damager)) {
+            if (com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), damager)) {
                 retargetGuards(damager);
             }
         }
@@ -149,7 +149,7 @@ public class Emperor extends AbilityBase implements ActiveHandler {
 
         // 주변 플레이어 밀쳐내기
         for (LivingEntity entity : com.abilitycombat.utils.LocationUtil.getNearbyLivingEntities(
-                center, KNOCKBACK_RADIUS, e -> !e.equals(player))) {
+                center, KNOCKBACK_RADIUS, player, e -> !e.equals(player))) {
             Vector knockback = entity.getLocation().toVector().subtract(center.toVector()).normalize().multiply(2.0);
             knockback.setY(0.3);
             entity.setVelocity(knockback);
@@ -209,7 +209,7 @@ public class Emperor extends AbilityBase implements ActiveHandler {
         double range = 16.0;
 
         for (LivingEntity entity : player.getWorld().getLivingEntities()) {
-            if (entity.equals(player) || !com.abilitycombat.utils.LocationUtil.isValidTarget(entity)) {
+            if (entity.equals(player) || !com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), entity)) {
                 continue;
             }
             if (entity instanceof Skeleton && isGuard((Skeleton) entity)) {

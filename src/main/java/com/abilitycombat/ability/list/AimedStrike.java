@@ -111,7 +111,7 @@ public class AimedStrike extends AbilityBase {
 
             // 직접 엔티티 충돌 검사 (거리 기반)
             for (LivingEntity entity : com.abilitycombat.utils.LocationUtil.getNearbyLivingEntities(
-                    getLocation(), SLASH_HITBOX_SIZE, e -> !e.equals(getSource()))) {
+                    getLocation(), SLASH_HITBOX_SIZE, getPlayer(), e -> !e.equals(getSource()))) {
                 if (hitEntities.contains(entity.getUniqueId())) {
                     continue; // 이미 맞은 대상 제외
                 }

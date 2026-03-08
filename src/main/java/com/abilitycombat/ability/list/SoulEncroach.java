@@ -514,7 +514,7 @@ public class SoulEncroach extends AbilityBase implements ActiveHandler {
                 }
                 for (LivingEntity living : getPlayer().getWorld().getLivingEntities()) {
                         if (living.getUniqueId().equals(lastHitTarget)) {
-                                if (!com.abilitycombat.utils.LocationUtil.isValidTarget(living)) {
+                                if (!com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), living)) {
                                         return null;
                                 }
                                 return living;

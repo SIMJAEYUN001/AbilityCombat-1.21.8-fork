@@ -16,6 +16,7 @@ public class Participant {
     private AbilityBase ability;
     private AbilityDefinition abilityDefinition;
     private boolean targetable = true;
+    private CombatTeam team;
 
     public Participant(Player player) {
         this.uuid = player.getUniqueId();
@@ -105,5 +106,13 @@ public class Participant {
      */
     public void setTargetable(boolean targetable) {
         this.targetable = targetable;
+    }
+
+    public CombatTeam getTeam() {
+        return team;
+    }
+
+    public void setTeam(CombatTeam team) {
+        this.team = team;
     }
 }

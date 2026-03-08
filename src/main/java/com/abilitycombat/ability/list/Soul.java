@@ -233,7 +233,7 @@ public class Soul extends AbilityBase implements ActiveHandler {
         }
         consumeFear(FEAR_BURST_COST);
         Location center = player.getLocation().clone();
-        for (LivingEntity target : LocationUtil.getNearbyLivingEntities(center, 10.0,
+        for (LivingEntity target : LocationUtil.getNearbyLivingEntities(center, 10.0, player,
                 entity -> !entity.equals(player))) {
             Stun.apply(target, FEAR_BURST_STUN_TICKS);
         }
@@ -277,6 +277,7 @@ public class Soul extends AbilityBase implements ActiveHandler {
                 getParticipant().setTargetable(storedTargetable);
             }
             for (LivingEntity target : LocationUtil.getNearbyLivingEntities(player.getLocation(), GHOST_STUN_RANGE,
+                    player,
                     entity -> !entity.equals(player))) {
                 Stun.apply(target, GHOST_STUN_TICKS);
             }
@@ -351,7 +352,7 @@ public class Soul extends AbilityBase implements ActiveHandler {
         if (player == null || center == null) {
             return;
         }
-        for (LivingEntity target : LocationUtil.getNearbyLivingEntities(center, 10.0,
+        for (LivingEntity target : LocationUtil.getNearbyLivingEntities(center, 10.0, player,
                 entity -> !entity.equals(player))) {
             target.damage(FEAR_BURST_DAMAGE, player);
         }

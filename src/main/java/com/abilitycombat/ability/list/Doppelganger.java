@@ -143,7 +143,7 @@ public class Doppelganger extends AbilityBase implements ActiveHandler, TargetHa
             if (player == null || player.equals(self)) {
                 continue;
             }
-            if (!LocationUtil.isValidTarget(player)) {
+            if (!LocationUtil.isValidTarget(getPlayer(), player)) {
                 continue;
             }
             Participant participant = gameManager.getParticipant(player.getUniqueId());
@@ -189,7 +189,7 @@ public class Doppelganger extends AbilityBase implements ActiveHandler, TargetHa
             return;
         }
         Player target = Bukkit.getPlayer(targetUuid);
-        if (target == null || !target.isOnline() || target.isDead() || !LocationUtil.isValidTarget(target)) {
+        if (target == null || !target.isOnline() || target.isDead() || !LocationUtil.isValidTarget(getPlayer(), target)) {
             Player self = getPlayer();
             if (self != null && !self.isDead()) {
                 fail(self);

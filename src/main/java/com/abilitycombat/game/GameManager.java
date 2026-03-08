@@ -13,6 +13,7 @@ import com.abilitycombat.gui.AbilityDebugGui;
 import com.abilitycombat.gui.AbilitySelectGui;
 import com.abilitycombat.gui.ConfigGui;
 import com.abilitycombat.gui.ToolkitGui;
+import io.papermc.paper.scoreboard.numbers.NumberFormat;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.title.Title;
@@ -41,10 +42,12 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -86,8 +89,10 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scoreboard.Criteria;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
+import org.bukkit.scoreboard.RenderType;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
+import org.bukkit.scoreboard.Team;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -158,6 +163,7 @@ public class GameManager implements Listener {
     private boolean invincible;
     private double borderShrinkSpeed;
     private int initialBorderRadius;
+    private MatchMode selectedMatchMode = MatchMode.SOLO;
 	    private boolean hideSpectators;
 	    private int borderShrinkRemaining;
 	    // Remaining time in the current phase before the next shrink starts (seconds).
@@ -187,9 +193,9 @@ public class GameManager implements Listener {
 	    private int currentPhaseIndex;
     private Location startLocation;
     private Location lobbyLocation;
-    private Scoreboard cachedScoreboard;
-    private Objective cachedObjective;
-    private List<String> cachedScoreboardEntries = new ArrayList<>();
+    private final Map<UUID, Scoreboard> playerScoreboards = new HashMap<>();
+    private final Map<UUID, List<String>> playerSidebarEntries = new HashMap<>();
+    private final Map<UUID, TextDisplay> teamHealthDisplays = new HashMap<>();
 
 	    public GameManager(AbilityCombat plugin, AbilityRegistry abilityRegistry) {
 	        this.plugin = plugin;
@@ -216,6 +222,38 @@ public class GameManager implements Listener {
 
     public boolean isInvincible() {
         return invincible;
+    }
+
+    public MatchMode getSelectedMatchMode() {
+        return selectedMatchMode;
+    }
+
+    public boolean isTeamMode() {
+        return selectedMatchMode == MatchMode.TEAM;
+    }
+
+    public boolean areTeammates(Player first, Player second) {
+        if (!isTeamMode() || first == null || second == null || first.equals(second)) {
+            return false;
+        }
+        Participant firstParticipant = participants.get(first.getUniqueId());
+        Participant secondParticipant = participants.get(second.getUniqueId());
+        if (firstParticipant == null || secondParticipant == null) {
+            return false;
+        }
+        CombatTeam firstTeam = firstParticipant.getTeam();
+        CombatTeam secondTeam = secondParticipant.getTeam();
+        return firstTeam != null && firstTeam == secondTeam;
+    }
+
+    public boolean canApplyNegativeEffect(LivingEntity source, LivingEntity target) {
+        if (source == null || target == null) {
+            return false;
+        }
+        if (!(source instanceof Player sourcePlayer) || !(target instanceof Player targetPlayer)) {
+            return true;
+        }
+        return !areTeammates(sourcePlayer, targetPlayer);
     }
 
     public int getCurrentPhaseIndex() {
@@ -295,16 +333,19 @@ public class GameManager implements Listener {
             // 맵이 1개면 바로 시작, 여러 개면 선택 GUI
             if (mapManager.getMapCount() == 1) {
                 MapData onlyMap = mapManager.getAllMaps().iterator().next();
+                selectedMatchMode = MatchMode.SOLO;
                 startGameWithMap(onlyMap);
             } else {
                 // 명령어 입력자가 플레이어면 그 사람에게 GUI 표시
                 if (sender instanceof Player player) {
-                    player.openInventory(new com.abilitycombat.gui.MapSelectGui(plugin).getInventory());
+                    selectedMatchMode = MatchMode.SOLO;
+                    player.openInventory(new com.abilitycombat.gui.MapSelectGui(plugin, selectedMatchMode).getInventory());
                     return;
                 }
                 // sender가 없거나 콘솔이면 랜덤 맵으로 시작
                 MapData randomMap = mapManager.getRandomMap();
                 if (randomMap != null) {
+                    selectedMatchMode = MatchMode.SOLO;
                     startGameWithMap(randomMap);
                 }
             }
@@ -319,15 +360,16 @@ public class GameManager implements Listener {
         if (state == GameState.IDLE) {
             return;
         }
-        Player winner = resolveWinner();
+        Set<UUID> winners = resolveWinningPlayers();
+        CombatTeam winningTeam = resolveWinningTeam();
         stopTasks();
         restoreFixedDaytime();
         clearSelectionHud();
         resetWorldBorder();
         clearDroppedItems();
-        announceWinner(winner);
-        clearWinnerInventory(winner);
-        playVictoryEffect(winner);
+        announceResult(winningTeam, winners);
+        clearWinnerInventory(winners);
+        playVictoryEffect(winners);
         startMapRestore();
         resetPlayers();
         gatherPlayersToLobby();
@@ -341,15 +383,30 @@ public class GameManager implements Listener {
         storedAi.clear();
         lastSwordSwings.clear();
         clearScoreboard();
+        clearTeamHealthDisplays();
+        selectedMatchMode = MatchMode.SOLO;
         state = GameState.IDLE;
     }
 
-    private Player resolveWinner() {
-        if (alivePlayers.size() != 1) {
-            return null;
+    private Set<UUID> resolveWinningPlayers() {
+        if (!isTeamMode()) {
+            if (alivePlayers.size() != 1) {
+                return Set.of();
+            }
+            return Set.of(alivePlayers.iterator().next());
         }
-        UUID uuid = alivePlayers.iterator().next();
-        return Bukkit.getPlayer(uuid);
+        CombatTeam winningTeam = resolveWinningTeam();
+        if (winningTeam == null) {
+            return Set.of();
+        }
+        Set<UUID> winners = new HashSet<>();
+        for (UUID uuid : alivePlayers) {
+            Participant participant = participants.get(uuid);
+            if (participant != null && winningTeam == participant.getTeam()) {
+                winners.add(uuid);
+            }
+        }
+        return winners;
     }
 
     private void clearDroppedItems() {
@@ -364,31 +421,69 @@ public class GameManager implements Listener {
         }
     }
 
-    private void announceWinner(Player winner) {
-        if (winner == null) {
+    private CombatTeam resolveWinningTeam() {
+        if (!isTeamMode()) {
+            return null;
+        }
+        int redAlive = countAlivePlayers(CombatTeam.RED);
+        int blueAlive = countAlivePlayers(CombatTeam.BLUE);
+        if (redAlive > 0 && blueAlive <= 0) {
+            return CombatTeam.RED;
+        }
+        if (blueAlive > 0 && redAlive <= 0) {
+            return CombatTeam.BLUE;
+        }
+        return null;
+    }
+
+    private void announceResult(CombatTeam winningTeam, Set<UUID> winners) {
+        if (winners.isEmpty()) {
             return;
         }
         Title.Times times = Title.Times.times(Duration.ofMillis(500), Duration.ofMillis(3000), Duration.ofMillis(500));
-        Title titleObj = Title.title(
-                Component.text("승리!").color(NamedTextColor.GOLD),
-                Component.text(winner.getName()).color(NamedTextColor.WHITE),
-                times);
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            player.showTitle(titleObj);
-        }
-    }
-
-    private void clearWinnerInventory(Player winner) {
-        if (winner == null) {
+        if (!isTeamMode()) {
+            Player winner = Bukkit.getPlayer(winners.iterator().next());
+            if (winner == null) {
+                return;
+            }
+            Title titleObj = Title.title(
+                    Component.text("승리!").color(NamedTextColor.GOLD),
+                    Component.text(winner.getName()).color(NamedTextColor.WHITE),
+                    times);
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                player.showTitle(titleObj);
+            }
             return;
         }
-        winner.getInventory().clear();
-        winner.getInventory().setArmorContents(new ItemStack[4]);
-        winner.getInventory().setItemInOffHand(null);
+        if (winningTeam == null) {
+            return;
+        }
+        plugin.getServer().broadcast(Component.text(winningTeam.getDisplayName() + " 승리!", winningTeam.getColor()));
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            boolean winner = winners.contains(player.getUniqueId());
+            Title titleObj = Title.title(
+                    Component.text(winner ? "승리!" : "패배...", winner ? NamedTextColor.GOLD : NamedTextColor.RED),
+                    Component.text(winningTeam.getDisplayName(), winningTeam.getColor()),
+                    times);
+            player.showTitle(titleObj);
+            player.sendMessage(winner ? "§6승리했습니다!" : "§c패배했습니다.");
+        }
     }
 
-    private void playVictoryEffect(Player winner) {
-        if (winner == null) {
+    private void clearWinnerInventory(Set<UUID> winners) {
+        for (UUID uuid : winners) {
+            Player winner = Bukkit.getPlayer(uuid);
+            if (winner == null) {
+                continue;
+            }
+            winner.getInventory().clear();
+            winner.getInventory().setArmorContents(new ItemStack[4]);
+            winner.getInventory().setItemInOffHand(null);
+        }
+    }
+
+    private void playVictoryEffect(Set<UUID> winners) {
+        if (winners.isEmpty()) {
             return;
         }
         victoryTask = trackTask(new BukkitRunnable() {
@@ -401,16 +496,18 @@ public class GameManager implements Listener {
                     cancel();
                     return;
                 }
-                if (!winner.isOnline()) {
-                    bursts--;
-                    return;
-                }
-                Location base = winner.getLocation().clone();
-                for (int i = 0; i < 3; i++) {
-                    double dx = (random.nextDouble() - 0.5) * 4.0;
-                    double dz = (random.nextDouble() - 0.5) * 4.0;
-                    Location spawn = base.clone().add(dx, 0.5, dz);
-                    spawnVictoryFirework(spawn);
+                for (UUID uuid : winners) {
+                    Player winner = Bukkit.getPlayer(uuid);
+                    if (winner == null || !winner.isOnline()) {
+                        continue;
+                    }
+                    Location base = winner.getLocation().clone();
+                    for (int i = 0; i < 3; i++) {
+                        double dx = (random.nextDouble() - 0.5) * 4.0;
+                        double dz = (random.nextDouble() - 0.5) * 4.0;
+                        Location spawn = base.clone().add(dx, 0.5, dz);
+                        spawnVictoryFirework(spawn);
+                    }
                 }
                 bursts--;
             }
@@ -866,6 +963,7 @@ public class GameManager implements Listener {
             Participant participant = new Participant(player);
             participants.put(player.getUniqueId(), participant);
             alivePlayers.add(player.getUniqueId());
+            participant.setTeam(null);
             participant.setTargetable(true);
             participant.clearAbility();
             resetPlayerAttributes(player);
@@ -878,7 +976,32 @@ public class GameManager implements Listener {
             giveToolkit(player);
             player.teleport(getRandomStartLocation(player));
         }
+        assignTeamsIfNeeded();
         updateVisibility();
+    }
+
+    private void assignTeamsIfNeeded() {
+        if (!isTeamMode()) {
+            for (Participant participant : participants.values()) {
+                participant.setTeam(null);
+            }
+            return;
+        }
+        List<UUID> shuffled = new ArrayList<>(alivePlayers);
+        Collections.shuffle(shuffled, random);
+        int splitIndex = (shuffled.size() + 1) / 2;
+        for (int i = 0; i < shuffled.size(); i++) {
+            Participant participant = participants.get(shuffled.get(i));
+            if (participant == null) {
+                continue;
+            }
+            CombatTeam team = i < splitIndex ? CombatTeam.RED : CombatTeam.BLUE;
+            participant.setTeam(team);
+            Player player = participant.getPlayer();
+            if (player != null) {
+                player.sendMessage("§e당신의 팀: " + (team == CombatTeam.RED ? "§c레드팀" : "§9블루팀"));
+            }
+        }
     }
 
     private Location getRandomStartLocation(Player player) {
@@ -1084,8 +1207,17 @@ public class GameManager implements Listener {
 	        initBorderPhases();
 	        stopGameTask();
 	        updateScoreboard();
+            startVisualTask();
 	        startGameTimerInternal();
 	    }
+
+    private void startVisualTask() {
+        if (visualTask != null) {
+            visualTask.cancel();
+            untrackTask(visualTask);
+        }
+        visualTask = trackTask(Bukkit.getScheduler().runTaskTimer(plugin, this::updateTeamHealthDisplays, 1L, 5L));
+    }
 
     private void startGameTimerInternal() {
         stopGameTask();
@@ -1803,42 +1935,14 @@ public class GameManager implements Listener {
         if (manager == null) {
             return;
         }
-        if (cachedScoreboard == null || cachedObjective == null) {
-            cachedScoreboard = manager.getNewScoreboard();
-            cachedObjective = cachedScoreboard.registerNewObjective("aw_status", Criteria.DUMMY,
-                    Component.text("AbilityCombat").color(NamedTextColor.GOLD));
-            cachedObjective.setDisplaySlot(DisplaySlot.SIDEBAR);
-            cachedScoreboardEntries = new ArrayList<>();
-        }
-        List<String> lines = buildScoreboardLines();
-        Set<String> used = new HashSet<>();
-        List<String> entries = new ArrayList<>(lines.size());
-        for (String line : lines) {
-            entries.add(makeUniqueLine(line, used));
-        }
-        if (!entries.equals(cachedScoreboardEntries)) {
-            for (String oldEntry : cachedScoreboardEntries) {
-                if (!entries.contains(oldEntry)) {
-                    cachedScoreboard.resetScores(oldEntry);
-                }
-            }
-            int score = entries.size();
-            for (String entry : entries) {
-                cachedObjective.getScore(entry).setScore(score--);
-            }
-            cachedScoreboardEntries = entries;
-        }
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player.getScoreboard() != cachedScoreboard) {
-                player.setScoreboard(cachedScoreboard);
-            }
+            updateScoreboard(player, manager);
         }
     }
 
     private void clearScoreboard() {
-        cachedScoreboard = null;
-        cachedObjective = null;
-        cachedScoreboardEntries = new ArrayList<>();
+        playerScoreboards.clear();
+        playerSidebarEntries.clear();
         ScoreboardManager manager = Bukkit.getScoreboardManager();
         if (manager == null) {
             return;
@@ -1849,7 +1953,7 @@ public class GameManager implements Listener {
         }
     }
 
-	    private List<String> buildScoreboardLines() {
+	    private List<String> buildScoreboardLines(Player viewer) {
 	        List<String> lines = new ArrayList<>();
 	        if (invincible) {
 	            lines.add("§e무적 해제까지: §f" + formatTime(invincibilityRemaining));
@@ -1867,8 +1971,206 @@ public class GameManager implements Listener {
 	        } else {
 	            lines.add("§e다음 페이즈까지 남은 시간: §f" + formatTime(phaseRemaining));
 	        }
+            if (isTeamMode() && viewer != null && isAlive(viewer)) {
+                CombatTeam team = getPlayerTeam(viewer);
+                if (team != null) {
+                    lines.add(" ");
+                    lines.add(team == CombatTeam.RED ? "§c내 팀" : "§9내 팀");
+                    for (String teammate : getAliveTeamMemberNames(team)) {
+                        lines.add((team == CombatTeam.RED ? "§c" : "§9") + teammate);
+                    }
+                }
+            }
 	        return lines;
 	    }
+
+    private void updateScoreboard(Player viewer, ScoreboardManager manager) {
+        UUID viewerId = viewer.getUniqueId();
+        Scoreboard board = playerScoreboards.computeIfAbsent(viewerId, id -> createScoreboard(manager));
+        Objective sidebar = board.getObjective("aw_status");
+        if (sidebar == null) {
+            board = createScoreboard(manager);
+            playerScoreboards.put(viewerId, board);
+            sidebar = board.getObjective("aw_status");
+        }
+        configureTeams(board);
+        List<String> lines = buildScoreboardLines(viewer);
+        Set<String> used = new HashSet<>();
+        List<String> entries = new ArrayList<>(lines.size());
+        for (String line : lines) {
+            entries.add(makeUniqueLine(line, used));
+        }
+        List<String> oldEntries = playerSidebarEntries.getOrDefault(viewerId, List.of());
+        for (String oldEntry : oldEntries) {
+            if (!entries.contains(oldEntry)) {
+                board.resetScores(oldEntry);
+            }
+        }
+        int score = entries.size();
+        for (String entry : entries) {
+            sidebar.getScore(entry).setScore(score--);
+        }
+        playerSidebarEntries.put(viewerId, entries);
+        if (viewer.getScoreboard() != board) {
+            viewer.setScoreboard(board);
+        }
+    }
+
+    private Scoreboard createScoreboard(ScoreboardManager manager) {
+        Scoreboard scoreboard = manager.getNewScoreboard();
+        Objective sidebar = scoreboard.registerNewObjective("aw_status", Criteria.DUMMY,
+                Component.text("AbilityCombat").color(NamedTextColor.GOLD), RenderType.INTEGER);
+        sidebar.setDisplaySlot(DisplaySlot.SIDEBAR);
+        sidebar.numberFormat(NumberFormat.blank());
+        return scoreboard;
+    }
+
+    private void configureTeams(Scoreboard scoreboard) {
+        Team redTeam = scoreboard.getTeam("aw_red");
+        if (redTeam == null) {
+            redTeam = scoreboard.registerNewTeam("aw_red");
+            redTeam.color(NamedTextColor.RED);
+            redTeam.setAllowFriendlyFire(false);
+        }
+        Team blueTeam = scoreboard.getTeam("aw_blue");
+        if (blueTeam == null) {
+            blueTeam = scoreboard.registerNewTeam("aw_blue");
+            blueTeam.color(NamedTextColor.BLUE);
+            blueTeam.setAllowFriendlyFire(false);
+        }
+        for (Participant participant : participants.values()) {
+            Player player = participant.getPlayer();
+            if (player == null) {
+                continue;
+            }
+            redTeam.removeEntry(player.getName());
+            blueTeam.removeEntry(player.getName());
+            if (participant.getTeam() == CombatTeam.RED) {
+                redTeam.addEntry(player.getName());
+            } else if (participant.getTeam() == CombatTeam.BLUE) {
+                blueTeam.addEntry(player.getName());
+            }
+        }
+    }
+
+    private CombatTeam getPlayerTeam(Player player) {
+        Participant participant = player == null ? null : participants.get(player.getUniqueId());
+        return participant != null ? participant.getTeam() : null;
+    }
+
+    private List<String> getAliveTeamMemberNames(CombatTeam team) {
+        List<String> names = new ArrayList<>();
+        for (UUID uuid : alivePlayers) {
+            Participant participant = participants.get(uuid);
+            Player player = Bukkit.getPlayer(uuid);
+            if (participant != null && player != null && team == participant.getTeam()) {
+                names.add(player.getName());
+            }
+        }
+        Collections.sort(names);
+        return names;
+    }
+
+    private int countAlivePlayers(CombatTeam team) {
+        int count = 0;
+        for (UUID uuid : alivePlayers) {
+            Participant participant = participants.get(uuid);
+            if (participant != null && team == participant.getTeam()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private void updateTeamHealthDisplays() {
+        if (state != GameState.RUNNING || !isTeamMode()) {
+            clearTeamHealthDisplays();
+            return;
+        }
+        Set<UUID> aliveIds = new HashSet<>(alivePlayers);
+        teamHealthDisplays.entrySet().removeIf(entry -> {
+            TextDisplay display = entry.getValue();
+            boolean remove = !aliveIds.contains(entry.getKey()) || display == null || display.isDead();
+            if (remove && display != null && !display.isDead()) {
+                display.remove();
+            }
+            return remove;
+        });
+        for (UUID uuid : alivePlayers) {
+            Player player = Bukkit.getPlayer(uuid);
+            Participant participant = participants.get(uuid);
+            if (player == null || participant == null || participant.getTeam() == null) {
+                continue;
+            }
+            TextDisplay display = teamHealthDisplays.get(uuid);
+            if (display == null || display.isDead() || display.getWorld() != player.getWorld()) {
+                if (display != null && !display.isDead()) {
+                    display.remove();
+                }
+                display = player.getWorld().spawn(getTeamHealthDisplayLocation(player), TextDisplay.class, entity -> {
+                    entity.setBillboard(Display.Billboard.CENTER);
+                    entity.setSeeThrough(true);
+                    entity.setShadowed(false);
+                    entity.setViewRange(32f);
+                    entity.setInterpolationDuration(2);
+                    entity.setTeleportDuration(2);
+                });
+                teamHealthDisplays.put(uuid, display);
+            }
+            display.text(buildTeamHealthText(player));
+            display.teleport(getTeamHealthDisplayLocation(player));
+        }
+        syncTeamHealthDisplayVisibility();
+    }
+
+    private void syncTeamHealthDisplayVisibility() {
+        for (Map.Entry<UUID, TextDisplay> entry : teamHealthDisplays.entrySet()) {
+            UUID ownerId = entry.getKey();
+            TextDisplay display = entry.getValue();
+            Player owner = Bukkit.getPlayer(ownerId);
+            if (display == null || display.isDead() || owner == null) {
+                continue;
+            }
+            CombatTeam ownerTeam = getPlayerTeam(owner);
+            for (Player viewer : Bukkit.getOnlinePlayers()) {
+                boolean visible = state == GameState.RUNNING
+                        && isTeamMode()
+                        && ownerTeam != null
+                        && isAlive(owner)
+                        && isAlive(viewer)
+                        && areTeammates(owner, viewer);
+                if (visible) {
+                    viewer.showEntity(plugin, display);
+                } else {
+                    viewer.hideEntity(plugin, display);
+                }
+            }
+        }
+    }
+
+    private void clearTeamHealthDisplays() {
+        for (TextDisplay display : teamHealthDisplays.values()) {
+            if (display != null && !display.isDead()) {
+                display.remove();
+            }
+        }
+        teamHealthDisplays.clear();
+    }
+
+    private Component buildTeamHealthText(Player player) {
+        double health = Math.ceil(Math.max(0.0, player.getHealth()));
+        double maxHealth = 20.0;
+        AttributeInstance attribute = player.getAttribute(Attribute.MAX_HEALTH);
+        if (attribute != null) {
+            maxHealth = attribute.getValue();
+        }
+        NamedTextColor color = health <= Math.max(4.0, maxHealth * 0.25) ? NamedTextColor.RED : NamedTextColor.GREEN;
+        return Component.text((int) health + " HP", color);
+    }
+
+    private Location getTeamHealthDisplayLocation(Player player) {
+        return player.getLocation().clone().add(0, player.getHeight() + 0.55, 0);
+    }
 
     private String formatTime(int seconds) {
         int minutes = Math.max(0, seconds) / 60;
@@ -1915,8 +2217,13 @@ public class GameManager implements Listener {
         if (state != GameState.RUNNING || startedSolo) {
             return;
         }
-        if (alivePlayers.size() <= 1) {
+        if (!isTeamMode() && alivePlayers.size() <= 1) {
             plugin.getServer().broadcast(Component.text("§e남은 플레이어가 1명이 되어 게임이 종료됩니다."));
+            stopGame();
+            return;
+        }
+        if (isTeamMode() && resolveWinningTeam() != null) {
+            plugin.getServer().broadcast(Component.text("§e한 팀만 남아 게임이 종료됩니다."));
             stopGame();
         }
     }
@@ -1937,11 +2244,13 @@ public class GameManager implements Listener {
         player.setCollidable(false);
         player.setInvulnerable(true);
         updateVisibility();
+        syncTeamHealthDisplayVisibility();
         checkAutoEnd();
     }
 
     private void updateVisibility() {
         if (!hideSpectators) {
+            syncTeamHealthDisplayVisibility();
             return;
         }
         List<Player> alive = new ArrayList<>();
@@ -1971,6 +2280,7 @@ public class GameManager implements Listener {
                 spectator.showPlayer(plugin, alivePlayer);
             }
         }
+        syncTeamHealthDisplayVisibility();
     }
 
     private boolean allSelected() {
@@ -2431,6 +2741,12 @@ public class GameManager implements Listener {
             return;
         }
 
+        if (gui.isModeToggleSlot(slot)) {
+            gui.toggleMode();
+            selectedMatchMode = gui.getSelectedMode();
+            return;
+        }
+
         // 랜덤 맵 선택
         if (gui.isRandomSlot(slot)) {
             MapManager mapManager = plugin.getMapManager();
@@ -2604,6 +2920,10 @@ public class GameManager implements Listener {
         broadcastKillLog(player);
 
         boolean endingGame = !startedSolo && alivePlayers.contains(uuid) && alivePlayers.size() <= 2;
+        if (isTeamMode()) {
+            CombatTeam team = getPlayerTeam(player);
+            endingGame = !startedSolo && team != null && countAlivePlayers(team) <= 1;
+        }
         if (endingGame) {
             event.getDrops().clear();
             event.setDroppedExp(0);
@@ -2847,7 +3167,30 @@ public class GameManager implements Listener {
         }
         if (event.getEntity() instanceof Player player && isSpectator(player)) {
             event.setCancelled(true);
+            return;
         }
+        if (event.getEntity() instanceof Player targetPlayer) {
+            Player sourcePlayer = resolveCombatSourcePlayer(event.getDamager());
+            if (sourcePlayer != null && areTeammates(sourcePlayer, targetPlayer)) {
+                event.setCancelled(true);
+                return;
+            }
+        }
+    }
+
+    private Player resolveCombatSourcePlayer(Entity entity) {
+        if (entity instanceof Player player) {
+            return player;
+        }
+        if (entity instanceof org.bukkit.entity.TNTPrimed tnt
+                && tnt.getSource() instanceof Entity sourceEntity) {
+            return resolveCombatSourcePlayer(sourceEntity);
+        }
+        if (entity instanceof org.bukkit.entity.Projectile projectile
+                && projectile.getShooter() instanceof Player player) {
+            return player;
+        }
+        return null;
     }
 
     private boolean isAxeWeapon(ItemStack item) {
@@ -2867,6 +3210,9 @@ public class GameManager implements Listener {
 
     private void suppressSwordSweep(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player player)) {
+            return;
+        }
+        if (!(event.getEntity() instanceof Player)) {
             return;
         }
         ItemStack mainHand = player.getInventory().getItemInMainHand();

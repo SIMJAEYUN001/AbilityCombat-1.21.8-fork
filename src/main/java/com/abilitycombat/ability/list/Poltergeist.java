@@ -31,10 +31,12 @@ import java.util.UUID;
         "",
         "§7투사체가 적중한 지점 주변 §f5칸§7 이내의 플레이어를",
         "§d7칸 위로 띄운 후§7, §c4초 뒤 내리찍습니다§7.",
+        "§7적중한 적 1명당 §c쿨타임이 5초§7 감소합니다.",
         "",
         "§7착지 시 §c15의 피해§7를 입힙니다."
 }, summarize = {
-        "§7철괴 우클릭§f: 느린 투사체 투척 → 적중 시 주변 적 공중 부양 → 4초 후 내리찍기"
+        "§7철괴 우클릭§f: 적중 시 주변 적 공중 부양 → 4초 후 내리찍기",
+        "§7적중 적 1명당 쿨타임 5초 감소"
 })
 public class Poltergeist extends AbilityBase implements ActiveHandler {
 
@@ -139,7 +141,7 @@ public class Poltergeist extends AbilityBase implements ActiveHandler {
         // 적중 지점 주변 플레이어 찾기 (Y축 ±1 여유)
         Set<UUID> liftedPlayers = new HashSet<>();
         for (LivingEntity entity : LocationUtil.getNearbyLivingEntities(hitLocation, LIFT_RADIUS,
-                LocationUtil.withValidTarget(e -> !e.equals(shooter)))) {
+                LocationUtil.withValidTarget(getPlayer(), e -> !e.equals(shooter)))) {
             if (!(entity instanceof Player target)) {
                 continue;
             }

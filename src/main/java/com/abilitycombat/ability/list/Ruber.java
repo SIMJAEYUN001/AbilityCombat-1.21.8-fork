@@ -91,7 +91,7 @@ public class Ruber extends AbilityBase implements ActiveHandler {
         }
         Player player = getPlayer();
         boolean enhanced = consumeStack();
-        Collection<LivingEntity> targets = LocationUtil.getNearbyLivingEntities(player.getLocation(), RANGE,
+        Collection<LivingEntity> targets = LocationUtil.getNearbyLivingEntities(player.getLocation(), RANGE, player,
                 entity -> !entity.equals(player));
         int duration = enhanced ? 160 : 100;
         for (LivingEntity target : targets) {

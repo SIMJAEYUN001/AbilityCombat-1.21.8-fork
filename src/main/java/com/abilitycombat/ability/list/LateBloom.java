@@ -102,7 +102,7 @@ public class LateBloom extends AbilityBase implements ActiveHandler {
         double explosionDamage = consumedStacks * EXPLOSION_DAMAGE_PER_STACK;
         for (LivingEntity target : LocationUtil.getNearbyLivingEntities(
                 player.getLocation(), EXPLOSION_RANGE,
-                LocationUtil.withValidTarget(e -> !e.equals(player)))) {
+                LocationUtil.withValidTarget(getPlayer(), e -> !e.equals(player)))) {
             target.damage(explosionDamage, player);
         }
 

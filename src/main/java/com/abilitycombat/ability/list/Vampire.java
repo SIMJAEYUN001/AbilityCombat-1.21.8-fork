@@ -89,7 +89,7 @@ public class Vampire extends AbilityBase implements ActiveHandler {
             return false;
         }
 
-        List<Player> targets = LocationUtil.getNearbyLivingEntities(getPlayer().getLocation(), ACTIVE_RANGE,
+        List<Player> targets = LocationUtil.getNearbyLivingEntities(getPlayer().getLocation(), ACTIVE_RANGE, getPlayer(),
                 e -> e instanceof Player && !e.equals(getPlayer()))
                 .stream().map(e -> (Player) e).toList();
 

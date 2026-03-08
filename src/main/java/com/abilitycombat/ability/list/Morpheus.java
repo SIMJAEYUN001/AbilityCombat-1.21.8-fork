@@ -73,7 +73,7 @@ public class Morpheus extends AbilityBase implements ActiveHandler {
 
         for (org.bukkit.entity.Entity entity : caster.getNearbyEntities(RANGE, RANGE, RANGE)) {
             if (entity instanceof Player target) {
-                if (target.equals(caster) || !com.abilitycombat.utils.LocationUtil.isValidTarget(target))
+                if (target.equals(caster) || !com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), target))
                     continue;
 
                 applySleep(target);

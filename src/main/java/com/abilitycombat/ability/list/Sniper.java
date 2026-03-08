@@ -142,6 +142,9 @@ public class Sniper extends AbilityBase {
 
         @Override
         protected boolean onHitEntity(LivingEntity entity, Location hitLocation) {
+            if (!com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), entity)) {
+                return false;
+            }
             entity.damage(DAMAGE, getPlayer());
             return true;
         }

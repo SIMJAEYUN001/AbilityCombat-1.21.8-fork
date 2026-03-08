@@ -107,7 +107,7 @@ public class Zombie extends AbilityBase implements ActiveHandler {
         }
         if (isMinion(zombie)) {
             if (event.getTarget() instanceof LivingEntity living
-                    && !com.abilitycombat.utils.LocationUtil.isValidTarget(living)) {
+                    && !com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), living)) {
                 event.setCancelled(true);
             }
         }
@@ -115,7 +115,7 @@ public class Zombie extends AbilityBase implements ActiveHandler {
 
     private void onDamageByEntity(EntityDamageByEntityEvent event) {
         if (event.getEntity().equals(getPlayer()) && event.getDamager() instanceof LivingEntity damager) {
-            if (com.abilitycombat.utils.LocationUtil.isValidTarget(damager)) {
+            if (com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), damager)) {
                 retargetMinions(damager);
             }
             return;
@@ -156,7 +156,7 @@ public class Zombie extends AbilityBase implements ActiveHandler {
         LivingEntity nearest = null;
         double min = Double.MAX_VALUE;
         for (LivingEntity entity : player.getWorld().getLivingEntities()) {
-            if (entity.equals(player) || !com.abilitycombat.utils.LocationUtil.isValidTarget(entity)) {
+            if (entity.equals(player) || !com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), entity)) {
                 continue;
             }
             double dist = entity.getLocation().distanceSquared(player.getLocation());

@@ -82,7 +82,7 @@ public class Loki extends AbilityBase implements ActiveHandler {
             return false;
         }
         LivingEntity target = LocationUtil.getEntityLookingAt(LivingEntity.class, getPlayer(), LOOK_RANGE,
-                LocationUtil.withValidTarget(entity -> !entity.equals(getPlayer())));
+                LocationUtil.withValidTarget(getPlayer(), entity -> !entity.equals(getPlayer())));
         if (target == null) {
             return false;
         }

@@ -254,7 +254,7 @@ public class Zeus extends AbilityBase implements ActiveHandler {
         ParticleUtil.spawnParticle(world, Particle.ELECTRIC_SPARK, strike, 15, 0.6, 0.6, 0.6, 0.05, 1, 0);
 
         // 번개 적중 판정(커스텀) 및 누적
-        for (LivingEntity entity : LocationUtil.getNearbyLivingEntities(strike, STORM_HIT_RADIUS,
+        for (LivingEntity entity : LocationUtil.getNearbyLivingEntities(strike, STORM_HIT_RADIUS, player,
                 e -> !e.equals(player))) {
             UUID uuid = entity.getUniqueId();
             int next = stormHitCounts.getOrDefault(uuid, 0) + 1;
@@ -268,7 +268,7 @@ public class Zeus extends AbilityBase implements ActiveHandler {
     }
 
     private void stunNearby(Location center, double radius, int ticks) {
-        for (LivingEntity entity : LocationUtil.getNearbyLivingEntities(center, radius,
+        for (LivingEntity entity : LocationUtil.getNearbyLivingEntities(center, radius, getPlayer(),
                 e -> !e.equals(getPlayer()))) {
             Stun.apply(entity, ticks);
         }
@@ -294,7 +294,7 @@ public class Zeus extends AbilityBase implements ActiveHandler {
     private LivingEntity findChainTarget(Location origin, Set<UUID> hit) {
         LivingEntity nearest = null;
         double minDistance = Double.MAX_VALUE;
-        for (LivingEntity entity : LocationUtil.getNearbyLivingEntities(origin, CHAIN_RANGE,
+        for (LivingEntity entity : LocationUtil.getNearbyLivingEntities(origin, CHAIN_RANGE, getPlayer(),
                 e -> !e.equals(getPlayer()) && !hit.contains(e.getUniqueId()))) {
             double distance = entity.getLocation().distanceSquared(origin);
             if (distance < minDistance) {

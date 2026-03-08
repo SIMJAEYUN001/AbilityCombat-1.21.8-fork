@@ -46,7 +46,7 @@ public class Hedgehog extends AbilityBase {
         if (tick % DAMAGE_INTERVAL_TICKS == 0) {
             Player player = getPlayer();
             for (LivingEntity entity : nearbyCache.getNearby(player.getLocation(), RANGE,
-                    e -> !e.equals(player) && com.abilitycombat.utils.LocationUtil.isValidTarget(e), 10)) {
+                    e -> !e.equals(player) && com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), e), 10)) {
                 // 고정 데미지 1 (방어력/보호 무시) + 피격 판정(애니메이션)
                 double health = entity.getHealth();
                 entity.damage(0.0001, player); // 피격 판정 및 애니메이션 발생

@@ -255,7 +255,7 @@ public class EarthquakeStrike extends AbilityBase implements ActiveHandler {
         });
         activeBlocks.add(new FallingBlockEntry(fallingBlock, tick));
 
-        for (LivingEntity target : LocationUtil.getNearbyLivingEntities(spawnLoc, HIT_RADIUS,
+        for (LivingEntity target : LocationUtil.getNearbyLivingEntities(spawnLoc, HIT_RADIUS, player,
                 entity -> !entity.equals(player))) {
             if (hitTargets.add(target.getUniqueId())) {
                 applyDebuffs(player, target);

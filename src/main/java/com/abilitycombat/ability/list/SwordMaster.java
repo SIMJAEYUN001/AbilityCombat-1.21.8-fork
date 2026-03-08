@@ -275,7 +275,7 @@ public class SwordMaster extends AbilityBase implements ActiveHandler {
 
         // 엔티티 충돌
         for (LivingEntity entity : com.abilitycombat.utils.LocationUtil
-                .getNearbyLivingEntities(proj.armorStand.getLocation(), 1.2, null)) {
+                .getNearbyLivingEntities(proj.armorStand.getLocation(), 1.2, proj.shooter, null)) {
             if (entity.equals(proj.shooter) || entity.equals(proj.armorStand)) {
                 continue;
             }
@@ -430,7 +430,7 @@ public class SwordMaster extends AbilityBase implements ActiveHandler {
 
             loc.getWorld().strikeLightningEffect(loc);
 
-            for (LivingEntity entity : com.abilitycombat.utils.LocationUtil.getNearbyLivingEntities(loc, 3.0, null)) {
+            for (LivingEntity entity : com.abilitycombat.utils.LocationUtil.getNearbyLivingEntities(loc, 3.0, player, null)) {
                 if (entity.equals(player) || entity.getPersistentDataContainer()
                         .has(getSwordKey(AbilityCombat.getPlugin()), PersistentDataType.BYTE)) {
                     continue;

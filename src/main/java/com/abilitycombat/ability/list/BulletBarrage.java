@@ -185,7 +185,7 @@ public class BulletBarrage extends AbilityBase {
 
         // 엔티티 충돌
         for (LivingEntity entity : com.abilitycombat.utils.LocationUtil.getNearbyLivingEntities(bullet.getLocation(),
-                HIT_DISTANCE, com.abilitycombat.utils.LocationUtil.withValidTarget(null))) {
+                HIT_DISTANCE, com.abilitycombat.utils.LocationUtil.withValidTarget(getPlayer(), null))) {
             if (entity.equals(shooter) || entity instanceof ArmorStand) {
                 continue;
             }

@@ -45,7 +45,7 @@ public class DarkVision extends AbilityBase {
             player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 40, 2, true, false));
             for (LivingEntity entity : com.abilitycombat.utils.LocationUtil.getNearbyLivingEntities(
                     player.getLocation(), RANGE, com.abilitycombat.utils.LocationUtil
-                            .withValidTarget(e -> !e.equals(player) && !(e instanceof ArmorStand)))) {
+                            .withValidTarget(player, e -> !e.equals(player) && !(e instanceof ArmorStand)))) {
                 entity.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 40, 0, true, false));
             }
         }

@@ -149,7 +149,7 @@ public class Bellum extends AbilityBase implements ActiveHandler {
                 nearbyCache
                         .getNearby(block.getLocation(), 3.0,
                                 target -> !target.equals(getPlayer())
-                                        && com.abilitycombat.utils.LocationUtil.isValidTarget(target),
+                                        && com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), target),
                                 1)
                         .forEach(target -> Stun.apply(target, WALL_STUN_TICKS));
             }
@@ -229,7 +229,7 @@ public class Bellum extends AbilityBase implements ActiveHandler {
 
     private void hitNearbyTargets(Player player) {
         List<LivingEntity> targets = nearbyCache.getNearby(player.getLocation(), 2.0,
-                com.abilitycombat.utils.LocationUtil::isValidTarget, 4);
+                target -> com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), target), 4);
         for (LivingEntity entity : targets) {
             if (entity.equals(player)) {
                 continue;
@@ -307,7 +307,7 @@ public class Bellum extends AbilityBase implements ActiveHandler {
                     }
                     for (Player target : block.getWorld().getNearbyEntitiesByType(Player.class, block.getLocation(), 2,
                             2, 2)) {
-                        if (target.equals(player) || !com.abilitycombat.utils.LocationUtil.isValidTarget(target)
+                        if (target.equals(player) || !com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), target)
                                 || !damaged.add(target.getUniqueId())) {
                             continue;
                         }

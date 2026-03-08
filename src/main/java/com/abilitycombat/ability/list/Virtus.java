@@ -19,7 +19,7 @@ import org.bukkit.scoreboard.Team;
 
 @AbilityManifest(name = "베르투스 (Virtus)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 응보]§f §8(쿨타임: 40초)",
-        "§f2.5초§7간 받는 모든 피해가 §b90% 감소§7합니다.",
+        "§f3초§7간 받는 모든 피해가 §b90% 감소§7합니다.",
         "§7능력 사용 시 §8회색 발광§7 효과가 적용됩니다.",
         "",
         "§e§l[반격]",
@@ -27,13 +27,13 @@ import org.bukkit.scoreboard.Team;
         "§c원래 피해의 100%§7를 공격자에게 §c반사§7하고",
         "§7쿨타임이 §e4초§7로 감소합니다."
 }, summarize = {
-        "§7철괴 우클릭§f: 2.5초간 피해 90% 감소 + 반격"
+        "§7철괴 우클릭§f: 3초간 피해 90% 감소 + 반격"
 })
 public class Virtus extends AbilityBase implements ActiveHandler {
 
     private static final int COOLDOWN_SECONDS = 40;
     private static final int REDUCED_COOLDOWN_SECONDS = 4;
-    private static final int DURATION_TICKS = 50; // 2.5초
+    private static final int DURATION_TICKS = 60; // 3초
     private static final double DAMAGE_MULTIPLIER = 0.1;
 
     private Cooldown cooldown = new Cooldown(COOLDOWN_SECONDS);
@@ -124,14 +124,15 @@ public class Virtus extends AbilityBase implements ActiveHandler {
         if (event.getDamager() instanceof Player attacker && !attacker.equals(player)) {
             // 원래 피해량 100% 반사
             Bukkit.getScheduler().runTaskLater(AbilityCombat.getPlugin(), () -> {
-                if (attacker.isOnline() && !attacker.isDead()) {
+                if (attacker.isOnline() && !attacker.isDead()
+                        && AbilityCombat.getPlugin().getGameManager().canApplyNegativeEffect(player, attacker)) {
                     attacker.damage(originalDamage, player);
                     attacker.playSound(attacker.getLocation(), Sound.ENCHANT_THORNS_HIT, 1.0f, 0.8f);
                     player.playSound(player.getLocation(), Sound.ENCHANT_THORNS_HIT, 1.0f, 0.8f);
                 }
             }, 1L);
 
-            // 쿨타임 8초로 감소 - 새 쿨다운 생성
+            // 쿨타임 4초로 감소 - 새 쿨다운 생성
             cooldown.stop(true);
             cooldown = new Cooldown(REDUCED_COOLDOWN_SECONDS);
             cooldown.start();

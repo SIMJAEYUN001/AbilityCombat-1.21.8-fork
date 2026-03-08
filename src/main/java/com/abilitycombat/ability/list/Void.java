@@ -82,7 +82,7 @@ public class Void extends AbilityBase implements ActiveHandler {
             return false;
         }
         Player target = LocationUtil.getNearestEntity(Player.class, getPlayer().getLocation(), RANGE,
-                player -> !player.equals(getPlayer()) && LocationUtil.isValidTarget(player));
+                player -> !player.equals(getPlayer()) && LocationUtil.isValidTarget(getPlayer(), player));
         if (target == null) {
             return false;
         }

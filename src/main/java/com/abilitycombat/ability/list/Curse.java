@@ -92,7 +92,7 @@ public class Curse extends AbilityBase implements ActiveHandler {
         Player player = getPlayer();
         // 바라보는 플레이어를 타겟으로 변경
         Player lookingAt = LocationUtil.getEntityLookingAt(Player.class, player, RANGE,
-                entity -> !entity.equals(player) && LocationUtil.isValidTarget(entity));
+                entity -> !entity.equals(player) && LocationUtil.isValidTarget(getPlayer(), entity));
         if (lookingAt == null) {
             notifyNoPlayer();
             return false;

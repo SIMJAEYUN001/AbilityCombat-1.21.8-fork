@@ -367,7 +367,7 @@ public class Hunter extends AbilityBase implements ActiveHandler {
         center.getWorld().playSound(center, Sound.ENTITY_FIREWORK_ROCKET_LARGE_BLAST, 1.5f, 0.8f);
 
         // 광역 피해
-        for (LivingEntity target : LocationUtil.getNearbyLivingEntities(center, EXPLOSION_RADIUS,
+        for (LivingEntity target : LocationUtil.getNearbyLivingEntities(center, EXPLOSION_RADIUS, shooter,
                 e -> !e.equals(shooter))) {
             target.damage(EXPLOSION_DAMAGE, shooter);
             target.setVelocity(target.getLocation().toVector()
@@ -429,7 +429,7 @@ public class Hunter extends AbilityBase implements ActiveHandler {
 
         // 30칸 내 가장 가까운 플레이어 찾기
         Player target = LocationUtil.getNearestEntity(Player.class, player.getLocation(), TRACK_RANGE,
-                p -> !p.equals(player) && LocationUtil.isValidTarget(p));
+                p -> !p.equals(player) && LocationUtil.isValidTarget(getPlayer(), p));
 
         if (target == null) {
             player.sendMessage("§c주변에 추적할 대상이 없습니다.");

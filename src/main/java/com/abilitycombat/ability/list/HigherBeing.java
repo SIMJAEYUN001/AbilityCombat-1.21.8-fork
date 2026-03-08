@@ -72,7 +72,7 @@ public class HigherBeing extends AbilityBase implements ActiveHandler {
 
         int affectedCount = 0;
         for (LivingEntity entity : LocationUtil.getNearbyLivingEntities(center, LOOK_DOWN_RADIUS,
-                LocationUtil.withValidTarget(e -> !e.equals(player)))) {
+                LocationUtil.withValidTarget(getPlayer(), e -> !e.equals(player)))) {
             if (!(entity instanceof Player target)) {
                 continue;
             }

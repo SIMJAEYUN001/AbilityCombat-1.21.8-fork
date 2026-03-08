@@ -87,7 +87,7 @@ public class Lorem extends AbilityBase implements ActiveHandler {
     }
 
     private void applySlashHit(LivingEntity target) {
-        if (target == null) {
+        if (target == null || !com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), target)) {
             return;
         }
         slashDamaged.add(target.getUniqueId());

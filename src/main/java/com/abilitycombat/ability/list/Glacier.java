@@ -111,7 +111,7 @@ public class Glacier extends AbilityBase implements ActiveHandler {
     private void freezeNearby(double radius, int ticks) {
         Player player = getPlayer();
         for (LivingEntity entity : player.getLocation().getWorld().getLivingEntities()) {
-            if (entity.equals(player) || !com.abilitycombat.utils.LocationUtil.isValidTarget(entity)) {
+            if (entity.equals(player) || !com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), entity)) {
                 continue;
             }
             if (entity.getLocation().distanceSquared(player.getLocation()) <= radius * radius) {

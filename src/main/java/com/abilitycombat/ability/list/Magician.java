@@ -94,7 +94,7 @@ public class Magician extends AbilityBase {
         List<LivingEntity> targets = new ArrayList<>();
         for (LivingEntity entity : center.getWorld().getLivingEntities()) {
             if (entity.getLocation().distanceSquared(center) <= RANGE * RANGE
-                    && com.abilitycombat.utils.LocationUtil.isValidTarget(entity)) {
+                    && com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), entity)) {
                 targets.add(entity);
             }
         }

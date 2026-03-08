@@ -190,7 +190,7 @@ public class Nex extends AbilityBase implements ActiveHandler {
         world.createExplosion(center, EXPLOSION_POWER, EXPLOSION_SET_FIRE, EXPLOSION_BREAK_BLOCKS, player);
 
         // 주변 적에게 피해 + 넉백
-        for (LivingEntity entity : LocationUtil.getNearbyLivingEntities(center, IMPACT_RADIUS, null)) {
+        for (LivingEntity entity : LocationUtil.getNearbyLivingEntities(center, IMPACT_RADIUS, player, null)) {
             if (entity.equals(player)) {
                 continue;
             }

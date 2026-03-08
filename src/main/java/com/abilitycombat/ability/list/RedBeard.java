@@ -46,7 +46,7 @@ public class RedBeard extends AbilityBase implements ActiveHandler {
         if (player == null) {
             return false;
         }
-        for (LivingEntity target : LocationUtil.getNearbyLivingEntities(player.getLocation(), RANGE,
+        for (LivingEntity target : LocationUtil.getNearbyLivingEntities(player.getLocation(), RANGE, player,
                 entity -> !entity.equals(player))) {
             Vector knockback = target.getLocation().toVector().subtract(player.getLocation().toVector()).normalize()
                     .multiply(0.8);

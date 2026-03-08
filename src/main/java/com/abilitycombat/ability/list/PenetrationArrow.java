@@ -117,7 +117,7 @@ public class PenetrationArrow extends AbilityBase {
     private void applyGravity(LivingEntity target) {
         Stun.apply(target, 40);
         Collection<LivingEntity> nearby = com.abilitycombat.utils.LocationUtil.getNearbyLivingEntities(
-                target.getLocation(), 4, entity -> !entity.equals(target));
+                target.getLocation(), 4, getPlayer(), entity -> !entity.equals(target));
         for (LivingEntity entity : nearby) {
             Vector pull = target.getLocation().toVector().subtract(entity.getLocation().toVector()).normalize()
                     .multiply(0.6);
@@ -183,7 +183,7 @@ public class PenetrationArrow extends AbilityBase {
 
         @Override
         protected boolean onHitEntity(LivingEntity entity, Location hitLocation) {
-            if (!com.abilitycombat.utils.LocationUtil.isValidTarget(entity)) {
+            if (!com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), entity)) {
                 return false;
             }
             if (!hitEntities.add(entity.getUniqueId())) {

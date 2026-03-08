@@ -148,7 +148,7 @@ abilities:
     rank: S
     icon: NETHER_WART
     summary:
-      - "흡혈 스택: 스택당 +1 피해"
+      - "흡혈 스택: 스택당 +0.5 피해 (최대 4)"
       - "철괴 우클릭: 4칸 내 체력 강탈"
   - name: "좀비 (Zombie)"
     rank: A
@@ -183,7 +183,7 @@ abilities:
     icon: TOTEM_OF_UNDYING
     summary:
       - "피해 90% 감소"
-      - "지속시간 2.5초"
+      - "지속시간 3초"
   - name: "리버레이터 (Liberator)"
     rank: A
     icon: SPECTRAL_ARROW

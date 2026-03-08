@@ -180,7 +180,7 @@ public class Clown extends AbilityBase implements ActiveHandler {
     }
 
     private void applyFear(Location center) {
-        for (LivingEntity target : LocationUtil.getNearbyLivingEntities(center, FEAR_RADIUS,
+        for (LivingEntity target : LocationUtil.getNearbyLivingEntities(center, FEAR_RADIUS, getPlayer(),
                 entity -> !entity.equals(getPlayer()))) {
             Stun.apply(target, FEAR_TICKS);
         }

@@ -50,7 +50,7 @@ public class SuperNova extends AbilityBase {
                 continue;
             }
             if (entity.getLocation().distanceSquared(player.getLocation()) <= RANGE * RANGE) {
-                if (com.abilitycombat.utils.LocationUtil.isValidTarget(entity)) {
+                if (com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), entity)) {
                     double maxHealth = entity.getAttribute(Attribute.MAX_HEALTH).getValue();
                     entity.damage(maxHealth * 0.5, player);
                 }

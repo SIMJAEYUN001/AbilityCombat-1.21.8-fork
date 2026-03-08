@@ -1,6 +1,7 @@
 package com.abilitycombat.gui;
 
 import com.abilitycombat.AbilityCombat;
+import com.abilitycombat.game.MatchMode;
 import com.abilitycombat.game.MapData;
 import com.abilitycombat.game.MapManager;
 import net.kyori.adventure.text.Component;
@@ -25,13 +26,16 @@ public class MapSelectGui implements InventoryHolder {
     private static final int ROWS = 6;
     private static final int SIZE = ROWS * 9;
     private static final int RANDOM_SLOT = 4; // 상단 중앙
+    private static final int MODE_TOGGLE_SLOT = 8; // 우측 상단
 
     private final AbilityCombat plugin;
     private final Inventory inventory;
     private final List<MapData> mapList = new ArrayList<>();
+    private MatchMode selectedMode;
 
-    public MapSelectGui(AbilityCombat plugin) {
+    public MapSelectGui(AbilityCombat plugin, MatchMode selectedMode) {
         this.plugin = plugin;
+        this.selectedMode = selectedMode;
         this.inventory = Bukkit.createInventory(this, SIZE, Component.text("맵 선택"));
         build();
     }
@@ -46,6 +50,19 @@ public class MapSelectGui implements InventoryHolder {
      */
     public boolean isRandomSlot(int slot) {
         return slot == RANDOM_SLOT;
+    }
+
+    public boolean isModeToggleSlot(int slot) {
+        return slot == MODE_TOGGLE_SLOT;
+    }
+
+    public MatchMode getSelectedMode() {
+        return selectedMode;
+    }
+
+    public void toggleMode() {
+        selectedMode = selectedMode == MatchMode.SOLO ? MatchMode.TEAM : MatchMode.SOLO;
+        inventory.setItem(MODE_TOGGLE_SLOT, createModeItem());
     }
 
     /**
@@ -78,6 +95,7 @@ public class MapSelectGui implements InventoryHolder {
                 "§7등록된 맵 중 랜덤으로 선택합니다.",
                 "",
                 "§e클릭하여 랜덤 맵으로 게임 시작")));
+        inventory.setItem(MODE_TOGGLE_SLOT, createModeItem());
 
         // 맵 목록 (9번 슬롯부터)
         int slot = 9;
@@ -95,6 +113,14 @@ public class MapSelectGui implements InventoryHolder {
             inventory.setItem(22, createItem(Material.BARRIER, "§c등록된 맵이 없습니다", List.of(
                     "§7/aw config에서 맵을 추가해주세요.")));
         }
+    }
+
+    private ItemStack createModeItem() {
+        boolean teamMode = selectedMode == MatchMode.TEAM;
+        return createItem(teamMode ? Material.RED_BANNER : Material.IRON_SWORD, "§b게임 모드", List.of(
+                "§f현재: " + (teamMode ? "§c팀전" : "§f개인전"),
+                "",
+                "§7클릭: 팀전 / 개인전 전환"));
     }
 
     private ItemStack createMapItem(MapData map) {

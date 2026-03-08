@@ -153,7 +153,7 @@ public class Ares extends AbilityBase implements ActiveHandler {
 
     private void pullTargets(Player player) {
         for (LivingEntity entity : pullCache.getNearby(player.getLocation(), PULL_RADIUS,
-                e -> com.abilitycombat.utils.LocationUtil.isValidTarget(e), 4)) {
+                e -> com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), e), 4)) {
             if (entity.equals(player)) {
                 continue;
             }
@@ -171,7 +171,7 @@ public class Ares extends AbilityBase implements ActiveHandler {
 
     private void land(Player player) {
         for (LivingEntity entity : landCache.getNearby(player.getLocation(), LAND_RADIUS,
-                e -> com.abilitycombat.utils.LocationUtil.isValidTarget(e), 4)) {
+                e -> com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), e), 4)) {
             if (entity.equals(player)) {
                 continue;
             }

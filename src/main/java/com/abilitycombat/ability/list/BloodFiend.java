@@ -21,22 +21,23 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 @AbilityManifest(name = "흡혈마 (BloodFiend)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.UNDEAD, explain = {
         "§e§l[패시브 - 흡혈마]",
         "§7공격 게이지가 가득 찬 상태로 §f플레이어§7를 타격하면",
-        "§c흡혈 스택§7을 §f1§7 얻습니다. (최대 §f5§7스택, §f10초§7 유지)",
+        "§c흡혈 스택§7을 §f1§7 얻습니다. (최대 §f4§7스택, §f10초§7 유지)",
         "",
-        "§7스택 1개당 타격 시 §c추가 피해 +1§7 (최대 §c+5§7)",
-        "§7§c5스택§7 보유 시 타격하면 §a체력 반 칸 회복§7",
+        "§7스택 1개당 타격 시 §c추가 피해 +0.5§7 (최대 §c+2§7)",
+        "§7§c4스택§7 보유 시 타격하면 §a체력 반 칸 회복§7",
         "",
         "§e§l[철괴 우클릭 - 강탈]§f §8(쿨타임: 50초)",
         "§7스택을 모두 소모하고 §f4칸§7 내 대상에게",
         "§c2 + 스택당 1§7의 §c고정 피해§7를 입히고 §a입힌 데미지에 비례해서 회복§7합니다.",
         "§8쿨타임 중에는 스택으로 인한 추가 피해가 적용되지 않습니다."
 }, summarize = {
-        "§7패시브§f: 스택당 추가 피해 +1, 5스택 시 회복",
+        "§7패시브§f: 스택당 추가 피해 +0.5, 4스택 시 회복",
         "§7철괴 우클릭§f: 스택 소모 + 체력 강탈"
 })
 public class BloodFiend extends AbilityBase implements ActiveHandler {
 
-    private static final int MAX_STACKS = 5;
+    private static final int MAX_STACKS = 4;
+    private static final double BONUS_DAMAGE_PER_STACK = 0.5;
     private static final float COOLDOWN_THRESHOLD = 0.99f;
     private static final int STACK_RESET_SECONDS = 10;
     private static final int STACK_RESET_TICKS = STACK_RESET_SECONDS * 20;
@@ -88,7 +89,7 @@ public class BloodFiend extends AbilityBase implements ActiveHandler {
 
         Player player = getPlayer();
         LivingEntity target = LocationUtil.getEntityLookingAt(LivingEntity.class, player, ACTIVE_RANGE,
-                LocationUtil.withValidTarget(entity -> !entity.equals(player)));
+                LocationUtil.withValidTarget(getPlayer(), entity -> !entity.equals(player)));
         if (target == null) {
             return false;
         }
@@ -147,7 +148,7 @@ public class BloodFiend extends AbilityBase implements ActiveHandler {
 
         // 쿨타임 중에는 스택 추가 피해 없음
         if (!activeCooldown.isCooldown()) {
-            int bonusDamage = stacks;
+            double bonusDamage = stacks * BONUS_DAMAGE_PER_STACK;
             if (bonusDamage > 0) {
                 event.setDamage(event.getDamage() + bonusDamage);
             }

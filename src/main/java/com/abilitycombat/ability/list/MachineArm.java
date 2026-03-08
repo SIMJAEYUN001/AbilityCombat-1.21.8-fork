@@ -24,7 +24,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 @AbilityManifest(name = "기계팔 (MachineArm)", rank = AbilityManifest.Rank.B, species = AbilityManifest.Species.HUMAN, explain = {
-        "§e§l[철괴 우클릭 - 기계팔]§f §8(쿨타임: 9초)",
+        "§e§l[철괴 우클릭 - 기계팔]§f §8(쿨타임: 12초)",
         "§7전방으로 기계팔을 발사해 적중한 대상을 끌어온 후 1.5초간 스턴을 적용합니다.",
         "§7적중 시 데미지 §c10§7을 입힙니다.",
         "§7기계팔이 블록에 닿으면 사라집니다."
@@ -199,7 +199,7 @@ public class MachineArm extends AbilityBase implements ActiveHandler {
             player.getWorld().playSound(next, Sound.BLOCK_CHAIN_STEP, 0.35f, 1.8f);
         }
 
-        for (LivingEntity target : LocationUtil.getNearbyLivingEntities(next, HIT_RADIUS,
+        for (LivingEntity target : LocationUtil.getNearbyLivingEntities(next, HIT_RADIUS, player,
                 entity -> !entity.equals(player)
                         && !(entity instanceof ArmorStand)
                         && !(entity instanceof Mannequin))) {

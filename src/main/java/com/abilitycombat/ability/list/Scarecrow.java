@@ -1,5 +1,6 @@
 package com.abilitycombat.ability.list;
 
+import com.abilitycombat.AbilityCombat;
 import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.ability.handler.ActiveHandler;
@@ -10,6 +11,8 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mannequin;
@@ -47,6 +50,9 @@ public class Scarecrow extends AbilityBase implements ActiveHandler {
     private static final float SCARECROW_EXPLOSION_POWER = 2.0f;
     private static final double CHASE_SPEED = 0.45;
     private static final double EXPLODE_DISTANCE = 1.5;
+    private static final double EXPLOSION_RADIUS = 4.0;
+    private static final double EXPLOSION_DAMAGE = 6.0;
+    private static final double EXPLOSION_KNOCKBACK = 1.1;
     private static final double HEIGHT_DIFF_THRESHOLD = 0.6;
     private static final double UPWARD_SPEED = 0.35;
     private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();
@@ -113,6 +119,9 @@ public class Scarecrow extends AbilityBase implements ActiveHandler {
         data.lastLocation = mannequin.getLocation();
         LivingEntity attacker = resolveAttacker(event.getDamager());
         if (!(attacker instanceof Player) || attacker.equals(mannequin)) {
+            return;
+        }
+        if (!AbilityCombat.getPlugin().getGameManager().canApplyNegativeEffect(getPlayer(), attacker)) {
             return;
         }
         data.setTarget(attacker.getUniqueId());
@@ -298,7 +307,35 @@ public class Scarecrow extends AbilityBase implements ActiveHandler {
         if (location.getWorld() == null) {
             return;
         }
-        location.getWorld().createExplosion(location, SCARECROW_EXPLOSION_POWER, false, false, getPlayer());
+        Player owner = getPlayer();
+        if (owner == null) {
+            return;
+        }
+        if (!AbilityCombat.getPlugin().getGameManager().isTeamMode()) {
+            location.getWorld().createExplosion(location, SCARECROW_EXPLOSION_POWER, false, false, owner);
+            return;
+        }
+        location.getWorld().spawnParticle(Particle.EXPLOSION, location, 1);
+        location.getWorld().playSound(location, Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 1.0f);
+        for (LivingEntity target : com.abilitycombat.utils.LocationUtil.getNearbyLivingEntities(location,
+                EXPLOSION_RADIUS, owner, entity -> !entity.equals(owner))) {
+            if (!AbilityCombat.getPlugin().getGameManager().canApplyNegativeEffect(owner, target)) {
+                continue;
+            }
+            double distance = target.getLocation().distance(location);
+            double falloff = Math.max(0.0, 1.0 - (distance / EXPLOSION_RADIUS));
+            if (falloff <= 0.0) {
+                continue;
+            }
+            target.damage(EXPLOSION_DAMAGE * falloff, owner);
+            Vector knockback = target.getLocation().toVector().subtract(location.toVector());
+            if (knockback.lengthSquared() <= 1.0E-4) {
+                knockback = new Vector(0, 0.4, 0);
+            } else {
+                knockback.normalize().multiply(EXPLOSION_KNOCKBACK * falloff).setY(0.35 + (0.2 * falloff));
+            }
+            target.setVelocity(knockback);
+        }
     }
 
     private LivingEntity resolveTarget(UUID targetId) {

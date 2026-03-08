@@ -125,7 +125,7 @@ public class Magnet extends AbilityBase implements ActiveHandler {
         }
 
         Collection<LivingEntity> nearby = LocationUtil.getNearbyLivingEntities(center, PULL_RANGE,
-                e -> e instanceof Player && !e.equals(getPlayer()) && LocationUtil.isValidTarget(e));
+                e -> e instanceof Player && !e.equals(getPlayer()) && LocationUtil.isValidTarget(getPlayer(), e));
 
         for (LivingEntity entity : nearby) {
             Vector pull = center.toVector().subtract(entity.getLocation().toVector());
@@ -160,7 +160,7 @@ public class Magnet extends AbilityBase implements ActiveHandler {
 
         // 6칸 내 플레이어에게 20 데미지
         Collection<LivingEntity> victims = LocationUtil.getNearbyLivingEntities(location, EXPLOSION_RANGE,
-                e -> e instanceof Player && !e.equals(getPlayer()) && LocationUtil.isValidTarget(e));
+                e -> e instanceof Player && !e.equals(getPlayer()) && LocationUtil.isValidTarget(getPlayer(), e));
 
         for (LivingEntity victim : victims) {
             victim.damage(EXPLOSION_DAMAGE, getPlayer());

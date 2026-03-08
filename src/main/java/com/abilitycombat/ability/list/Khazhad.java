@@ -187,6 +187,10 @@ public class Khazhad extends AbilityBase implements ActiveHandler {
 
         // 엔티티 적중
         if (event.getHitEntity() instanceof LivingEntity target) {
+            if (!com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), target)) {
+                trident.remove();
+                return;
+            }
             target.setNoDamageTicks(0);
             target.damage(TRIDENT_DAMAGE, getPlayer());
             Freeze.apply(target, FREEZE_DURATION_TICKS);

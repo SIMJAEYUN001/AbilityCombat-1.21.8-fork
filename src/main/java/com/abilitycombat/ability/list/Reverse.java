@@ -110,10 +110,9 @@ public class Reverse extends AbilityBase implements TargetHandler {
         if (victim.getLocation().distanceSquared(center) > ZONE_RADIUS * ZONE_RADIUS) {
             return;
         }
-
-        // Check if the victim is an enemy (not self or ally, if applicable)
-        // For simplicity, assuming all LivingEntities in range are subject to reversal
-        // If specific targeting is needed, add checks here (e.g., isEnemy(victim))
+        if (!com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), victim)) {
+            return;
+        }
 
         pendingReversals.add(victim);
     }

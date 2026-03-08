@@ -47,6 +47,22 @@ public class LocationUtil {
         return true;
     }
 
+    public static boolean isValidTarget(LivingEntity source, LivingEntity entity) {
+        if (!isValidTarget(entity)) {
+            return false;
+        }
+        if (source != null && source.equals(entity)) {
+            return false;
+        }
+        if (source instanceof Player sourcePlayer && entity instanceof Player targetPlayer) {
+            var gameManager = AbilityCombat.getPlugin().getGameManager();
+            if (gameManager != null && gameManager.areTeammates(sourcePlayer, targetPlayer)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * 대상 필터에 관전자 제외를 추가한 Predicate를 반환합니다.
      * 
@@ -58,6 +74,14 @@ public class LocationUtil {
             return LocationUtil::isValidTarget;
         }
         return entity -> isValidTarget(entity) && basePredicate.test(entity);
+    }
+
+    public static Predicate<LivingEntity> withValidTarget(LivingEntity source,
+            Predicate<LivingEntity> basePredicate) {
+        if (basePredicate == null) {
+            return entity -> isValidTarget(source, entity);
+        }
+        return entity -> isValidTarget(source, entity) && basePredicate.test(entity);
     }
 
     /**
@@ -98,11 +122,22 @@ public class LocationUtil {
         return getNearbyEntities(LivingEntity.class, center, radius, withValidTarget(predicate));
     }
 
+    public static Collection<LivingEntity> getNearbyLivingEntities(Location center, double radius, LivingEntity source,
+            Predicate<LivingEntity> predicate) {
+        return getNearbyEntities(LivingEntity.class, center, radius, withValidTarget(source, predicate));
+    }
+
     /**
      * 범위 내 플레이어 가져오기
      */
     public static Collection<Player> getNearbyPlayers(Location center, double radius, Predicate<Player> predicate) {
         Predicate<Player> playerFilter = p -> isValidTarget(p) && (predicate == null || predicate.test(p));
+        return getNearbyEntities(Player.class, center, radius, playerFilter);
+    }
+
+    public static Collection<Player> getNearbyPlayers(Location center, double radius, LivingEntity source,
+            Predicate<Player> predicate) {
+        Predicate<Player> playerFilter = p -> isValidTarget(source, p) && (predicate == null || predicate.test(p));
         return getNearbyEntities(Player.class, center, radius, playerFilter);
     }
 

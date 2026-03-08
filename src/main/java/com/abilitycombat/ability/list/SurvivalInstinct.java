@@ -111,7 +111,7 @@ public class SurvivalInstinct extends AbilityBase {
         player.setInvulnerable(true);
         player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, INVULN_SECONDS * 20, 2, true, false));
         for (LivingEntity entity : player.getWorld().getLivingEntities()) {
-            if (entity.equals(player) || !com.abilitycombat.utils.LocationUtil.isValidTarget(entity)) {
+            if (entity.equals(player) || !com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), entity)) {
                 continue;
             }
             if (entity.getLocation().distanceSquared(player.getLocation()) <= KNOCK_RADIUS * KNOCK_RADIUS) {

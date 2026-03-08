@@ -67,7 +67,7 @@ public class Assassin extends AbilityBase implements ActiveHandler {
         Player player = getPlayer();
         List<LivingEntity> nearby = new ArrayList<>(com.abilitycombat.utils.LocationUtil.getNearbyLivingEntities(
                 player.getLocation(), RANGE,
-                com.abilitycombat.utils.LocationUtil.withValidTarget(e -> !e.equals(player))));
+                com.abilitycombat.utils.LocationUtil.withValidTarget(getPlayer(), e -> !e.equals(player))));
         if (nearby.isEmpty()) {
             return false;
         }

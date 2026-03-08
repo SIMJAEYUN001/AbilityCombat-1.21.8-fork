@@ -12,6 +12,10 @@
 - [ ] `onDeactivate()` / `onDestroy()`에서 리소스 정리
 - [ ] 능력 추가/수정 시 `ability.yml`에 변경 사항 기록
 - [ ] **주변 탐색 시 `withValidTarget()` 또는 `isValidTarget()` 사용하여 관전자 제외**
+- [ ] **팀전 영향을 받는 타게팅/범위 탐색은 source-aware `withValidTarget(getPlayer(), ...)` 또는 `isValidTarget(getPlayer(), target)` 사용**
+- [ ] **직접 `damage()`, `setVelocity()`, 강제 이동, 디버프 부여, 폭발 피해를 줄 때 팀원 제외가 필요한지 반드시 확인**
+- [ ] **바닐라 `createExplosion()`은 팀 필터가 불가능하므로 팀전 안전 처리가 필요하면 수동 피해/넉백 처리 사용**
+- [ ] **팀전 UI는 적에게 정보가 보이지 않도록 viewer별 표시 여부를 확인 (`showEntity` / `hideEntity`)**
 - [ ] **`@AbilityManifest`의 `name`과 `abilities.yml`의 `name`이 정확히 일치하는지 확인**
 - [ ] **플레이어 크기(SCALE) 변경 능력은 무적 해제 후(게임 시작 시점) 적용**
 - [ ] **능력에서 사용하는 ArmorStand는 `AbilityCombat.markAbilityArmorStand()`로 태그하여 상호작용을 차단**
@@ -229,6 +233,78 @@ LocationUtil.getEntityLookingAt(LivingEntity.class, player, range,
 > [!WARNING]
 > 관전자가 능력의 영향을 받으면 게임 진행에 문제가 발생할 수 있습니다.
 > 모든 주변 엔티티 탐색에서 반드시 이 헬퍼를 사용하세요.
+
+---
+
+## 8-1. 팀전 구현 시 주의사항
+
+### 기본 원칙
+- **팀전에서 부정적 효과는 반드시 아군 제외**
+- **관전자 제외만으로는 부족하며, source 기준 팀 판정까지 같이 확인해야 함**
+- **타게팅과 실제 적용 로직 둘 다 팀 필터를 타야 함**
+
+### 타게팅
+- 플레이어가 원점인 탐색은 다음 형태를 우선 사용하세요.
+
+```java
+LocationUtil.withValidTarget(getPlayer(), e -> !e.equals(getPlayer()))
+LocationUtil.isValidTarget(getPlayer(), target)
+LocationUtil.getNearbyLivingEntities(center, radius, getPlayer(), predicate)
+```
+
+- `getEntityLookingAt(...)`처럼 source가 명확한 유틸은 팀 판정까지 포함되도록 유지하세요.
+
+### 실제 적용 로직
+- 아래 항목은 **타게팅 필터를 통과했더라도** 직접 한 번 더 점검해야 합니다.
+- `target.damage(...)`
+- `target.setVelocity(...)`
+- 강제 `teleport(...)`
+- 기절, 속박, 공포, 감속 등 디버프
+- 반사/전이/추적형 효과
+- 바닐라 폭발 (`createExplosion`)
+
+### 폭발/범위형 능력
+- **`createExplosion(...)`은 팀원 제외가 불가능하거나 매우 제한적**이므로 팀전에서 아군 제외가 필요하면:
+- 수동 범위 탐색
+- 팀 판정
+- 수동 피해/넉백
+- 수동 파티클/사운드
+  순서로 직접 처리하세요.
+
+### UI / 정보 노출
+- 팀전 전용 정보는 **같은 팀에게만 보여야 함**
+- 체력, 표식, 이름표, 추적 표시 등은 적 팀에 `0`이나 빈 값이라도 보이면 안 됨
+- 필요하면 scoreboard보다 `TextDisplay + showEntity/hideEntity` 같은 viewer 제어 방식 사용
+
+### 승패 처리
+- 팀전 종료 시에는 개인 승자가 아니라 **팀 승리** 기준으로 처리
+- 승리팀/패배팀 메시지, 연출, 지급 보상은 팀 기준으로 분기하세요
+
+### 팀전 보강 기준
+- 폭발은 가능하면 `World#createExplosion(..., source)` 형태로 호출해서 owner 추적이 끊기지 않게 하세요.
+- `TNTPrimed`를 쓰는 능력은 `setSource(player)`를 반드시 설정하세요.
+- 공통 PvP 차단은 `EntityDamageByEntityEvent` 기준이므로, 폭발도 가능하면 `damager -> owner player`로 복원 가능해야 합니다.
+- 팀전에서 폭발 아군 예외처리는 `데미지 차단`과 `넉백 차단`을 분리해서 생각하세요.
+- 넉백까지 완전 차단이 필요하면 바닐라 폭발에 기대지 말고 수동 범위 피해/넉백으로 전환하세요.
+
+### 직접 구현 능력 점검 우선순위
+- `ProjectileHitEvent`에서 `event.getHitEntity()`에 직접 `damage`, `Stun`, `Freeze` 등을 넣는 능력
+- `CustomEntity#onHitEntity(...)`에서 직접 피해를 주는 능력
+- source 없는 `getNearbyLivingEntities(...)`, `getNearbyPlayers(...)`를 쓰는 능력
+- 반사 피해, 전이 피해, 지연 피해, 고정 피해처럼 이벤트 공통 처리 바깥에서 실행되는 능력
+- `setVelocity(...)`, `teleport(...)`로 강제 이동을 주는 능력
+
+### 추천 구현 패턴
+- 범위 탐색: `LocationUtil.getNearbyLivingEntities(center, radius, getPlayer(), predicate)`
+- 플레이어 탐색: `LocationUtil.getNearbyPlayers(center, radius, getPlayer(), predicate)`
+- 단일 타게팅: `LocationUtil.getEntityLookingAt(...)`
+- 직접 타격 직전 최종 확인: `LocationUtil.isValidTarget(getPlayer(), target)`
+
+### 리뷰할 때 기록할 항목
+- 공통 메서드만으로 해결되는지
+- 능력별 독자 예외처리가 필요한지
+- 폭발 owner 추적만으로 충분한지
+- 수동 폭발 처리까지 내려가야 하는지
 
 ---
 

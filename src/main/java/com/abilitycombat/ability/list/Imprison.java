@@ -89,7 +89,7 @@ public class Imprison extends AbilityBase implements ActiveHandler {
             return true;
         } else if (clickType == ClickType.LEFT_CLICK) {
             Player target = LocationUtil.getEntityLookingAt(Player.class, getPlayer(), TARGET_RANGE,
-                    entity -> !entity.equals(getPlayer()) && LocationUtil.isValidTarget(entity));
+                    entity -> !entity.equals(getPlayer()) && LocationUtil.isValidTarget(getPlayer(), entity));
 
             if (target == null) {
                 return false;

@@ -216,7 +216,8 @@ public class GrapplingHook extends AbilityBase implements ActiveHandler {
 
         hookProjectile.armorStand.teleport(next);
 
-        for (LivingEntity entity : LocationUtil.getNearbyLivingEntities(next, HOOK_HIT_RADIUS, target ->
+        for (LivingEntity entity : LocationUtil.getNearbyLivingEntities(next, HOOK_HIT_RADIUS, hookProjectile.shooter,
+                target ->
                 !target.equals(hookProjectile.shooter)
                         && !(target instanceof ArmorStand)
                         && !(target instanceof Mannequin))) {

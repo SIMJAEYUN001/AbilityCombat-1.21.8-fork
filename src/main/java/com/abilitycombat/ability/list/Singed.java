@@ -141,7 +141,7 @@ public class Singed extends AbilityBase implements ActiveHandler {
         if (owner == null || mover.equals(owner)) {
             return;
         }
-        if (!LocationUtil.isValidTarget(mover)) {
+        if (!LocationUtil.isValidTarget(getPlayer(), mover)) {
             return;
         }
         Location to = event.getTo();
@@ -286,7 +286,7 @@ public class Singed extends AbilityBase implements ActiveHandler {
         if (owner == null) {
             return;
         }
-        for (Player target : LocationUtil.getNearbyPlayers(node.location, TRAIL_RADIUS,
+        for (Player target : LocationUtil.getNearbyPlayers(node.location, TRAIL_RADIUS, owner,
                 player -> !player.equals(owner))) {
             if (Math.abs(target.getLocation().getY() - node.location.getY()) > TRAIL_Y_RANGE) {
                 continue;
