@@ -52,7 +52,7 @@ public class Themis extends AbilityBase {
     private void onPlayerDeath(PlayerDeathEvent event) {
         Player killer = event.getEntity().getKiller();
         if (killer != null) {
-            killCounts.merge(killer.getUniqueId(), 1, Integer::sum);
+            killCounts.merge(killer.getUniqueId(), 1, (a, b) -> a + b);
         }
     }
 

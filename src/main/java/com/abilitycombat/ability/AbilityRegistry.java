@@ -51,7 +51,7 @@ public class AbilityRegistry {
 
         FileConfiguration config = YamlConfiguration.loadConfiguration(file);
         String fileVersion = config.getString("version");
-        String pluginVersion = plugin.getDescription().getVersion();
+        String pluginVersion = plugin.getPluginMeta().getVersion();
 
         if (fileVersion == null || fileVersion.isBlank()) {
             plugin.getLogger().info("abilities.yml version not found. Replacing with bundled file.");

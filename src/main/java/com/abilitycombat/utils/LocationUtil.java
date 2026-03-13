@@ -7,6 +7,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -29,6 +30,9 @@ public class LocationUtil {
      */
     public static boolean isValidTarget(LivingEntity entity) {
         if (entity == null) {
+            return false;
+        }
+        if (entity instanceof Mannequin) {
             return false;
         }
         if (entity instanceof Player player) {

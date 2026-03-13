@@ -164,7 +164,7 @@ public class ConfigGui implements InventoryHolder {
                 org.bukkit.configuration.ConfigurationSection section = config.getConfigurationSection("lobby.location");
                 String world = section != null ? section.getString("world", "").trim() : "";
                 boolean configured = world != null && !world.isEmpty();
-                String pos = configured
+                String pos = configured && section != null
                         ? "§f" + world + " §7(" + section.getDouble("x", 0) + ", "
                                 + section.getDouble("y", 0) + ", " + section.getDouble("z", 0) + ")"
                         : "§c미설정";

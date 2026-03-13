@@ -173,6 +173,12 @@ abilities:
     summary:
       - "TNT 대량 소환"
       - "폭발 면역"
+  - name: "테스트 돌진 (TestProneDash)"
+    rank: B
+    icon: TURTLE_HELMET
+    summary:
+      - "수영 자세 돌진"
+      - "착지 시 자세 해제"
   - name: "이라 (Ira)"
     rank: A
     icon: FIRE_CHARGE

@@ -110,8 +110,12 @@ public class MakeshiftAnvil extends AbilityBase {
         }
 
         UpgradeCandidate selected = candidates.get(random.nextInt(candidates.size()));
-        ItemStack upgraded = selected.item().clone();
-        upgraded.setType(selected.upgradedType());
+        ItemStack baseItem = selected.item();
+        ItemStack upgraded = new ItemStack(selected.upgradedType(), baseItem.getAmount());
+        ItemMeta baseMeta = baseItem.getItemMeta();
+        if (baseMeta != null) {
+            upgraded.setItemMeta(baseMeta.clone());
+        }
 
         ItemMeta meta = upgraded.getItemMeta();
         if (meta != null) {

@@ -362,7 +362,10 @@ public final class SweepPacketSuppressor implements Listener {
 
     private Method findCompatibleMethod(Class<?> type, String methodName, Object[] args) {
         Class<?> current = type;
-        int argCount = args == null ? 0 : args.length;
+        if (args == null) {
+            args = new Object[0];
+        }
+        int argCount = args.length;
         while (current != null) {
             for (Method method : current.getDeclaredMethods()) {
                 if (!method.getName().equals(methodName)) {
