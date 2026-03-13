@@ -57,6 +57,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 
@@ -65,6 +66,8 @@ public final class SprintHudService implements Listener {
     private static final UUID RESOURCE_PACK_ID = UUID.fromString("9d92f6d1-b0a5-49a7-867d-5f6341468a60");
     private static final Key FONT_KEY = Key.key("abilitycombat", "sprint_hud");
     private static final char ARROW_GLYPH = '\uE000';
+    private static final char EMPTY_ARROW_GLYPH = '\uE001';
+    private static final int ARROW_RENDER_HEIGHT = 7;
     private static final char NEGATIVE_SPACE_128 = '\uE100';
     private static final char NEGATIVE_SPACE_64 = '\uE101';
     private static final char NEGATIVE_SPACE_32 = '\uE102';
@@ -97,6 +100,7 @@ public final class SprintHudService implements Listener {
     private static final int HUD_ADD_HEIGHT = (1 << (HUD_DEFAULT_BIT - 1)) - 1;
     private static final int SHADER_ID = 1;
     private static final int DEFAULT_BOSSBAR_OFFSET = 10;
+    private static final double HEALTH_BAR_ABOVE_Y = -59.0;
     private static final String OVERLAY_1_21_2 = "betterhud_1_21_2";
     private static final String OVERLAY_1_21_4 = "betterhud_1_21_4";
     private static final String OVERLAY_1_21_6 = "betterhud_1_21_6";
@@ -148,8 +152,8 @@ public final class SprintHudService implements Listener {
             return;
         }
         requireResourcePack = plugin.getConfig().getBoolean("hud.sprint.require-resource-pack", false);
-        horizontalOffset = plugin.getConfig().getInt("hud.sprint.horizontal-offset", -120);
-        verticalOffset = plugin.getConfig().getInt("hud.sprint.vertical-offset", 2);
+        horizontalOffset = plugin.getConfig().getInt("hud.sprint.horizontal-offset", -100);
+        verticalOffset = plugin.getConfig().getInt("hud.sprint.vertical-offset", 0);
 
         try {
             packBytes = buildPack();
@@ -198,21 +202,23 @@ public final class SprintHudService implements Listener {
             return;
         }
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (dashStates.containsKey(player.getUniqueId())) {
-                clearBar(player);
+            UUID uuid = player.getUniqueId();
+            boolean loaded = isPackLoaded(player);
+            if (dashStates.containsKey(uuid)) {
+                if (loaded) {
+                    showBar(player, 0);
+                } else {
+                    clearBar(player);
+                }
                 continue;
             }
             int ticks = updateSprintTicks(player);
-            if (ticks <= 0) {
-                clearBar(player);
-                continue;
-            }
             int arrows = Math.min(MAX_ARROWS, ticks / TICKS_PER_ARROW);
-            if (arrows <= 0) {
+            if (arrows > 0 || loaded) {
+                showBar(player, arrows);
+            } else {
                 clearBar(player);
-                continue;
             }
-            showBar(player, arrows);
         }
     }
 
@@ -269,6 +275,8 @@ public final class SprintHudService implements Listener {
         switch (event.getStatus()) {
             case SUCCESSFULLY_LOADED -> loadedPackPlayers.add(event.getPlayer().getUniqueId());
             case DECLINED, FAILED_DOWNLOAD, INVALID_URL, FAILED_RELOAD, DISCARDED -> {
+                plugin.getLogger().warning("Sprint HUD resource pack status for " + event.getPlayer().getName() + ": "
+                        + event.getStatus());
                 loadedPackPlayers.remove(event.getPlayer().getUniqueId());
                 clearBar(event.getPlayer());
             }
@@ -422,7 +430,7 @@ public final class SprintHudService implements Listener {
         });
         Component title = buildTitle(player, arrows);
         bar.name(title);
-        bar.progress(Math.min(1f, arrows / (float) MAX_ARROWS));
+        bar.progress(isPackLoaded(player) ? 1f : Math.min(1f, arrows / (float) MAX_ARROWS));
         bar.color(BossBar.Color.WHITE);
         bar.overlay(BossBar.Overlay.PROGRESS);
     }
@@ -435,15 +443,27 @@ public final class SprintHudService implements Listener {
     }
 
     private Component buildTitle(Player player, int arrows) {
-        String offsetPrefix = buildSpaceOffset(horizontalOffset);
-        String rendered = String
-                .valueOf(loadedPackPlayers.contains(player.getUniqueId()) && packUrl != null ? ARROW_GLYPH : '>')
-                .repeat(Math.max(0, arrows));
+        boolean loaded = isPackLoaded(player);
+        String offsetPrefix = loaded ? buildSpaceOffset(horizontalOffset) : "";
+        String rendered = loaded ? buildPackedArrowLine(arrows) : ">".repeat(Math.max(0, arrows));
         Component text = Component.text(offsetPrefix + rendered, NamedTextColor.AQUA);
-        if (loadedPackPlayers.contains(player.getUniqueId()) && packUrl != null) {
+        if (loaded) {
             return text.font(FONT_KEY);
         }
         return text;
+    }
+
+    private boolean isPackLoaded(Player player) {
+        return packUrl != null && loadedPackPlayers.contains(player.getUniqueId());
+    }
+
+    private String buildPackedArrowLine(int arrows) {
+        int clamped = Math.max(0, Math.min(MAX_ARROWS, arrows));
+        StringBuilder builder = new StringBuilder(MAX_ARROWS);
+        for (int i = 0; i < MAX_ARROWS; i++) {
+            builder.append(i < clamped ? ARROW_GLYPH : EMPTY_ARROW_GLYPH);
+        }
+        return builder.toString();
     }
 
     private String buildSpaceOffset(int pixels) {
@@ -490,15 +510,21 @@ public final class SprintHudService implements Listener {
         player.setFallDistance(0f);
         syncMannequin(player, state);
 
-        if (!isOnGround(player)) {
+        boolean onGround = isOnGround(player);
+        if (!onGround) {
             state.leftGround = true;
         }
-        if (state.leftGround && isOnGround(player)) {
-            state.landedTicks++;
-        } else {
-            state.landedTicks = 0;
+        if (state.leftGround && onGround && state.recoveryTicks < 0) {
+            state.recoveryTicks = POST_LAND_HOLD_TICKS;
         }
-        if (state.landedTicks >= POST_LAND_HOLD_TICKS || state.dashTicks >= MAX_DASH_HOLD_TICKS) {
+        if (state.recoveryTicks >= 0) {
+            state.recoveryTicks--;
+            if (state.recoveryTicks <= 0) {
+                stopDash(player);
+                return;
+            }
+        }
+        if (state.dashTicks >= MAX_DASH_HOLD_TICKS) {
             stopDash(player);
         }
     }
@@ -696,6 +722,7 @@ public final class SprintHudService implements Listener {
             }
             iconBytes = inputStream.readAllBytes();
         }
+        byte[] glyphAtlasBytes = createGlyphAtlas(iconBytes);
 
         String mcmeta = """
                 {
@@ -758,22 +785,23 @@ public final class SprintHudService implements Listener {
                       "type": "bitmap",
                       "file": "abilitycombat:font/icons.png",
                       "ascent": %d,
-                      "height": 9,
-                      "chars": ["\\uE000"]
+                      "height": %d,
+                      "chars": ["\\uE000\\uE001"]
                     }
                   ]
                 }
-                """.formatted(createBitmapAscent(verticalOffset));
+                """.formatted(createBitmapAscent(verticalOffset), ARROW_RENDER_HEIGHT);
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try (ZipOutputStream zip = new ZipOutputStream(outputStream)) {
             addZipEntry(zip, "pack.mcmeta", mcmeta.getBytes(StandardCharsets.UTF_8));
             addZipEntry(zip, "assets/abilitycombat/font/sprint_hud.json", fontJson.getBytes(StandardCharsets.UTF_8));
-            addZipEntry(zip, "assets/abilitycombat/textures/font/icons.png", iconBytes);
+            addZipEntry(zip, "assets/abilitycombat/textures/font/icons.png", glyphAtlasBytes);
             addZipEntry(zip, "assets/minecraft/textures/gui/sprites/boss_bar/white_background.png",
                     createTransparentPng(182, 5));
             addZipEntry(zip, "assets/minecraft/textures/gui/sprites/boss_bar/white_progress.png",
                     createTransparentPng(182, 5));
+            addRootShaderEntries(zip);
             addOverlayShaderEntries(zip, OVERLAY_1_21_2, 1);
             addOverlayShaderEntries(zip, OVERLAY_1_21_4, 2);
             addOverlayShaderEntries(zip, OVERLAY_1_21_6, 3);
@@ -782,9 +810,6 @@ public final class SprintHudService implements Listener {
     }
 
     private int createBitmapAscent(int y) {
-        if (y == 0) {
-            return 8;
-        }
         return -((((1 << HUD_MAX_BIT) + SHADER_ID) << HUD_DEFAULT_BIT) + HUD_ADD_HEIGHT + y);
     }
 
@@ -795,16 +820,50 @@ public final class SprintHudService implements Listener {
         return outputStream.toByteArray();
     }
 
-    private void addOverlayShaderEntries(ZipOutputStream zip, String overlayName, int shaderVersion) throws IOException {
+    private byte[] createGlyphAtlas(byte[] iconBytes) throws IOException {
+        BufferedImage icon = ImageIO.read(new java.io.ByteArrayInputStream(iconBytes));
+        if (icon == null) {
+            throw new IOException("Failed to read sprint HUD icon texture");
+        }
+        BufferedImage atlas = new BufferedImage(icon.getWidth() * 2, icon.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D graphics = atlas.createGraphics();
+        try {
+            graphics.drawImage(icon, 0, 0, null);
+        } finally {
+            graphics.dispose();
+        }
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        ImageIO.write(atlas, "PNG", outputStream);
+        return outputStream.toByteArray();
+    }
+
+    private void addOverlayShaderEntries(ZipOutputStream zip, String overlayName, int shaderVersion)
+            throws IOException {
         String prefix = overlayName + "/assets/minecraft/shaders/";
-        addZipEntry(zip, prefix + "core/rendertype_text.json",
-                buildOverlayShaderJson().getBytes(StandardCharsets.UTF_8));
+        if (shaderVersion < 3) {
+            addZipEntry(zip, prefix + "core/rendertype_text.json",
+                    buildOverlayShaderJson().getBytes(StandardCharsets.UTF_8));
+        }
         addZipEntry(zip, prefix + "core/rendertype_text.vsh",
                 buildBetterHudVertexShader(shaderVersion).getBytes(StandardCharsets.UTF_8));
         addZipEntry(zip, prefix + "core/rendertype_text.fsh",
                 buildBetterHudFragmentShader(shaderVersion).getBytes(StandardCharsets.UTF_8));
-        addZipEntry(zip, prefix + "include/dynamictransforms.glsl", "#version 150\n".getBytes(StandardCharsets.UTF_8));
-        addZipEntry(zip, prefix + "include/globals.glsl", "#version 150\n".getBytes(StandardCharsets.UTF_8));
+        // BetterHud compatibility: for <=1.21.4 these includes may not exist, so
+        // provide an empty stub.
+        // For 1.21.6+ the client ships real include files that must not be overridden.
+        if (shaderVersion < 3) {
+            addZipEntry(zip, prefix + "include/dynamictransforms.glsl",
+                    "#version 150\n".getBytes(StandardCharsets.UTF_8));
+            addZipEntry(zip, prefix + "include/globals.glsl", "#version 150\n".getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    private void addRootShaderEntries(ZipOutputStream zip) throws IOException {
+        String prefix = "assets/minecraft/shaders/";
+        addZipEntry(zip, prefix + "core/rendertype_text.vsh",
+                buildBetterHudVertexShader(0).getBytes(StandardCharsets.UTF_8));
+        addZipEntry(zip, prefix + "core/rendertype_text.fsh",
+                buildBetterHudFragmentShader(0).getBytes(StandardCharsets.UTF_8));
     }
 
     private String buildOverlayShaderJson() {
@@ -890,16 +949,18 @@ public final class SprintHudService implements Listener {
                     applyColor = 0;
                     vertexColor = Color * texelFetch(Sampler2, UV2 / 16, 0);
                     if (pos.y >= ui.y && ProjMat[3].x == -1) {
-                        int bit = int(pos.y) >> HEIGHT_BIT;
-                        if (((bit >> MAX_BIT) & 1) == 1) {
-                            int id = bit - (1 << MAX_BIT);
-                            pos.x -= 0.5 * ui.x;
-                            pos.y -= (bit << HEIGHT_BIT) + ADD_OFFSET + DEFAULT_OFFSET;
-                            if (id == %d) {
-                                pos.z += 0.0;
-                            }
-                        }
-                    }
+                         int bit = int(pos.y) >> HEIGHT_BIT;
+                         if (((bit >> MAX_BIT) & 1) == 1) {
+		                            int id = bit - (1 << MAX_BIT);
+		                            pos.x -= 0.5 * ui.x;
+		                            pos.y -= (bit << HEIGHT_BIT) + ADD_OFFSET + DEFAULT_OFFSET;
+		                            if (id == %d) {
+		                                pos.x += 0.5 * ui.x;
+		                                pos.y += ui.y + %.1f;
+		                                pos.z += 0.0;
+		                            }
+		                        }
+		                    }
 
                 #if SHADER_VERSION >= 3
                     sphericalVertexDistance = fog_spherical_distance(pos);
@@ -912,7 +973,8 @@ public final class SprintHudService implements Listener {
                     gl_Position = ProjMat * ModelViewMat * vec4(pos, 1.0);
                 }
                 """
-                .formatted(shaderVersion, HUD_DEFAULT_BIT, HUD_MAX_BIT, HUD_ADD_HEIGHT, DEFAULT_BOSSBAR_OFFSET, SHADER_ID);
+                .formatted(shaderVersion, HUD_DEFAULT_BIT, HUD_MAX_BIT, HUD_ADD_HEIGHT, DEFAULT_BOSSBAR_OFFSET,
+                        SHADER_ID, HEALTH_BAR_ABOVE_Y);
     }
 
     private String buildBetterHudFragmentShader(int shaderVersion) {
@@ -954,7 +1016,8 @@ public final class SprintHudService implements Listener {
                     fragColor = linear_fog(color, vertexDistance, FogStart, FogEnd, FogColor);
                 #endif
                 }
-                """.formatted(shaderVersion);
+                """
+                .formatted(shaderVersion);
     }
 
     private void addZipEntry(ZipOutputStream zip, String path, byte[] bytes) throws IOException {
@@ -1044,7 +1107,7 @@ public final class SprintHudService implements Listener {
         private final boolean storedCollidable;
         private int dashTicks;
         private boolean leftGround;
-        private int landedTicks;
+        private int recoveryTicks = -1;
         private Mannequin mannequin;
 
         private DashState(UUID playerId, boolean storedInvisible, boolean storedCollidable) {
