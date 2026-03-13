@@ -13,6 +13,7 @@ import org.bukkit.Sound;
 import org.bukkit.entity.FishHook;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -30,10 +31,12 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
         "",
         "§e§l[패시브 - 거인 슬레이어]",
         "§7'§c거인§7' 능력을 가진 플레이어를 공격 시",
-        "§c100%§7의 추가 데미지를 입힙니다."
+        "§c100%§7의 추가 데미지를 입히며,",
+        "§7낙하 피해를 §f50%§7 감소시킵니다."
 }, summarize = {
         "§7낚시대 적중 시 돌진",
-        "§7거인 능력자에게 +100% 데미지"
+        "§7거인 능력자에게 +100% 데미지",
+        "§7낙하 피해 50% 감소"
 })
 public class ODMGear extends AbilityBase {
 
@@ -47,6 +50,7 @@ public class ODMGear extends AbilityBase {
     protected void onActivate() {
         subscribeEvent(PlayerFishEvent.class);
         subscribeEvent(EntityDamageByEntityEvent.class);
+        subscribeEvent(EntityDamageEvent.class);
         giveODMGear();
     }
 
@@ -103,6 +107,8 @@ public class ODMGear extends AbilityBase {
             onFish(e);
         } else if (event instanceof EntityDamageByEntityEvent e) {
             onDamage(e);
+        } else if (event instanceof EntityDamageEvent e) {
+            onFallDamage(e);
         }
     }
 
@@ -151,6 +157,16 @@ public class ODMGear extends AbilityBase {
                 dashTowards(player, hookLoc);
             }
         }
+    }
+
+    private void onFallDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player player) || !player.equals(getPlayer())) {
+            return;
+        }
+        if (event.getCause() != EntityDamageEvent.DamageCause.FALL) {
+            return;
+        }
+        event.setDamage(event.getDamage() * 0.5);
     }
 
     private boolean hasNearbyBlock(Location loc) {

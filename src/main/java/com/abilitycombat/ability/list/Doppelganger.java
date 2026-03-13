@@ -124,6 +124,7 @@ public class Doppelganger extends AbilityBase implements ActiveHandler, TargetHa
         targetUuid = target.getUniqueId();
 
         self.sendMessage("§e[도플갱어] §f복제 대상: §c" + target.getName() + "§f (" + targetAbility.getName() + ")");
+        target.sendMessage("§c[도플갱어] §f당신의 능력이 누군가에게 복제되었습니다.");
 
         try {
             copiedAbility = AbilityFactory.create(targetAbility.getClass(), getParticipant());

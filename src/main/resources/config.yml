@@ -1,6 +1,7 @@
 game:
   invincibility-seconds: 70
   duration-seconds: 720
+  fixed-daytime: true
   allow-debug-during-game: false
 ability:
   selection-seconds: 50

@@ -132,7 +132,7 @@ public class BulletBarrage extends AbilityBase {
             stand.getEquipment().setItemInMainHand(new ItemStack(Material.STONE_BUTTON));
             stand.setRightArmPose(new EulerAngle(Math.toRadians(-90), 0, 0));
         });
-        AbilityCombat.markAbilityArmorStand(bullet);
+        AbilityCombat.markPiercingAbilityArmorStand(bullet);
 
         activeBullets.add(new BulletData(bullet, target, shooter, initialDir.clone()));
 

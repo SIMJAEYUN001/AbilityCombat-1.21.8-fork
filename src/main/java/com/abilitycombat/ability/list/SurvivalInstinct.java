@@ -21,7 +21,7 @@ import org.bukkit.util.Vector;
         "",
         "§7발동 시 주변 §f4칸§7 이내의 적을 밀쳐내고",
         "§f4초§7간 §b무적§7 및 §8공격 불가§7 상태가 되며",
-        "§b신속 III§7를 얻습니다.",
+        "§b신속 III§7와 §6흡수 IV§7를 얻습니다.",
         "",
         "§7다른 플레이어를 §c처치§7하면 능력이 재충전됩니다."
 }, summarize = {
@@ -31,6 +31,7 @@ import org.bukkit.util.Vector;
 public class SurvivalInstinct extends AbilityBase {
 
     private static final int INVULN_SECONDS = 4;
+    private static final int ABSORPTION_SECONDS = 15;
     private static final double SURVIVE_HEALTH = 6.0;
     private static final double KNOCK_RADIUS = 4.0;
 
@@ -110,6 +111,7 @@ public class SurvivalInstinct extends AbilityBase {
         invulnerable = true;
         player.setInvulnerable(true);
         player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, INVULN_SECONDS * 20, 2, true, false));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, ABSORPTION_SECONDS * 20, 3, true, false));
         for (LivingEntity entity : player.getWorld().getLivingEntities()) {
             if (entity.equals(player) || !com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), entity)) {
                 continue;

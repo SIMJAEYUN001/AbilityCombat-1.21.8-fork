@@ -6,6 +6,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -18,7 +19,9 @@ public class AbilityRegistry {
 
     private final JavaPlugin plugin;
     private final Map<String, AbilityDefinition> definitions = new LinkedHashMap<>();
+    private final Map<String, Long> pickCounts = new LinkedHashMap<>();
     private long randomSelectionSeed = 0;
+    private long totalPicks = 0L;
 
     public AbilityRegistry(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -40,6 +43,76 @@ public class AbilityRegistry {
             }
             AbilityDefinition definition = new AbilityDefinition(name, rank, summary, icon);
             definitions.put(name, definition);
+        }
+        loadPickRates();
+    }
+
+    private void loadPickRates() {
+        pickCounts.clear();
+        File file = new File(plugin.getDataFolder(), "pickrate.yml");
+        if (!file.exists()) {
+            plugin.saveResource("pickrate.yml", false);
+            totalPicks = 0L;
+        }
+        FileConfiguration config = YamlConfiguration.loadConfiguration(file);
+        totalPicks = Math.max(0L, config.getLong("total-picks", 0L));
+        if (config.isConfigurationSection("abilities")) {
+            for (String key : config.getConfigurationSection("abilities").getKeys(false)) {
+                long count = Math.max(0L, config.getLong("abilities." + key, 0L));
+                if (count > 0L) {
+                    pickCounts.put(key, count);
+                }
+            }
+        }
+    }
+
+    public void recordPick(AbilityDefinition definition) {
+        if (definition == null || definition.getName() == null || definition.getName().isBlank()) {
+            return;
+        }
+        pickCounts.merge(definition.getName(), 1L, Long::sum);
+        totalPicks++;
+        savePickRates();
+    }
+
+    public long getPickCount(String abilityName) {
+        if (abilityName == null || abilityName.isBlank()) {
+            return 0L;
+        }
+        return pickCounts.getOrDefault(abilityName, 0L);
+    }
+
+    public long getPickCount(AbilityDefinition definition) {
+        return definition == null ? 0L : getPickCount(definition.getName());
+    }
+
+    public double getPickRatePercent(String abilityName) {
+        if (totalPicks <= 0L) {
+            return 0.0D;
+        }
+        return (getPickCount(abilityName) * 100.0D) / totalPicks;
+    }
+
+    public double getPickRatePercent(AbilityDefinition definition) {
+        return definition == null ? 0.0D : getPickRatePercent(definition.getName());
+    }
+
+    public long getTotalPicks() {
+        return totalPicks;
+    }
+
+    private void savePickRates() {
+        File file = new File(plugin.getDataFolder(), "pickrate.yml");
+        YamlConfiguration config = new YamlConfiguration();
+        config.set("version", plugin.getPluginMeta().getVersion());
+        config.set("total-picks", totalPicks);
+        for (Map.Entry<String, Long> entry : pickCounts.entrySet()) {
+            config.set("abilities." + entry.getKey(), entry.getValue());
+        }
+        try {
+            config.save(file);
+        } catch (IOException exception) {
+            plugin.getLogger().warning("Failed to save pickrate.yml: " + exception.getMessage());
         }
     }
 

@@ -104,8 +104,10 @@ public final class SprintHudService implements Listener {
     private static final char POSITIVE_SPACE_2 = '\uE10E';
     private static final char POSITIVE_SPACE_1 = '\uE10F';
     private static final int MAX_ARROWS = 10;
+    private static final int MIN_DASH_ARROWS = 7;
     private static final int TICKS_PER_ARROW = 2;
     private static final int MAX_SPRINT_TICKS = MAX_ARROWS * TICKS_PER_ARROW;
+    private static final int MIN_DASH_TICKS = MIN_DASH_ARROWS * TICKS_PER_ARROW;
     private static final int JUMP_GRACE_TICKS = 6;
     private static final int MAX_DASH_HOLD_TICKS = 30;
     private static final int POST_LAND_HOLD_TICKS = 4;
@@ -211,6 +213,7 @@ public final class SprintHudService implements Listener {
         failsafeTask = Bukkit.getScheduler().runTaskTimer(plugin, this::runFailsafeTick, FAILSAFE_TASK_PERIOD,
                 FAILSAFE_TASK_PERIOD);
         for (Player player : Bukkit.getOnlinePlayers()) {
+            showBar(player, 0);
             sendPack(player);
         }
     }
@@ -304,20 +307,12 @@ public final class SprintHudService implements Listener {
             UUID uuid = player.getUniqueId();
             boolean loaded = isPackLoaded(player);
             if (dashStates.containsKey(uuid)) {
-                if (loaded) {
-                    showBar(player, 0);
-                } else {
-                    clearBar(player);
-                }
+                showBar(player, 0);
                 continue;
             }
             int ticks = updateSprintTicks(player);
             int arrows = Math.min(MAX_ARROWS, ticks / TICKS_PER_ARROW);
-            if (arrows > 0 || loaded) {
-                showBar(player, arrows);
-            } else {
-                clearBar(player);
-            }
+            showBar(player, loaded ? arrows : Math.max(0, arrows));
         }
     }
 
@@ -346,6 +341,7 @@ public final class SprintHudService implements Listener {
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
+        showBar(event.getPlayer(), 0);
         Bukkit.getScheduler().runTaskLater(plugin, () -> sendPack(event.getPlayer()), 20L);
     }
 
@@ -377,7 +373,7 @@ public final class SprintHudService implements Listener {
                 plugin.getLogger().warning("Sprint HUD resource pack status for " + event.getPlayer().getName() + ": "
                         + event.getStatus());
                 loadedPackPlayers.remove(event.getPlayer().getUniqueId());
-                clearBar(event.getPlayer());
+                showBar(event.getPlayer(), 0);
             }
             default -> {
             }
@@ -424,7 +420,7 @@ public final class SprintHudService implements Listener {
         sprintTicks.remove(uuid);
         jumpGraceTicks.remove(uuid);
         storedJumpCharge.remove(uuid);
-        clearBar(player);
+        showBar(player, 0);
         startDash(player, ticks);
     }
 
@@ -583,6 +579,9 @@ public final class SprintHudService implements Listener {
     }
 
     private void startDash(Player player, int chargedTicks) {
+        if (chargedTicks < MIN_DASH_TICKS) {
+            return;
+        }
         double ratio = Math.max(0.0, Math.min(1.0, chargedTicks / (double) MAX_SPRINT_TICKS));
         if (ratio <= 0.0) {
             return;
@@ -985,12 +984,24 @@ public final class SprintHudService implements Listener {
         Graphics2D graphics = atlas.createGraphics();
         try {
             graphics.drawImage(icon, 0, 0, null);
+            graphics.drawImage(createFixedWidthBlankGlyph(icon.getWidth(), icon.getHeight()), icon.getWidth(), 0, null);
         } finally {
             graphics.dispose();
         }
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         ImageIO.write(atlas, "PNG", outputStream);
         return outputStream.toByteArray();
+    }
+
+    private BufferedImage createFixedWidthBlankGlyph(int width, int height) {
+        BufferedImage blank = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        int invisibleMarker = (1 << 24) | 0xFFFFFF;
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                blank.setRGB(x, y, invisibleMarker);
+            }
+        }
+        return blank;
     }
 
     private void addOverlayShaderEntries(ZipOutputStream zip, String overlayName, int shaderVersion)

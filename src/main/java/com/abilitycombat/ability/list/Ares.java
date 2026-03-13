@@ -22,13 +22,14 @@ import java.util.Set;
 import java.util.UUID;
 
 @AbilityManifest(name = "아레스 (Ares)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.GOD, explain = {
-        "§e§l[철괴 우클릭 - 전쟁의 도약]§f §8(쿨타임: 45초)",
+        "§e§l[철괴 우클릭 - 전쟁의 도약]§f §8(쿨타임: 30초)",
         "§7전방으로 강하게 도약합니다.",
         "",
         "§7도약 중 주변 §f3칸§7 이내의 생명체를 §6끌어당기며§7",
-        "§7최초 접촉 시 §c4의 피해§7를 입힙니다.",
+        "§7최초 접촉 시 §c12의 피해§7를 입힙니다.",
         "",
-        "§7착지하면 주변 §f4칸§7 이내의 생명체를 §6밀쳐냅니다§7.",
+        "§7착지하면 주변 §f4칸§7 이내의 생명체를 §6밀쳐내고§7",
+        "§c15의 피해§7를 추가로 입힙니다.",
         "§7도약 중에는 낙하 피해를 받지 않습니다."
 }, summarize = {
         "§7철괴 우클릭§f: 도약 + 끌어당김 + 밀쳐냄"
@@ -37,12 +38,12 @@ import java.util.UUID;
 // IDE.
 public class Ares extends AbilityBase implements ActiveHandler {
 
-    private static final int COOLDOWN_SECONDS = 45;
+    private static final int COOLDOWN_SECONDS = 30;
     private static final int DASH_TICKS = 40;
     private static final double PULL_RADIUS = 3.0;
     private static final double LAND_RADIUS = 4.0;
-    private static final double DAMAGE = 4.0;
-    private static final double DOT_DAMAGE = 0.5;
+    private static final double INITIAL_CONTACT_DAMAGE = 12.0;
+    private static final double LAND_DAMAGE = 15.0;
     private static final int TICK_PERIOD = 2;
 
     private final Cooldown cooldown = new Cooldown(COOLDOWN_SECONDS);
@@ -162,10 +163,9 @@ public class Ares extends AbilityBase implements ActiveHandler {
                     .multiply(0.8);
             entity.setVelocity(pull);
             if (hitTargets.add(entity.getUniqueId())) {
-                entity.damage(DAMAGE, player);
+                entity.setNoDamageTicks(0);
+                entity.damage(INITIAL_CONTACT_DAMAGE, player);
             }
-            entity.setNoDamageTicks(0);
-            entity.damage(DOT_DAMAGE, player);
         }
     }
 
@@ -180,6 +180,8 @@ public class Ares extends AbilityBase implements ActiveHandler {
                     .multiply(1.2);
             push.setY(0.4);
             entity.setVelocity(push);
+            entity.setNoDamageTicks(0);
+            entity.damage(LAND_DAMAGE, player);
         }
         spawnLandingEffects(player);
     }

@@ -404,7 +404,7 @@ public class SwordMaster extends AbilityBase implements ActiveHandler {
             armorStand.setArms(true);
             armorStand.getPersistentDataContainer().set(getSwordKey(AbilityCombat.getPlugin()),
                     PersistentDataType.BYTE, (byte) 1);
-            AbilityCombat.markAbilityArmorStand(armorStand);
+            AbilityCombat.markPiercingAbilityArmorStand(armorStand);
             armorStand.getEquipment().setItemInMainHand(swordItem);
             armorStand.setRightArmPose(DEFAULT_ARM_POSE);
         }

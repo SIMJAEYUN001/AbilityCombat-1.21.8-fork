@@ -13,6 +13,7 @@ import com.abilitycombat.gui.AbilityDebugGui;
 import com.abilitycombat.gui.AbilitySelectGui;
 import com.abilitycombat.gui.ConfigGui;
 import com.abilitycombat.gui.ToolkitGui;
+import io.papermc.paper.event.entity.EntityKnockbackEvent;
 import io.papermc.paper.scoreboard.numbers.NumberFormat;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -57,6 +58,7 @@ import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
@@ -93,6 +95,7 @@ import org.bukkit.scoreboard.RenderType;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.scoreboard.Team;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -126,8 +129,15 @@ public class GameManager implements Listener {
     private final NamespacedKey abilityArmorStandKey;
     private final NamespacedKey fixedAxeDamageKey;
 
-    private static final int FIXED_FOOD_LEVEL = 19;
-    private static final float FIXED_SATURATION = 19.0f;
+    private static final int FIXED_FOOD_LEVEL = 20;
+    private static final float FIXED_SATURATION = 20.0f;
+    private static final int OLD_NATURAL_REGEN_INTERVAL_TICKS = 80;
+    private static final double OLD_NATURAL_REGEN_AMOUNT = 1.0;
+    private static final double OLD_PLAYER_KNOCKBACK_HORIZONTAL = 0.4;
+    private static final double OLD_PLAYER_KNOCKBACK_VERTICAL = 0.4;
+    private static final double OLD_PLAYER_KNOCKBACK_VERTICAL_LIMIT = 0.4;
+    private static final double OLD_PLAYER_EXTRA_KNOCKBACK = 0.5;
+    private static final double OLD_PLAYER_EXTRA_VERTICAL_KNOCKBACK = 0.1;
     private static final double NO_ATTACK_COOLDOWN_ATTACK_SPEED = 1024.0;
     private static final double NO_SWEEPING_DAMAGE_RATIO = 0.0;
     private static final double FIXED_AXE_ATTACK_DAMAGE = 5.0;
@@ -154,6 +164,9 @@ public class GameManager implements Listener {
     private Boolean originalDoDaylightCycle;
     private long originalFullTime = -1L;
     private final Map<UUID, SwordSwingRecord> lastSwordSwings = new HashMap<>();
+    private final Map<UUID, Integer> naturalRegenCounters = new HashMap<>();
+    private final Set<UUID> manualNaturalRegen = new HashSet<>();
+    private final Map<UUID, PendingKnockback> pendingKnockbacks = new HashMap<>();
     private int selectionSeconds;
     private int selectionRemaining;
     private int invincibilitySeconds;
@@ -161,6 +174,7 @@ public class GameManager implements Listener {
     private int invincibilityRemaining;
     private int gameRemaining;
     private boolean invincible;
+    private boolean fixedDaytimeEnabled;
     private double borderShrinkSpeed;
     private int initialBorderRadius;
     private MatchMode selectedMatchMode = MatchMode.SOLO;
@@ -204,6 +218,7 @@ public class GameManager implements Listener {
 	        this.infiniteDurability = plugin.getConfig().getBoolean("durability.infinite", true);
 	        this.craftingEnabled = plugin.getConfig().getBoolean("crafting.enabled", true);
 	        this.attackCooldownEnabled = plugin.getConfig().getBoolean("combat.attack-cooldown", true);
+	        this.fixedDaytimeEnabled = plugin.getConfig().getBoolean("game.fixed-daytime", true);
 	        this.idleBlockBreakAllowed = plugin.getConfig().getBoolean("lobby.allow-block-break", true);
 	        this.idleBlockPlaceAllowed = plugin.getConfig().getBoolean("lobby.allow-block-place", true);
 	        this.idleInvincible = plugin.getConfig().getBoolean("lobby.invincible", false);
@@ -382,6 +397,9 @@ public class GameManager implements Listener {
         movementLocks.clear();
         storedAi.clear();
         lastSwordSwings.clear();
+        naturalRegenCounters.clear();
+        manualNaturalRegen.clear();
+        pendingKnockbacks.clear();
         clearScoreboard();
         clearTeamHealthDisplays();
         selectedMatchMode = MatchMode.SOLO;
@@ -539,7 +557,7 @@ public class GameManager implements Listener {
     }
 
     public void openDebugGui(Player player, int page, boolean viewOnly) {
-        AbilityDebugGui gui = new AbilityDebugGui(getDebugDefinitions(), page, viewOnly);
+        AbilityDebugGui gui = new AbilityDebugGui(getDebugDefinitions(), abilityRegistry, page, viewOnly);
         player.openInventory(gui.getInventory());
     }
 
@@ -689,6 +707,7 @@ public class GameManager implements Listener {
         selectionSeconds = plugin.getConfig().getInt("ability.selection-seconds", 15);
         initialBorderRadius = plugin.getConfig().getInt("world-border.initial-radius", 200);
         borderShrinkSpeed = plugin.getConfig().getDouble("world-border.shrink-seconds", 3.0);
+        fixedDaytimeEnabled = plugin.getConfig().getBoolean("game.fixed-daytime", true);
         hideSpectators = plugin.getConfig().getBoolean("spectator.hide-from-alive", true);
 	        mapRestoreEnabled = plugin.getConfig().getBoolean("map-restore.enabled", true);
 	        blockNaturalMobSpawn = plugin.getConfig().getBoolean("mob-spawn.block-natural", true);
@@ -1212,7 +1231,7 @@ public class GameManager implements Listener {
                     continue;
                 }
                 if (player != null) {
-                    assignAbility(player, session.selected);
+                    assignAbility(player, session.selected, true);
                     // 1틱 뒤에 닫아서 클릭 이벤트와 충돌 방지
                     Bukkit.getScheduler().runTask(plugin, (Runnable) player::closeInventory);
                     // 능력 선택 완료 후 자동으로 능력 정보 출력
@@ -1737,6 +1756,7 @@ public class GameManager implements Listener {
         attackSpeedSyncTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             applyAttackCooldownSettingToOnlinePlayers();
             applyFixedAxeDamageToOnlinePlayers();
+            tickOldCombatAdjustments();
         }, 1L, 1L);
     }
 
@@ -1777,9 +1797,19 @@ public class GameManager implements Listener {
     }
 
     private void assignAbility(Player player, AbilityDefinition definition) {
+        assignAbility(player, definition, false);
+    }
+
+    private void assignAbility(Player player, AbilityDefinition definition, boolean countPick) {
         Participant participant = participants.computeIfAbsent(player.getUniqueId(), key -> new Participant(player));
+        boolean shouldRecordPick = countPick
+                && (participant.getAbilityDefinition() == null
+                        || !participant.getAbilityDefinition().getName().equals(definition.getName()));
         participant.setAbilityDefinition(definition);
         participant.removeAbility();
+        if (shouldRecordPick) {
+            abilityRegistry.recordPick(definition);
+        }
         if (AbilityFactory.isRegistered(definition.getName())) {
             AbilityBase ability = AbilityFactory.create(definition.getName(), participant);
             participant.setAbility(ability);
@@ -1955,6 +1985,85 @@ public class GameManager implements Listener {
     private void applyHungerLock(Player player) {
         player.setFoodLevel(FIXED_FOOD_LEVEL);
         player.setSaturation(Math.min(FIXED_FOOD_LEVEL, FIXED_SATURATION));
+        player.setExhaustion(0.0f);
+    }
+
+    private void tickOldCombatAdjustments() {
+        int currentTick = Bukkit.getCurrentTick();
+        pendingKnockbacks.entrySet().removeIf(entry -> entry.getValue().expiresAtTick < currentTick);
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            applyHungerLock(player);
+            tickOldNaturalRegen(player);
+        }
+    }
+
+    private void tickOldNaturalRegen(Player player) {
+        UUID uuid = player.getUniqueId();
+        if (!canUseOldNaturalRegen(player)) {
+            naturalRegenCounters.remove(uuid);
+            return;
+        }
+        int counter = naturalRegenCounters.getOrDefault(uuid, 0) + 1;
+        if (counter < OLD_NATURAL_REGEN_INTERVAL_TICKS) {
+            naturalRegenCounters.put(uuid, counter);
+            return;
+        }
+        naturalRegenCounters.put(uuid, 0);
+        applyOldNaturalRegen(player);
+    }
+
+    private boolean canUseOldNaturalRegen(Player player) {
+        if (player == null || !player.isOnline() || player.isDead()) {
+            return false;
+        }
+        if (player.getGameMode() == GameMode.SPECTATOR || player.getGameMode() == GameMode.CREATIVE) {
+            return false;
+        }
+        return player.getHealth() < getMaxHealth(player);
+    }
+
+    private void applyOldNaturalRegen(Player player) {
+        UUID uuid = player.getUniqueId();
+        manualNaturalRegen.add(uuid);
+        try {
+            EntityRegainHealthEvent event = new EntityRegainHealthEvent(player, OLD_NATURAL_REGEN_AMOUNT,
+                    EntityRegainHealthEvent.RegainReason.SATIATED, false);
+            Bukkit.getPluginManager().callEvent(event);
+            if (event.isCancelled()) {
+                return;
+            }
+            double maxHealth = getMaxHealth(player);
+            player.setHealth(Math.min(maxHealth, player.getHealth() + event.getAmount()));
+        } finally {
+            manualNaturalRegen.remove(uuid);
+        }
+    }
+
+    private double getMaxHealth(Player player) {
+        AttributeInstance maxHealth = player.getAttribute(Attribute.MAX_HEALTH);
+        return maxHealth != null ? maxHealth.getValue() : 20.0;
+    }
+
+    private Vector createOldPlayerKnockback(Player attacker, Player target) {
+        Vector direction = target.getLocation().toVector().subtract(attacker.getLocation().toVector()).setY(0);
+        if (direction.lengthSquared() <= 1.0E-6) {
+            direction = attacker.getLocation().getDirection().clone().setY(0);
+        }
+        if (direction.lengthSquared() <= 1.0E-6) {
+            return null;
+        }
+        direction.normalize();
+        double horizontal = OLD_PLAYER_KNOCKBACK_HORIZONTAL;
+        double vertical = OLD_PLAYER_KNOCKBACK_VERTICAL;
+        if (attacker.isSprinting()) {
+            horizontal += OLD_PLAYER_EXTRA_KNOCKBACK;
+            vertical += OLD_PLAYER_EXTRA_VERTICAL_KNOCKBACK;
+        }
+        Vector velocity = target.getVelocity().clone().multiply(0.5);
+        velocity.setX(velocity.getX() + direction.getX() * horizontal);
+        velocity.setZ(velocity.getZ() + direction.getZ() * horizontal);
+        velocity.setY(Math.min(OLD_PLAYER_KNOCKBACK_VERTICAL_LIMIT, velocity.getY() / 2.0 + vertical));
+        return velocity;
     }
 
     private void updateScoreboard() {
@@ -2374,7 +2483,7 @@ public class GameManager implements Listener {
                 SelectionSession session = selectionSessions.get(player.getUniqueId());
                 if (session != null && session.selected == null) {
                     session.selected = ability;
-                    assignAbility(player, ability);
+                    assignAbility(player, ability, true);
                     sendAbilityInfo(player);
                     player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.9f, 1.2f);
                     player.closeInventory();
@@ -2389,7 +2498,7 @@ public class GameManager implements Listener {
             event.setCancelled(true);
             AbilityDefinition ability = debugGui.getAbilityAt(event.getRawSlot());
             if (ability != null && !debugGui.isViewOnly()) {
-                assignAbility(player, ability);
+                assignAbility(player, ability, false);
                 debugAbilityUsers.add(player.getUniqueId());
                 player.closeInventory();
                 return;
@@ -2589,8 +2698,31 @@ public class GameManager implements Listener {
                 idleBlockPlaceAllowed = plugin.getConfig().getBoolean("lobby.allow-block-place", true);
                 idleInvincible = plugin.getConfig().getBoolean("lobby.invincible", false);
                 attackCooldownEnabled = plugin.getConfig().getBoolean("combat.attack-cooldown", true);
+                fixedDaytimeEnabled = plugin.getConfig().getBoolean("game.fixed-daytime", true);
                 applyAttackCooldownSettingToOnlinePlayers();
+                if (state != GameState.IDLE) {
+                    if (fixedDaytimeEnabled) {
+                        startFixedDaytime();
+                    } else {
+                        restoreFixedDaytime();
+                    }
+                }
                 gui.refreshAll();
+            }
+            case FIXED_DAYTIME -> {
+                boolean enabled = plugin.getConfig().getBoolean("game.fixed-daytime", true);
+                boolean next = !enabled;
+                plugin.getConfig().set("game.fixed-daytime", next);
+                plugin.saveConfig();
+                fixedDaytimeEnabled = next;
+                if (state != GameState.IDLE) {
+                    if (fixedDaytimeEnabled) {
+                        startFixedDaytime();
+                    } else {
+                        restoreFixedDaytime();
+                    }
+                }
+                gui.refresh(entry);
             }
 	            case SPECTATOR_HIDE -> {
 	                boolean hide = plugin.getConfig().getBoolean("spectator.hide-from-alive", true);
@@ -2821,7 +2953,11 @@ public class GameManager implements Listener {
     }
 
     private void continueGameStart() {
-        startFixedDaytime();
+        if (fixedDaytimeEnabled) {
+            startFixedDaytime();
+        } else {
+            restoreFixedDaytime();
+        }
         prepareParticipants();
         healAllOnlinePlayersWithRetries(20);
         state = GameState.SELECTING;
@@ -3135,6 +3271,9 @@ public class GameManager implements Listener {
         debugAbilityUsers.remove(uuid);
         movementLocks.remove(uuid);
         storedAi.remove(uuid);
+        naturalRegenCounters.remove(uuid);
+        manualNaturalRegen.remove(uuid);
+        pendingKnockbacks.remove(uuid);
     }
 
     @EventHandler
@@ -3169,8 +3308,22 @@ public class GameManager implements Listener {
         if (!(event.getEntity() instanceof Player player)) {
             return;
         }
-        event.setFoodLevel(FIXED_FOOD_LEVEL);
+        event.setCancelled(true);
         applyHungerLock(player);
+    }
+
+    @EventHandler
+    public void onEntityRegainHealth(EntityRegainHealthEvent event) {
+        if (!(event.getEntity() instanceof Player player)) {
+            return;
+        }
+        if (event.getRegainReason() != EntityRegainHealthEvent.RegainReason.SATIATED) {
+            return;
+        }
+        if (manualNaturalRegen.contains(player.getUniqueId())) {
+            return;
+        }
+        event.setCancelled(true);
     }
 
     @EventHandler
@@ -3205,7 +3358,31 @@ public class GameManager implements Listener {
                 event.setCancelled(true);
                 return;
             }
+            if (!event.isCancelled() && sourcePlayer != null
+                    && event.getCause() == EntityDamageEvent.DamageCause.ENTITY_ATTACK) {
+                Vector knockback = createOldPlayerKnockback(sourcePlayer, targetPlayer);
+                if (knockback != null) {
+                    pendingKnockbacks.put(targetPlayer.getUniqueId(),
+                            new PendingKnockback(knockback, Bukkit.getCurrentTick() + 2));
+                }
+            }
         }
+    }
+
+    @EventHandler
+    public void onEntityKnockback(EntityKnockbackEvent event) {
+        if (!(event.getEntity() instanceof Player player)) {
+            return;
+        }
+        if (event.getCause() != EntityKnockbackEvent.Cause.ENTITY_ATTACK) {
+            return;
+        }
+        PendingKnockback pending = pendingKnockbacks.remove(player.getUniqueId());
+        if (pending == null) {
+            return;
+        }
+        event.setCancelled(true);
+        player.setVelocity(pending.velocity);
     }
 
     private Player resolveCombatSourcePlayer(Entity entity) {
@@ -3312,6 +3489,16 @@ public class GameManager implements Listener {
         private SwordSwingRecord(int tick, UUID firstTarget) {
             this.tick = tick;
             this.firstTarget = firstTarget;
+        }
+    }
+
+    private static final class PendingKnockback {
+        private final Vector velocity;
+        private final int expiresAtTick;
+
+        private PendingKnockback(Vector velocity, int expiresAtTick) {
+            this.velocity = velocity;
+            this.expiresAtTick = expiresAtTick;
         }
     }
 

@@ -25,7 +25,7 @@ import java.util.Collection;
         "§e§l[철괴 우클릭 - 마그네틱 코어]§f §8(쿨타임: 30초)",
         "§7전방에 §6마그네틱 코어§7를 생성합니다. (지속: §f8초§7)",
         "",
-        "§7코어는 주변 §f8칸§7 이내의 모든 §e플레이어§7를",
+        "§7코어는 주변 §f10칸§7 이내의 모든 §e플레이어§7를",
         "§7천천히 끌어당깁니다. (본인 제외)",
         "",
         "§7지속시간 종료 시 코어가 §c폭발§7하여",
@@ -37,10 +37,10 @@ public class Magnet extends AbilityBase implements ActiveHandler {
 
     private static final int COOLDOWN_SECONDS = 30;
     private static final int DURATION_SECONDS = 8;
-    private static final double PULL_RANGE = 8.0;
+    private static final double PULL_RANGE = 10.0;
     private static final double EXPLOSION_RANGE = 6.0;
     private static final double EXPLOSION_DAMAGE = 20.0;
-    private static final double PULL_FORCE = 0.15;
+    private static final double PULL_FORCE = 0.075;
     private static final int TICK_PERIOD = 2;
 
     private final Cooldown cooldown = new Cooldown(COOLDOWN_SECONDS);

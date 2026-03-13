@@ -151,6 +151,7 @@ public final class AbilityCombat extends JavaPlugin {
         FileConfiguration config = getConfig();
         boolean updated = false;
 
+        updated |= ensureConfigDefault(config, "game.fixed-daytime", true);
         updated |= ensureConfigDefault(config, "hud.sprint.external-url", "");
         updated |= ensureConfigDefault(config, "hud.sprint.bind-host", "");
         updated |= ensureConfigDefault(config, "hud.sprint.public-host", "");
@@ -258,6 +259,16 @@ public final class AbilityCombat extends JavaPlugin {
             return;
         }
         stand.getPersistentDataContainer().set(getAbilityArmorStandKey(plugin), PersistentDataType.BYTE, (byte) 1);
+    }
+
+    public static void markPiercingAbilityArmorStand(ArmorStand stand) {
+        if (stand == null) {
+            return;
+        }
+        markAbilityArmorStand(stand);
+        stand.setMarker(true);
+        stand.setInvulnerable(true);
+        stand.setCollidable(false);
     }
 
     public AbilityRegistry getAbilityRegistry() {

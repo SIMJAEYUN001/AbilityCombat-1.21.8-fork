@@ -4,6 +4,7 @@ import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityDefinition;
 import com.abilitycombat.ability.AbilityFactory;
 import com.abilitycombat.ability.AbilityManifest;
+import com.abilitycombat.ability.AbilityRegistry;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -28,6 +29,20 @@ public final class AbilityItemFactory {
     }
 
     public static ItemStack create(AbilityDefinition definition) {
+        return create(definition, List.of());
+    }
+
+    public static ItemStack createForDebug(AbilityDefinition definition, AbilityRegistry abilityRegistry) {
+        if (abilityRegistry == null) {
+            return create(definition);
+        }
+        long count = abilityRegistry.getPickCount(definition);
+        double rate = abilityRegistry.getPickRatePercent(definition);
+        String pickLine = String.format(Locale.ROOT, "§6픽률: §e%.2f%% §7(§f%d회§7)", rate, count);
+        return create(definition, List.of(pickLine));
+    }
+
+    private static ItemStack create(AbilityDefinition definition, List<String> extraLore) {
         ItemStack item = new ItemStack(definition.getIcon());
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
@@ -36,6 +51,9 @@ public final class AbilityItemFactory {
             List<String> lore = new ArrayList<>();
             lore.add(buildRankLine(definition));
             lore.add(buildCooldownLine(definition.getName()));
+            if (extraLore != null && !extraLore.isEmpty()) {
+                lore.addAll(extraLore);
+            }
             lore.add("");
             List<String> explain = resolveExplain(definition);
             if (explain.isEmpty()) {

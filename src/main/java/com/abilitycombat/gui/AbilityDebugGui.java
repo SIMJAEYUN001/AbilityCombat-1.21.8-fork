@@ -1,6 +1,7 @@
 package com.abilitycombat.gui;
 
 import com.abilitycombat.ability.AbilityDefinition;
+import com.abilitycombat.ability.AbilityRegistry;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -28,15 +29,21 @@ public class AbilityDebugGui implements InventoryHolder {
     private final Inventory inventory;
     private final Map<Integer, AbilityDefinition> slotMap = new HashMap<>();
     private final List<AbilityDefinition> abilities;
+    private final AbilityRegistry abilityRegistry;
     private final int page;
     private final int pageCount;
 
     public AbilityDebugGui(List<AbilityDefinition> abilities, int page) {
-        this(abilities, page, false);
+        this(abilities, null, page, false);
     }
 
     public AbilityDebugGui(List<AbilityDefinition> abilities, int page, boolean viewOnly) {
+        this(abilities, null, page, viewOnly);
+    }
+
+    public AbilityDebugGui(List<AbilityDefinition> abilities, AbilityRegistry abilityRegistry, int page, boolean viewOnly) {
         this.abilities = abilities == null ? Collections.emptyList() : abilities;
+        this.abilityRegistry = abilityRegistry;
         this.viewOnly = viewOnly;
         this.pageCount = Math.max(1, (int) Math.ceil(this.abilities.size() / (double) PAGE_SIZE));
         this.page = Math.max(0, Math.min(page, pageCount - 1));
@@ -82,7 +89,7 @@ public class AbilityDebugGui implements InventoryHolder {
         int slot = 0;
         for (int i = start; i < end; i++) {
             AbilityDefinition ability = abilities.get(i);
-            inventory.setItem(slot, AbilityItemFactory.create(ability));
+            inventory.setItem(slot, AbilityItemFactory.createForDebug(ability, abilityRegistry));
             slotMap.put(slot, ability);
             slot++;
         }

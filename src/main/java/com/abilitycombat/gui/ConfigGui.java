@@ -30,6 +30,7 @@ public class ConfigGui implements InventoryHolder {
         MAP_MANAGE,
         INVINCIBILITY,
         GAME_DURATION,
+        FIXED_DAYTIME,
         SELECTION_TIME,
         BORDER_INITIAL_RADIUS,
         BORDER_SHRINK_SECONDS,
@@ -106,13 +107,14 @@ public class ConfigGui implements InventoryHolder {
         addEntry(10, Type.MAP_MANAGE, -1);
         addEntry(11, Type.INVINCIBILITY, -1);
         addEntry(12, Type.GAME_DURATION, -1);
-        addEntry(13, Type.SELECTION_TIME, -1);
+        addEntry(13, Type.FIXED_DAYTIME, -1);
+        addEntry(14, Type.SELECTION_TIME, -1);
         addEntry(26, Type.REROLL_COUNT, -1);
-        addEntry(14, Type.BORDER_INITIAL_RADIUS, -1);
-        addEntry(15, Type.BORDER_SHRINK_SECONDS, -1);
-        addEntry(16, Type.SPECTATOR_HIDE, -1);
-        addEntry(17, Type.CRAFTING, -1);
-        addEntry(18, Type.MOB_SPAWN_BLOCK, -1);
+        addEntry(15, Type.BORDER_INITIAL_RADIUS, -1);
+        addEntry(16, Type.BORDER_SHRINK_SECONDS, -1);
+        addEntry(17, Type.SPECTATOR_HIDE, -1);
+        addEntry(18, Type.CRAFTING, -1);
+        addEntry(9, Type.MOB_SPAWN_BLOCK, -1);
         addEntry(24, Type.INFINITE_DURABILITY, -1);
         addEntry(19, Type.PHASE, 0);
         addEntry(20, Type.PHASE, 1);
@@ -192,6 +194,13 @@ public class ConfigGui implements InventoryHolder {
                         "§f" + seconds + "초",
                         "§7좌클릭: +60초, 우클릭: -60초",
                         "§7쉬프트: +300 / -300"));
+            }
+            case FIXED_DAYTIME -> {
+                boolean enabled = config.getBoolean("game.fixed-daytime", true);
+                yield createItem(Material.SUNFLOWER, "§b낮 시간 고정", List.of(
+                        "§f" + (enabled ? "활성화" : "비활성화"),
+                        "§7클릭: 토글",
+                        "§8게임 중 월드 시간을 낮으로 유지"));
             }
             case SELECTION_TIME -> {
                 int seconds = config.getInt("ability.selection-seconds", 15);
