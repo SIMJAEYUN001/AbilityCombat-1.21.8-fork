@@ -90,6 +90,7 @@ import com.abilitycombat.ui.ActionbarChannel;
 import com.abilitycombat.ui.BossBarManager;
 import com.abilitycombat.ui.SprintHudService;
 import com.abilitycombat.event.EventBridge;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
@@ -113,6 +114,7 @@ public final class AbilityCombat extends JavaPlugin {
     public void onEnable() {
         instance = this;
         saveDefaultConfig();
+        ensureConfigDefaults();
         saveResource("abilities.yml", false);
         abilityRegistry = new AbilityRegistry(this);
         abilityRegistry.load();
@@ -144,6 +146,38 @@ public final class AbilityCombat extends JavaPlugin {
             getCommand("aw").setTabCompleter(command);
         }
         getLogger().info("AbilityCombat has been enabled!");
+    }
+
+    private void ensureConfigDefaults() {
+        FileConfiguration config = getConfig();
+        boolean updated = false;
+
+        updated |= ensureConfigDefault(config, "hud.sprint.external-url", "");
+        updated |= ensureConfigDefault(config, "hud.sprint.bind-host", "");
+        updated |= ensureConfigDefault(config, "hud.sprint.public-host", "");
+        updated |= ensureConfigDefault(config, "hud.sprint.http-port", 24891);
+        updated |= ensureConfigDefault(config, "hud.sprint.http-path", "/abilitycombat-sprint-hud.zip");
+        updated |= ensureConfigDefault(config, "hud.sprint.require-resource-pack", false);
+        updated |= ensureConfigDefault(config, "hud.sprint.horizontal-offset", -100);
+        updated |= ensureConfigDefault(config, "hud.sprint.vertical-offset", 0);
+        updated |= ensureConfigDefault(config, "hud.sprint.dropbox.enabled", false);
+        updated |= ensureConfigDefault(config, "hud.sprint.dropbox.app-key", "");
+        updated |= ensureConfigDefault(config, "hud.sprint.dropbox.app-secret", "");
+        updated |= ensureConfigDefault(config, "hud.sprint.dropbox.redirect-uri", "");
+        updated |= ensureConfigDefault(config, "hud.sprint.dropbox.refresh-token", "");
+        updated |= ensureConfigDefault(config, "hud.sprint.dropbox.file-path", "/abilitycombat-sprint-hud.zip");
+
+        if (updated) {
+            saveConfig();
+        }
+    }
+
+    private boolean ensureConfigDefault(FileConfiguration config, String path, Object value) {
+        if (config.contains(path)) {
+            return false;
+        }
+        config.set(path, value);
+        return true;
     }
 
     @Override

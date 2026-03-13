@@ -204,6 +204,78 @@ public class AbilityCombatCommand implements CommandExecutor, TabCompleter {
                 sender.sendMessage("§a" + target.getName() + "에게 스프린트 HUD 리소스팩을 다시 전송했습니다.");
                 return true;
             }
+            case "dropbox" -> {
+                if (!hasAdminPermission(sender)) {
+                    sender.sendMessage("§c권한이 없습니다.");
+                    return true;
+                }
+                SprintHudService sprintHudService = plugin.getSprintHudService();
+                if (sprintHudService == null) {
+                    sender.sendMessage("§c스프린트 HUD 서비스가 비활성화되어 있습니다.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    sender.sendMessage("사용법: /" + label + " dropbox <auth|finish|sync>");
+                    return true;
+                }
+                String action = args[1].toLowerCase();
+                switch (action) {
+                    case "auth" -> {
+                        try {
+                            String authUrl = sprintHudService.beginDropboxAuthorization(sender);
+                            sender.sendMessage("§aDropbox OAuth URL을 생성했습니다.");
+                            sender.sendMessage("§f" + authUrl);
+                            sender.sendMessage("§7로그인 후 최종 redirect URL 또는 code를 /" + label
+                                    + " dropbox finish <값> 으로 붙여넣으세요.");
+                        } catch (IllegalStateException exception) {
+                            sender.sendMessage("§c" + exception.getMessage());
+                        }
+                        return true;
+                    }
+                    case "finish" -> {
+                        if (args.length < 3) {
+                            sender.sendMessage("사용법: /" + label + " dropbox finish <redirect-url|code>");
+                            return true;
+                        }
+                        String pastedValue = String.join(" ", java.util.Arrays.copyOfRange(args, 2, args.length));
+                        sender.sendMessage("§7Dropbox 토큰 교환 및 리소스팩 업로드를 비동기로 진행합니다...");
+                        sprintHudService.completeDropboxAuthorizationAsync(sender, pastedValue)
+                                .whenComplete((result, throwable) -> plugin.getServer().getScheduler().runTask(plugin,
+                                        () -> {
+                                            if (throwable != null) {
+                                                sender.sendMessage("§cDropbox OAuth 처리 실패: "
+                                                        + rootMessage(throwable));
+                                                return;
+                                            }
+                                            sender.sendMessage("§aDropbox refresh token을 저장했습니다.");
+                                            if (!result.accountId().isBlank()) {
+                                                sender.sendMessage("§7계정: §f" + result.accountId());
+                                            }
+                                            sender.sendMessage("§7리소스팩 URL: §f" + result.packUrl());
+                                        }));
+                        return true;
+                    }
+                    case "sync" -> {
+                        sender.sendMessage("§7Dropbox 리소스팩 업로드를 비동기로 진행합니다...");
+                        sprintHudService.publishDropboxPackAsync(true)
+                                .whenComplete((packUrl, throwable) -> plugin.getServer().getScheduler().runTask(plugin,
+                                        () -> {
+                                            if (throwable != null) {
+                                                sender.sendMessage("§cDropbox 업로드 실패: "
+                                                        + rootMessage(throwable));
+                                                return;
+                                            }
+                                            sender.sendMessage("§aDropbox 리소스팩을 갱신했습니다.");
+                                            sender.sendMessage("§7리소스팩 URL: §f" + packUrl);
+                                        }));
+                        return true;
+                    }
+                    default -> {
+                        sender.sendMessage("사용법: /" + label + " dropbox <auth|finish|sync>");
+                        return true;
+                    }
+                }
+            }
             case "test" -> {
                 if (!hasAdminPermission(sender)) {
                     sender.sendMessage("§c권한이 없습니다.");
@@ -266,6 +338,7 @@ public class AbilityCombatCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§e/" + label + " config setspawn §7- 게임 시작 위치 지정");
             sender.sendMessage("§e/" + label + " visible <player> §7- 투명화/숨김 상태 초기화");
             sender.sendMessage("§e/" + label + " repack <player> §7- 스프린트 HUD 리소스팩 재전송");
+            sender.sendMessage("§e/" + label + " dropbox <auth|finish|sync> §7- Dropbox 리소스팩 OAuth/동기화");
             sender.sendMessage("§e/" + label + " test <횟수> §7- 능력 추첨 테스트");
         }
     }
@@ -289,6 +362,7 @@ public class AbilityCombatCommand implements CommandExecutor, TabCompleter {
                 completions.add("config");
                 completions.add("visible");
                 completions.add("repack");
+                completions.add("dropbox");
                 completions.add("test");
             }
             return completions;
@@ -296,12 +370,23 @@ public class AbilityCombatCommand implements CommandExecutor, TabCompleter {
         if (args.length == 2 && args[0].equalsIgnoreCase("config") && isAdmin) {
             return List.of("reload", "setspawn", "setstart", "gui");
         }
+        if (args.length == 2 && args[0].equalsIgnoreCase("dropbox") && isAdmin) {
+            return List.of("auth", "finish", "sync");
+        }
         if (args.length == 2
                 && (args[0].equalsIgnoreCase("visible") || args[0].equalsIgnoreCase("repack"))
                 && isAdmin) {
             return plugin.getServer().getOnlinePlayers().stream().map(Player::getName).toList();
         }
         return List.of();
+    }
+
+    private String rootMessage(Throwable throwable) {
+        Throwable current = throwable;
+        while (current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current.getMessage() == null ? current.getClass().getSimpleName() : current.getMessage();
     }
 
     private void runAbilityDrawTest(Player player, int drawCount) {

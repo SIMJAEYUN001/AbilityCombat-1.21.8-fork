@@ -47,11 +47,20 @@ visual-effects:
   min-interval-ticks: 1
   max-distance: 64
 hud:
-	  sprint:
-	    enabled: true
-	    public-host: ""
-	    http-port: 24891
-	    http-path: "/abilitycombat-sprint-hud.zip"
-	    require-resource-pack: false
+  sprint:
+    enabled: true
+    external-url: ""
+    dropbox:
+      enabled: false
+      app-key: ""
+      app-secret: ""
+      redirect-uri: ""
+      refresh-token: ""
+      file-path: "/abilitycombat-sprint-hud.zip"
+    bind-host: ""
+    public-host: ""
+    http-port: 24891
+    http-path: "/abilitycombat-sprint-hud.zip"
+    require-resource-pack: false
     horizontal-offset: -100
-	    vertical-offset: 0
+    vertical-offset: 0

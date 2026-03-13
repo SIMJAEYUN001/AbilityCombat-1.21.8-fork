@@ -29,6 +29,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerResourcePackStatusEvent;
 import org.bukkit.event.player.PlayerToggleSprintEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.command.CommandSender;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
@@ -44,6 +45,11 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.net.URLDecoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -55,15 +61,27 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import java.time.Duration;
+import java.util.function.Supplier;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 
 public final class SprintHudService implements Listener {
 
-    private static final UUID RESOURCE_PACK_ID = UUID.fromString("9d92f6d1-b0a5-49a7-867d-5f6341468a60");
+    private static final String RESOURCE_PACK_FILE_NAME = "abilitycombat-sprint-hud.zip";
+    private static final String DEFAULT_DROPBOX_APP_KEY = "5jcck7diasz0rqy";
+    private static final String DEFAULT_DROPBOX_APP_SECRET = "1n9m04y2zx7bf26";
+    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
     private static final Key FONT_KEY = Key.key("abilitycombat", "sprint_hud");
     private static final char ARROW_GLYPH = '\uE000';
     private static final char EMPTY_ARROW_GLYPH = '\uE001';
@@ -129,6 +147,7 @@ public final class SprintHudService implements Listener {
     private final Map<UUID, BossBar> bars = new HashMap<>();
     private final Set<UUID> loadedPackPlayers = new HashSet<>();
     private final Map<UUID, DashState> dashStates = new HashMap<>();
+    private final Map<String, DropboxAuthSession> dropboxAuthSessions = new ConcurrentHashMap<>();
 
     private BukkitTask chargeTask;
     private BukkitTask dashTask;
@@ -136,7 +155,9 @@ public final class SprintHudService implements Listener {
     private HttpServer httpServer;
     private byte[] packBytes;
     private byte[] packHash;
-    private String packUrl;
+    private String packHashHex;
+    private UUID packId;
+    private volatile String packUrl;
     private boolean enabled;
     private boolean requireResourcePack;
     private int horizontalOffset;
@@ -158,12 +179,29 @@ public final class SprintHudService implements Listener {
         try {
             packBytes = buildPack();
             packHash = MessageDigest.getInstance("SHA-1").digest(packBytes);
+            packHashHex = toHex(packHash);
+            packId = UUID.nameUUIDFromBytes(packHash);
             writePackSnapshot(packBytes);
-            startPackServer();
+            String externalUrl = normalizeExternalPackUrl(plugin.getConfig().getString("hud.sprint.external-url", ""));
+            if (externalUrl != null && !externalUrl.isBlank()) {
+                packUrl = externalUrl;
+                plugin.getLogger().info("Sprint HUD resource pack URL: " + packUrl + " (external)");
+            } else if (plugin.getConfig().getBoolean("hud.sprint.dropbox.enabled", false)) {
+                publishDropboxPackAsync(true).exceptionally(throwable -> {
+                    plugin.getLogger().warning("Failed to publish sprint HUD resource pack to Dropbox: "
+                            + rootMessage(throwable));
+                    Bukkit.getScheduler().runTask(plugin, () -> startSelfHostedFallback());
+                    return null;
+                });
+            } else {
+                startPackServer();
+            }
         } catch (Exception exception) {
             plugin.getLogger().warning("Failed to initialize sprint HUD resource pack: " + exception.getMessage());
             packBytes = null;
             packHash = null;
+            packHashHex = null;
+            packId = null;
             packUrl = null;
         }
 
@@ -174,6 +212,66 @@ public final class SprintHudService implements Listener {
         for (Player player : Bukkit.getOnlinePlayers()) {
             sendPack(player);
         }
+    }
+
+    public String beginDropboxAuthorization(CommandSender sender) {
+        String appKey = readDropboxAppKey();
+        String appSecret = readDropboxAppSecret();
+        String redirectUri = readConfigString("hud.sprint.dropbox.redirect-uri");
+        String state = generateDropboxState();
+        dropboxAuthSessions.put(getDropboxAuthSessionKey(sender),
+                new DropboxAuthSession(state, redirectUri, System.currentTimeMillis()));
+        StringBuilder url = new StringBuilder("https://www.dropbox.com/oauth2/authorize")
+                .append("?client_id=").append(urlEncode(appKey))
+                .append("&response_type=code")
+                .append("&token_access_type=offline")
+                .append("&force_reapprove=true")
+                .append("&state=").append(urlEncode(state));
+        if (!redirectUri.isBlank()) {
+            url.append("&redirect_uri=").append(urlEncode(redirectUri));
+        }
+        return url.toString();
+    }
+
+    public CompletableFuture<DropboxAuthorizationResult> completeDropboxAuthorizationAsync(CommandSender sender,
+            String pastedValue) {
+        String sessionKey = getDropboxAuthSessionKey(sender);
+        DropboxAuthSession session = dropboxAuthSessions.get(sessionKey);
+        if (session == null) {
+            return CompletableFuture.failedFuture(new IllegalStateException("먼저 /aw dropbox auth 를 실행해야 합니다."));
+        }
+        String appKey = readDropboxAppKey();
+        String appSecret = readDropboxAppSecret();
+
+        return CompletableFuture
+                .supplyAsync(() -> exchangeDropboxAuthorizationCode(appKey, appSecret, session, pastedValue))
+                .thenCompose(tokenResult -> runSync(() -> {
+                    plugin.getConfig().set("hud.sprint.dropbox.enabled", true);
+                    plugin.getConfig().set("hud.sprint.dropbox.refresh-token", tokenResult.refreshToken());
+                    plugin.saveConfig();
+                }).thenCompose(ignored -> publishDropboxPackAsync(true)
+                        .thenApply(packUrl -> new DropboxAuthorizationResult(tokenResult.accountId(), tokenResult.refreshToken(), packUrl))))
+                .whenComplete((result, throwable) -> dropboxAuthSessions.remove(sessionKey));
+    }
+
+    public CompletableFuture<String> publishDropboxPackAsync(boolean resendOnlinePlayers) {
+        return CompletableFuture.supplyAsync(() -> {
+            String packUrl = prepareDropboxPackUrl();
+            if (packUrl == null || packUrl.isBlank()) {
+                throw new IllegalStateException("Dropbox 공유 링크를 가져오지 못했습니다.");
+            }
+            return packUrl;
+        }).thenCompose(url -> runSync(() -> {
+            this.packUrl = url;
+            plugin.getLogger().info("Sprint HUD resource pack URL: " + url + " (dropbox)");
+            if (resendOnlinePlayers) {
+                for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+                    loadedPackPlayers.remove(onlinePlayer.getUniqueId());
+                    sendPack(onlinePlayer);
+                }
+            }
+            return url;
+        }));
     }
 
     public void stop() {
@@ -269,7 +367,7 @@ public final class SprintHudService implements Listener {
 
     @EventHandler
     public void onPackStatus(PlayerResourcePackStatusEvent event) {
-        if (!RESOURCE_PACK_ID.equals(event.getID())) {
+        if (packId == null || !packId.equals(event.getID())) {
             return;
         }
         switch (event.getStatus()) {
@@ -703,11 +801,11 @@ public final class SprintHudService implements Listener {
     }
 
     private void sendPack(Player player) {
-        if (packUrl == null || packHash == null) {
+        if (packUrl == null || packHash == null || packId == null) {
             return;
         }
         player.setResourcePack(
-                RESOURCE_PACK_ID,
+                packId,
                 packUrl,
                 packHash,
                 Component.text("스프린트 HUD 리소스팩", NamedTextColor.AQUA),
@@ -1027,7 +1125,267 @@ public final class SprintHudService implements Listener {
         zip.closeEntry();
     }
 
+    private String prepareHostedPackUrl() {
+        String dropboxUrl = prepareDropboxPackUrl();
+        if (dropboxUrl != null && !dropboxUrl.isBlank()) {
+            plugin.getLogger().info("Sprint HUD resource pack URL: " + dropboxUrl + " (dropbox)");
+            return dropboxUrl;
+        }
+        String externalUrl = normalizeExternalPackUrl(plugin.getConfig().getString("hud.sprint.external-url", ""));
+        if (externalUrl != null && !externalUrl.isBlank()) {
+            plugin.getLogger().info("Sprint HUD resource pack URL: " + externalUrl + " (external)");
+            return externalUrl;
+        }
+        return null;
+    }
+
+    private void startSelfHostedFallback() {
+        if (packUrl != null && !packUrl.isBlank()) {
+            return;
+        }
+        if (httpServer != null) {
+            return;
+        }
+        try {
+            startPackServer();
+            for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+                loadedPackPlayers.remove(onlinePlayer.getUniqueId());
+                sendPack(onlinePlayer);
+            }
+        } catch (IOException exception) {
+            plugin.getLogger().warning("Failed to start sprint HUD self-host fallback: " + exception.getMessage());
+        }
+    }
+
+    private String prepareDropboxPackUrl() {
+        if (!plugin.getConfig().getBoolean("hud.sprint.dropbox.enabled", false)) {
+            return null;
+        }
+        String appKey = readDropboxAppKey();
+        String appSecret = readDropboxAppSecret();
+        String refreshToken = readConfigString("hud.sprint.dropbox.refresh-token");
+        String filePath = normalizeDropboxPath(plugin.getConfig().getString("hud.sprint.dropbox.file-path",
+                "/" + RESOURCE_PACK_FILE_NAME));
+        if (refreshToken.isBlank()) {
+            plugin.getLogger().warning("Sprint HUD Dropbox mode is enabled, but refresh-token is missing.");
+            return null;
+        }
+        try {
+            String accessToken = requestDropboxAccessToken(appKey, appSecret, refreshToken);
+            uploadPackToDropbox(accessToken, filePath);
+            String shareLink = getDropboxSharedLink(accessToken, filePath);
+            if (shareLink == null || shareLink.isBlank()) {
+                throw new IOException("Dropbox shared link was not returned");
+            }
+            return normalizeExternalPackUrl(shareLink);
+        } catch (Exception exception) {
+            plugin.getLogger().warning("Failed to publish sprint HUD resource pack to Dropbox: "
+                    + exception.getMessage());
+            return null;
+        }
+    }
+
+    private DropboxTokenExchangeResult exchangeDropboxAuthorizationCode(String appKey, String appSecret,
+            DropboxAuthSession session, String pastedValue) {
+        if (System.currentTimeMillis() - session.createdAtMillis() > Duration.ofMinutes(10).toMillis()) {
+            throw new IllegalStateException("Dropbox 인증 세션이 만료되었습니다. /aw dropbox auth 를 다시 실행하세요.");
+        }
+        DropboxAuthorizationCodeResponse response = parseDropboxAuthorizationResponse(pastedValue);
+        if (response.error() != null && !response.error().isBlank()) {
+            throw new IllegalStateException("Dropbox 인증이 거부되었습니다: " + response.error());
+        }
+        if (response.state() != null && !response.state().isBlank() && !session.state().equals(response.state())) {
+            throw new IllegalStateException("Dropbox state 검증에 실패했습니다. 다시 인증을 시작하세요.");
+        }
+        if (response.code() == null || response.code().isBlank()) {
+            throw new IllegalStateException("Dropbox authorization code 를 찾지 못했습니다.");
+        }
+        try {
+            return requestDropboxRefreshTokenFromCode(appKey, appSecret, session.redirectUri(), response.code());
+        } catch (IOException | InterruptedException exception) {
+            throw new IllegalStateException(exception.getMessage(), exception);
+        }
+    }
+
+    private DropboxTokenExchangeResult requestDropboxRefreshTokenFromCode(String appKey, String appSecret,
+            String redirectUri, String authorizationCode) throws IOException, InterruptedException {
+        StringBuilder form = new StringBuilder("grant_type=authorization_code")
+                .append("&code=").append(urlEncode(authorizationCode))
+                .append("&client_id=").append(urlEncode(appKey))
+                .append("&client_secret=").append(urlEncode(appSecret));
+        if (redirectUri != null && !redirectUri.isBlank()) {
+            form.append("&redirect_uri=").append(urlEncode(redirectUri));
+        }
+        HttpRequest request = HttpRequest.newBuilder(URI.create("https://api.dropboxapi.com/oauth2/token"))
+                .timeout(Duration.ofSeconds(20))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(form.toString(), StandardCharsets.UTF_8))
+                .build();
+        HttpResponse<String> response = HTTP_CLIENT.send(request,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        ensureDropboxSuccess(response.statusCode(), response.body(), "oauth2/token authorization_code");
+        String refreshToken = extractJsonString(response.body(), "refresh_token");
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new IOException("Dropbox refresh_token missing from authorization_code response");
+        }
+        String accountId = extractJsonString(response.body(), "account_id");
+        return new DropboxTokenExchangeResult(accountId == null ? "" : accountId, refreshToken);
+    }
+
+    private DropboxAuthorizationCodeResponse parseDropboxAuthorizationResponse(String pastedValue) {
+        String value = pastedValue == null ? "" : pastedValue.trim();
+        if (value.isBlank()) {
+            throw new IllegalStateException("붙여넣은 값이 비어 있습니다.");
+        }
+        if (!value.contains("code=") && !value.contains("error=") && !value.contains("state=")) {
+            return new DropboxAuthorizationCodeResponse(stripWrappingQuotes(value), "", "");
+        }
+        String query = extractQueryString(stripWrappingQuotes(value));
+        Map<String, String> params = parseQueryString(query);
+        String error = params.getOrDefault("error", "");
+        String errorDescription = params.getOrDefault("error_description", "");
+        if (!errorDescription.isBlank()) {
+            error = error.isBlank() ? errorDescription : error + " (" + errorDescription + ")";
+        }
+        return new DropboxAuthorizationCodeResponse(params.getOrDefault("code", ""),
+                params.getOrDefault("state", ""),
+                error);
+    }
+
+    private String extractQueryString(String input) {
+        if (input.startsWith("http://") || input.startsWith("https://")) {
+            URI uri = URI.create(input);
+            String query = uri.getRawQuery();
+            if (query == null || query.isBlank()) {
+                throw new IllegalStateException("redirect URL 에 query string 이 없습니다.");
+            }
+            return query;
+        }
+        int questionMarkIndex = input.indexOf('?');
+        if (questionMarkIndex >= 0 && questionMarkIndex + 1 < input.length()) {
+            return input.substring(questionMarkIndex + 1);
+        }
+        return input;
+    }
+
+    private Map<String, String> parseQueryString(String query) {
+        Map<String, String> values = new HashMap<>();
+        for (String part : query.split("&")) {
+            if (part.isBlank()) {
+                continue;
+            }
+            int separatorIndex = part.indexOf('=');
+            String key = separatorIndex >= 0 ? part.substring(0, separatorIndex) : part;
+            String value = separatorIndex >= 0 ? part.substring(separatorIndex + 1) : "";
+            values.put(URLDecoder.decode(key, StandardCharsets.UTF_8),
+                    URLDecoder.decode(value, StandardCharsets.UTF_8));
+        }
+        return values;
+    }
+
+    private String stripWrappingQuotes(String value) {
+        if (value.length() >= 2) {
+            char first = value.charAt(0);
+            char last = value.charAt(value.length() - 1);
+            if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
+                return value.substring(1, value.length() - 1);
+            }
+        }
+        return value;
+    }
+
+    private String requestDropboxAccessToken(String appKey, String appSecret, String refreshToken)
+            throws IOException, InterruptedException {
+        String form = "grant_type=refresh_token"
+                + "&refresh_token=" + urlEncode(refreshToken)
+                + "&client_id=" + urlEncode(appKey)
+                + "&client_secret=" + urlEncode(appSecret);
+        HttpRequest request = HttpRequest.newBuilder(URI.create("https://api.dropboxapi.com/oauth2/token"))
+                .timeout(Duration.ofSeconds(20))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(form, StandardCharsets.UTF_8))
+                .build();
+        HttpResponse<String> response = HTTP_CLIENT.send(request,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        ensureDropboxSuccess(response.statusCode(), response.body(), "oauth2/token");
+        String accessToken = extractJsonString(response.body(), "access_token");
+        if (accessToken == null || accessToken.isBlank()) {
+            throw new IOException("Dropbox access_token missing from token response");
+        }
+        return accessToken;
+    }
+
+    private void uploadPackToDropbox(String accessToken, String filePath) throws IOException, InterruptedException {
+        String argument = """
+                {"path":"%s","mode":"overwrite","autorename":false,"mute":true,"strict_conflict":false}
+                """.formatted(escapeJson(filePath));
+        HttpRequest request = HttpRequest.newBuilder(URI.create("https://content.dropboxapi.com/2/files/upload"))
+                .timeout(Duration.ofSeconds(60))
+                .header("Authorization", "Bearer " + accessToken)
+                .header("Dropbox-API-Arg", argument)
+                .header("Content-Type", "application/octet-stream")
+                .POST(HttpRequest.BodyPublishers.ofByteArray(packBytes))
+                .build();
+        HttpResponse<String> response = HTTP_CLIENT.send(request,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        ensureDropboxSuccess(response.statusCode(), response.body(), "files/upload");
+    }
+
+    private String getDropboxSharedLink(String accessToken, String filePath) throws IOException, InterruptedException {
+        String listBody = """
+                {"path":"%s","direct_only":true}
+                """.formatted(escapeJson(filePath));
+        String responseBody = postDropboxJson("https://api.dropboxapi.com/2/sharing/list_shared_links",
+                accessToken, listBody, "sharing/list_shared_links");
+        String existingLink = extractFirstJsonString(responseBody, "url");
+        if (existingLink != null && !existingLink.isBlank()) {
+            return existingLink;
+        }
+
+        String createBody = """
+                {"path":"%s","settings":{"requested_visibility":"public"}}
+                """.formatted(escapeJson(filePath));
+        try {
+            responseBody = postDropboxJson("https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings",
+                    accessToken, createBody, "sharing/create_shared_link_with_settings");
+        } catch (IOException exception) {
+            String fallbackBody = """
+                    {"path":"%s"}
+                    """.formatted(escapeJson(filePath));
+            responseBody = postDropboxJson("https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings",
+                    accessToken, fallbackBody, "sharing/create_shared_link_with_settings");
+        }
+        return extractJsonString(responseBody, "url");
+    }
+
+    private String postDropboxJson(String url, String accessToken, String body, String operation)
+            throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder(URI.create(url))
+                .timeout(Duration.ofSeconds(30))
+                .header("Authorization", "Bearer " + accessToken)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
+                .build();
+        HttpResponse<String> response = HTTP_CLIENT.send(request,
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        ensureDropboxSuccess(response.statusCode(), response.body(), operation);
+        return response.body();
+    }
+
+    private void ensureDropboxSuccess(int statusCode, String body, String operation) throws IOException {
+        if (statusCode / 100 == 2) {
+            return;
+        }
+        String trimmedBody = body == null ? "" : body.replace('\n', ' ').replace('\r', ' ').trim();
+        if (trimmedBody.length() > 240) {
+            trimmedBody = trimmedBody.substring(0, 240);
+        }
+        throw new IOException(operation + " failed with HTTP " + statusCode + ": " + trimmedBody);
+    }
+
     private void startPackServer() throws IOException {
+        String bindHost = plugin.getConfig().getString("hud.sprint.bind-host", "");
+        bindHost = bindHost == null ? "" : bindHost.trim();
         String configuredHost = plugin.getConfig().getString("hud.sprint.public-host", "");
         configuredHost = configuredHost == null ? "" : configuredHost.trim();
         int port = plugin.getConfig().getInt("hud.sprint.http-port", 24891);
@@ -1040,7 +1398,10 @@ public final class SprintHudService implements Listener {
             path = "/" + path;
         }
 
-        httpServer = HttpServer.create(new InetSocketAddress(port), 0);
+        httpServer = bindHost.isEmpty()
+                ? HttpServer.create(new InetSocketAddress(port), 0)
+                : HttpServer.create(new InetSocketAddress(bindHost, port), 0);
+        httpServer.setExecutor(Executors.newCachedThreadPool());
         httpServer.createContext(path, this::handlePackRequest);
         httpServer.start();
 
@@ -1050,7 +1411,8 @@ public final class SprintHudService implements Listener {
             packUrl = null;
             return;
         }
-        packUrl = URI.create("http://" + host + ":" + port + path).toString();
+        String versionQuery = packHashHex == null || packHashHex.isBlank() ? "" : "?v=" + packHashHex;
+        packUrl = URI.create("http://" + host + ":" + port + path + versionQuery).toString();
         plugin.getLogger().info("Sprint HUD resource pack URL: " + packUrl);
     }
 
@@ -1060,15 +1422,38 @@ public final class SprintHudService implements Listener {
             exchange.close();
             return;
         }
-        exchange.getResponseHeaders().add("Content-Type", "application/zip");
-        exchange.getResponseHeaders().add("Cache-Control", "no-cache");
+        String method = exchange.getRequestMethod();
+        if (!"GET".equalsIgnoreCase(method) && !"HEAD".equalsIgnoreCase(method)) {
+            exchange.getResponseHeaders().set("Allow", "GET, HEAD");
+            exchange.sendResponseHeaders(405, -1);
+            exchange.close();
+            return;
+        }
+        exchange.getResponseHeaders().set("Content-Type", "application/octet-stream");
+        exchange.getResponseHeaders().set("Content-Disposition",
+                "attachment; filename=\"" + RESOURCE_PACK_FILE_NAME + "\"");
+        exchange.getResponseHeaders().set("Cache-Control", "no-store, no-cache, must-revalidate");
+        exchange.getResponseHeaders().set("Pragma", "no-cache");
+        exchange.getResponseHeaders().set("Expires", "0");
+        exchange.getResponseHeaders().set("Content-Length", Integer.toString(packBytes.length));
+        exchange.getResponseHeaders().set("Accept-Ranges", "bytes");
+        exchange.getResponseHeaders().set("Connection", "close");
+        if (packHashHex != null && !packHashHex.isBlank()) {
+            exchange.getResponseHeaders().set("ETag", "\"" + packHashHex + "\"");
+        }
+        if ("HEAD".equalsIgnoreCase(method)) {
+            exchange.sendResponseHeaders(200, -1);
+            exchange.close();
+            return;
+        }
         exchange.sendResponseHeaders(200, packBytes.length);
         exchange.getResponseBody().write(packBytes);
+        exchange.getResponseBody().flush();
         exchange.close();
     }
 
     private void writePackSnapshot(byte[] bytes) throws IOException {
-        Path out = plugin.getDataFolder().toPath().resolve("generated").resolve("abilitycombat-sprint-hud.zip");
+        Path out = plugin.getDataFolder().toPath().resolve("generated").resolve(RESOURCE_PACK_FILE_NAME);
         Files.createDirectories(out.getParent());
         Files.write(out, bytes);
     }
@@ -1095,10 +1480,175 @@ public final class SprintHudService implements Listener {
         return null;
     }
 
+    private String getDropboxAuthSessionKey(CommandSender sender) {
+        if (sender instanceof Player player) {
+            return "player:" + player.getUniqueId();
+        }
+        return "sender:" + sender.getName().toLowerCase();
+    }
+
+    private String generateDropboxState() {
+        return UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "");
+    }
+
+    private String readConfigString(String path) {
+        String value = plugin.getConfig().getString(path, "");
+        return value == null ? "" : value.trim();
+    }
+
+    private String readDropboxAppKey() {
+        String configured = readConfigString("hud.sprint.dropbox.app-key");
+        return configured.isBlank() ? DEFAULT_DROPBOX_APP_KEY : configured;
+    }
+
+    private String readDropboxAppSecret() {
+        String configured = readConfigString("hud.sprint.dropbox.app-secret");
+        return configured.isBlank() ? DEFAULT_DROPBOX_APP_SECRET : configured;
+    }
+
+    private String normalizeDropboxPath(String rawPath) {
+        String normalized = rawPath == null ? "" : rawPath.trim();
+        if (normalized.isEmpty()) {
+            normalized = "/" + RESOURCE_PACK_FILE_NAME;
+        }
+        if (!normalized.startsWith("/")) {
+            normalized = "/" + normalized;
+        }
+        return normalized;
+    }
+
+    private String normalizeExternalPackUrl(String rawUrl) {
+        if (rawUrl == null) {
+            return null;
+        }
+        String normalized = rawUrl.trim();
+        if (normalized.isEmpty()) {
+            return null;
+        }
+        if (!normalized.contains("dropbox.com")) {
+            return normalized;
+        }
+        if (normalized.contains("raw=1") || normalized.contains("dl=1")) {
+            return normalized;
+        }
+        if (normalized.contains("dl=0")) {
+            return normalized.replace("dl=0", "dl=1");
+        }
+        return normalized + (normalized.contains("?") ? "&dl=1" : "?dl=1");
+    }
+
+    private String urlEncode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private String escapeJson(String value) {
+        return value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"");
+    }
+
+    private String extractJsonString(String json, String key) {
+        Pattern pattern = Pattern.compile("\"" + Pattern.quote(key) + "\"\\s*:\\s*\"((?:\\\\.|[^\"\\\\])*)\"");
+        Matcher matcher = pattern.matcher(json);
+        if (!matcher.find()) {
+            return null;
+        }
+        return unescapeJsonString(matcher.group(1));
+    }
+
+    private String extractFirstJsonString(String json, String key) {
+        return extractJsonString(json, key);
+    }
+
+    private String unescapeJsonString(String value) {
+        StringBuilder builder = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char current = value.charAt(i);
+            if (current != '\\' || i + 1 >= value.length()) {
+                builder.append(current);
+                continue;
+            }
+            char escaped = value.charAt(++i);
+            switch (escaped) {
+                case '"', '\\', '/' -> builder.append(escaped);
+                case 'b' -> builder.append('\b');
+                case 'f' -> builder.append('\f');
+                case 'n' -> builder.append('\n');
+                case 'r' -> builder.append('\r');
+                case 't' -> builder.append('\t');
+                case 'u' -> {
+                    if (i + 4 >= value.length()) {
+                        builder.append('u');
+                        break;
+                    }
+                    String hex = value.substring(i + 1, i + 5);
+                    builder.append((char) Integer.parseInt(hex, 16));
+                    i += 4;
+                }
+                default -> builder.append(escaped);
+            }
+        }
+        return builder.toString();
+    }
+
+    private String toHex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder(bytes.length * 2);
+        for (byte value : bytes) {
+            builder.append(Character.forDigit((value >>> 4) & 0xF, 16));
+            builder.append(Character.forDigit(value & 0xF, 16));
+        }
+        return builder.toString();
+    }
+
+    private String rootMessage(Throwable throwable) {
+        Throwable current = throwable;
+        while (current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current.getMessage() == null ? current.getClass().getSimpleName() : current.getMessage();
+    }
+
+    private CompletableFuture<Void> runSync(Runnable runnable) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            try {
+                runnable.run();
+                future.complete(null);
+            } catch (Throwable throwable) {
+                future.completeExceptionally(throwable);
+            }
+        });
+        return future;
+    }
+
+    private <T> CompletableFuture<T> runSync(Supplier<T> supplier) {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            try {
+                future.complete(supplier.get());
+            } catch (Throwable throwable) {
+                future.completeExceptionally(throwable);
+            }
+        });
+        return future;
+    }
+
     private void cancelTask(BukkitTask task) {
         if (task != null) {
             task.cancel();
         }
+    }
+
+    public record DropboxAuthorizationResult(String accountId, String refreshToken, String packUrl) {
+    }
+
+    private record DropboxTokenExchangeResult(String accountId, String refreshToken) {
+    }
+
+    private record DropboxAuthorizationCodeResponse(String code, String state, String error) {
+    }
+
+    private record DropboxAuthSession(String state, String redirectUri, long createdAtMillis) {
     }
 
     private static final class DashState {
