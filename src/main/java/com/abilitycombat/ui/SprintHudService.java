@@ -405,7 +405,7 @@ public final class SprintHudService implements Listener {
         int ticks;
         if (isOnGround(player)) {
             ticks = sprintTicks.getOrDefault(uuid, 0);
-            if (ticks < MAX_SPRINT_TICKS) {
+            if (ticks < MIN_DASH_TICKS) {
                 return;
             }
         } else {

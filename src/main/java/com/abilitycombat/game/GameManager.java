@@ -201,6 +201,7 @@ public class GameManager implements Listener {
     private World gameBorderWorld;
     private double originalBorderSize;
     private Location originalBorderCenter;
+    private boolean noSafeZonePhaseActive;
 	    private World originalBorderWorld;
 	    private List<WorldBorderPhase> borderPhases = new ArrayList<>();
 	    // 1-based phase number (e.g., 1..N). During shrinking, this stays as the previous stable phase.
@@ -730,7 +731,7 @@ public class GameManager implements Listener {
 	            }
 	            int time = Integer.parseInt(String.valueOf(timeObj));
 	            int radius = Integer.parseInt(String.valueOf(radiusObj));
-	            borderPhases.add(new WorldBorderPhase(Math.max(0, time), Math.max(1, radius)));
+	            borderPhases.add(new WorldBorderPhase(Math.max(0, time), Math.max(0, radius)));
 	        }
 
 	        if (borderPhases.isEmpty()) {
@@ -1306,7 +1307,7 @@ public class GameManager implements Listener {
 	        }
 
 	        int startRadius = !borderPhases.isEmpty() ? borderPhases.get(0).getRadius() : initialBorderRadius;
-	        double gameSize = startRadius * 2.0;
+	        double gameSize = Math.max(WORLD_BORDER_MIN_SIZE, startRadius * 2.0);
 	        Location center = startLocation != null ? startLocation : world.getSpawnLocation();
 	        worldBorder = Bukkit.createWorldBorder();
 	        worldBorder.setCenter(center);
@@ -1315,6 +1316,7 @@ public class GameManager implements Listener {
 	        worldBorder.setDamageAmount(0.0);
 	        worldBorder.setWarningDistance(5);
 	        worldBorder.setWarningTimeTicks(15 * 20);
+        noSafeZonePhaseActive = false;
 
 	        actualBorder.setSize(WORLD_BORDER_MAX_SIZE);
 	        actualBorder.setDamageBuffer(5.0);
@@ -1329,16 +1331,17 @@ public class GameManager implements Listener {
 	        if (worldBorder == null || borderPhases.isEmpty()) {
 	            currentPhaseIndex = 1;
 	            phaseRemaining = 0;
+                noSafeZonePhaseActive = false;
 	            return;
 	        }
 	        currentPhaseIndex = 1;
 	        phaseRemaining = Math.max(0, borderPhases.get(0).getDurationSeconds());
 	        borderShrinkRemaining = 0;
-	        applyBorderDamageBufferForPhase(currentPhaseIndex);
+	        applyBorderPhaseState(currentPhaseIndex);
 	    }
 
 	    private void tickBorderPhases() {
-	        if (worldBorder == null || borderPhases.isEmpty()) {
+	        if (borderPhases.isEmpty()) {
 	            return;
 	        }
 
@@ -1348,7 +1351,7 @@ public class GameManager implements Listener {
 	            if (borderShrinkRemaining <= 0 && currentPhaseIndex < borderPhases.size()) {
 	                currentPhaseIndex++;
 	                phaseRemaining = Math.max(0, borderPhases.get(currentPhaseIndex - 1).getDurationSeconds());
-	                applyBorderDamageBufferForPhase(currentPhaseIndex);
+	                applyBorderPhaseState(currentPhaseIndex);
 	            }
 	            return;
 	        }
@@ -1363,19 +1366,24 @@ public class GameManager implements Listener {
 	            return;
 	        }
 
-	        int targetRadius = Math.max(1, borderPhases.get(currentPhaseIndex).getRadius());
+	        int targetRadius = borderPhases.get(currentPhaseIndex).getRadius();
 	        int duration = startBorderShrink(targetRadius);
 	        if (duration <= 0) {
 	            // No actual shrink needed; immediately enter the next phase.
 	            currentPhaseIndex++;
 	            if (currentPhaseIndex <= borderPhases.size()) {
 	                phaseRemaining = Math.max(0, borderPhases.get(currentPhaseIndex - 1).getDurationSeconds());
-	                applyBorderDamageBufferForPhase(currentPhaseIndex);
+	                applyBorderPhaseState(currentPhaseIndex);
 	            }
 	        }
 	    }
 
 	    private int startBorderShrink(int targetRadius) {
+	        if (targetRadius <= 0) {
+	            borderShrinkRemaining = 0;
+	            return 0;
+	        }
+	        ensureGameWorldBorder(targetRadius);
 	        if (worldBorder == null) {
 	            return 0;
 	        }
@@ -1392,12 +1400,70 @@ public class GameManager implements Listener {
 	        return duration;
 	    }
 
+	    private void applyBorderPhaseState(int phase) {
+	        int radius = getPhaseRadius(phase);
+	        if (radius <= 0) {
+	            noSafeZonePhaseActive = true;
+	            worldBorder = null;
+	            syncWorldBorderForAllPlayers();
+	        } else {
+	            noSafeZonePhaseActive = false;
+	            ensureGameWorldBorder(radius);
+	            syncWorldBorderForAllPlayers();
+	        }
+	        applyBorderDamageBufferForPhase(phase);
+	        broadcastPhaseDamage(phase, radius);
+	    }
+
 	    private void applyBorderDamageBufferForPhase(int phase) {
 	        if (worldBorder == null) {
 	            return;
 	        }
 	        // 바닐라 자기장 데미지는 사용하지 않음.
 	        worldBorder.setDamageBuffer(0.0);
+	    }
+
+	    private int getPhaseRadius(int phase) {
+	        if (phase <= 0 || phase > borderPhases.size()) {
+	            return 0;
+	        }
+	        return Math.max(0, borderPhases.get(phase - 1).getRadius());
+	    }
+
+	    private void ensureGameWorldBorder(int radius) {
+	        World world = gameBorderWorld != null ? gameBorderWorld : getGameWorld();
+	        if (world == null) {
+	            return;
+	        }
+	        Location center = startLocation != null ? startLocation : world.getSpawnLocation();
+	        if (worldBorder == null) {
+	            worldBorder = Bukkit.createWorldBorder();
+	            worldBorder.setCenter(center);
+	            worldBorder.setDamageBuffer(0.0);
+	            worldBorder.setDamageAmount(0.0);
+	            worldBorder.setWarningDistance(5);
+	            worldBorder.setWarningTimeTicks(15 * 20);
+	        } else {
+	            worldBorder.setCenter(center);
+	        }
+	        worldBorder.setSize(Math.max(WORLD_BORDER_MIN_SIZE, radius * 2.0));
+	    }
+
+	    private void broadcastPhaseDamage(int phase, int radius) {
+	        double damage = Math.max(1, phase);
+	        String message = radius <= 0
+	                ? "§c[자기장] §f페이즈 " + phase + " 시작: §4안전지대가 사라졌습니다§f. 자기장 데미지 §c"
+	                        + formatBorderDamage(damage) + "§f/초"
+	                : "§c[자기장] §f페이즈 " + phase + " 시작: 자기장 데미지 §c"
+	                        + formatBorderDamage(damage) + "§f/초";
+	        plugin.getServer().broadcast(Component.text(message));
+	    }
+
+	    private String formatBorderDamage(double damage) {
+	        if (Math.abs(damage - Math.rint(damage)) < 1.0E-6) {
+	            return String.valueOf((int) Math.rint(damage));
+	        }
+	        return String.format(java.util.Locale.ROOT, "%.1f", damage);
 	    }
 
     private void applyPhaseBasedBorderDamage() {
@@ -1419,7 +1485,7 @@ public class GameManager implements Listener {
             if (gameBorderWorld != null && !gameBorderWorld.equals(player.getWorld())) {
                 continue;
             }
-            if (worldBorder.isInside(player.getLocation())) {
+            if (!noSafeZonePhaseActive && worldBorder != null && worldBorder.isInside(player.getLocation())) {
                 continue;
             }
             player.damage(damagePerTick);
@@ -1464,6 +1530,7 @@ public class GameManager implements Listener {
         borderShrinkRemaining = 0;
         worldBorder = null;
         gameBorderWorld = null;
+        noSafeZonePhaseActive = false;
         originalBorderWorld = null;
         originalBorderCenter = null;
         originalBorderSize = 0;
@@ -1474,6 +1541,9 @@ public class GameManager implements Listener {
         if (location == null || location.getWorld() == null) {
             return true;
         }
+        if (noSafeZonePhaseActive && gameBorderWorld != null && gameBorderWorld.equals(location.getWorld())) {
+            return false;
+        }
         if (worldBorder != null && gameBorderWorld != null && gameBorderWorld.equals(location.getWorld())) {
             return worldBorder.isInside(location);
         }
@@ -1483,6 +1553,9 @@ public class GameManager implements Listener {
     public Location getGameBorderCenter(World world) {
         if (world == null) {
             return null;
+        }
+        if (noSafeZonePhaseActive && gameBorderWorld != null && gameBorderWorld.equals(world)) {
+            return startLocation != null ? startLocation : world.getSpawnLocation();
         }
         if (worldBorder != null && gameBorderWorld != null && gameBorderWorld.equals(world)) {
             return worldBorder.getCenter();
@@ -1500,7 +1573,8 @@ public class GameManager implements Listener {
         if (player == null || !player.isOnline()) {
             return;
         }
-        if (worldBorder != null && gameBorderWorld != null && gameBorderWorld.equals(player.getWorld())) {
+        if (!noSafeZonePhaseActive && worldBorder != null && gameBorderWorld != null
+                && gameBorderWorld.equals(player.getWorld())) {
             player.setWorldBorder(worldBorder);
             return;
         }
@@ -2785,7 +2859,7 @@ public class GameManager implements Listener {
             }
 	            case BORDER_INITIAL_RADIUS -> {
 	                int delta = shift ? 50 : 10;
-	                updateConfigInt("world-border.initial-radius", left ? delta : -delta, 1);
+	                updateConfigInt("world-border.initial-radius", left ? delta : -delta, 0);
 	                syncPhase0RadiusWithInitialRadius();
 	                gui.refreshAll();
 	            }
@@ -3027,7 +3101,7 @@ public class GameManager implements Listener {
         int time = toInt(entry.get("time"), 0);
         int radius = toInt(entry.get("radius"), radiusDefault);
 	        time = Math.max(0, time + timeDelta);
-	        radius = Math.max(1, radius + radiusDelta);
+	        radius = Math.max(0, radius + radiusDelta);
 	        entry.put("time", time);
 	        entry.put("radius", radius);
 	        plugin.getConfig().set("world-border.phases", list);
