@@ -88,6 +88,7 @@ import com.abilitycombat.game.GameManager;
 import com.abilitycombat.game.MapManager;
 import com.abilitycombat.ui.ActionbarChannel;
 import com.abilitycombat.ui.BossBarManager;
+import com.abilitycombat.ui.SprintHudService;
 import com.abilitycombat.event.EventBridge;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
@@ -104,6 +105,7 @@ public final class AbilityCombat extends JavaPlugin {
     private MapManager mapManager;
     private ActionbarChannel actionbarChannel;
     private BossBarManager bossBarManager;
+    private SprintHudService sprintHudService;
     private EventBridge eventBridge;
     private SweepPacketSuppressor sweepPacketSuppressor;
 
@@ -124,6 +126,9 @@ public final class AbilityCombat extends JavaPlugin {
         actionbarChannel.start();
         bossBarManager = new BossBarManager(this);
         getServer().getPluginManager().registerEvents(bossBarManager, this);
+        sprintHudService = new SprintHudService(this);
+        getServer().getPluginManager().registerEvents(sprintHudService, this);
+        sprintHudService.start();
         Bleed.start(this);
         Infection.start(this);
         CustomEntityManager.start(this);
@@ -152,6 +157,10 @@ public final class AbilityCombat extends JavaPlugin {
         }
         if (bossBarManager != null) {
             bossBarManager.shutdown();
+        }
+        if (sprintHudService != null) {
+            sprintHudService.stop();
+            sprintHudService = null;
         }
         Bleed.stop();
         Infection.stop();
@@ -232,6 +241,10 @@ public final class AbilityCombat extends JavaPlugin {
 
     public BossBarManager getBossBarManager() {
         return bossBarManager;
+    }
+
+    public SprintHudService getSprintHudService() {
+        return sprintHudService;
     }
 
     public EventBridge getEventBridge() {

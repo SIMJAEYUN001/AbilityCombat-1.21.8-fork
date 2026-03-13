@@ -4,6 +4,7 @@ import com.abilitycombat.AbilityCombat;
 import com.abilitycombat.ability.AbilityDefinition;
 import com.abilitycombat.ability.AbilityRegistry;
 import com.abilitycombat.game.GameManager;
+import com.abilitycombat.ui.SprintHudService;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -157,6 +158,52 @@ public class AbilityCombatCommand implements CommandExecutor, TabCompleter {
                 }
                 return true;
             }
+            case "visible" -> {
+                if (!hasAdminPermission(sender)) {
+                    sender.sendMessage("§c권한이 없습니다.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    sender.sendMessage("사용법: /" + label + " visible <player>");
+                    return true;
+                }
+                Player target = plugin.getServer().getPlayerExact(args[1]);
+                if (target == null) {
+                    sender.sendMessage("§c해당 플레이어를 찾을 수 없습니다.");
+                    return true;
+                }
+                SprintHudService sprintHudService = plugin.getSprintHudService();
+                if (sprintHudService == null) {
+                    sender.sendMessage("§c스프린트 HUD 서비스가 비활성화되어 있습니다.");
+                    return true;
+                }
+                sprintHudService.forceVisible(target);
+                sender.sendMessage("§a" + target.getName() + "의 투명화/숨김 상태를 초기화했습니다.");
+                return true;
+            }
+            case "repack" -> {
+                if (!hasAdminPermission(sender)) {
+                    sender.sendMessage("§c권한이 없습니다.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    sender.sendMessage("사용법: /" + label + " repack <player>");
+                    return true;
+                }
+                Player target = plugin.getServer().getPlayerExact(args[1]);
+                if (target == null) {
+                    sender.sendMessage("§c해당 플레이어를 찾을 수 없습니다.");
+                    return true;
+                }
+                SprintHudService sprintHudService = plugin.getSprintHudService();
+                if (sprintHudService == null) {
+                    sender.sendMessage("§c스프린트 HUD 서비스가 비활성화되어 있습니다.");
+                    return true;
+                }
+                sprintHudService.resendPack(target);
+                sender.sendMessage("§a" + target.getName() + "에게 스프린트 HUD 리소스팩을 다시 전송했습니다.");
+                return true;
+            }
             case "test" -> {
                 if (!hasAdminPermission(sender)) {
                     sender.sendMessage("§c권한이 없습니다.");
@@ -217,6 +264,8 @@ public class AbilityCombatCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§e/" + label + " config §7- 게임 설정 GUI");
             sender.sendMessage("§e/" + label + " config reload §7- 설정 리로드");
             sender.sendMessage("§e/" + label + " config setspawn §7- 게임 시작 위치 지정");
+            sender.sendMessage("§e/" + label + " visible <player> §7- 투명화/숨김 상태 초기화");
+            sender.sendMessage("§e/" + label + " repack <player> §7- 스프린트 HUD 리소스팩 재전송");
             sender.sendMessage("§e/" + label + " test <횟수> §7- 능력 추첨 테스트");
         }
     }
@@ -238,12 +287,19 @@ public class AbilityCombatCommand implements CommandExecutor, TabCompleter {
                 completions.add("debug");
                 completions.add("toolkit");
                 completions.add("config");
+                completions.add("visible");
+                completions.add("repack");
                 completions.add("test");
             }
             return completions;
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("config") && isAdmin) {
             return List.of("reload", "setspawn", "setstart", "gui");
+        }
+        if (args.length == 2
+                && (args[0].equalsIgnoreCase("visible") || args[0].equalsIgnoreCase("repack"))
+                && isAdmin) {
+            return plugin.getServer().getOnlinePlayers().stream().map(Player::getName).toList();
         }
         return List.of();
     }

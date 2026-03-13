@@ -46,3 +46,12 @@ visual-effects:
   enabled: true
   min-interval-ticks: 1
   max-distance: 64
+hud:
+  sprint:
+    enabled: true
+    public-host: ""
+    http-port: 24891
+    http-path: "/abilitycombat-sprint-hud.zip"
+    require-resource-pack: false
+    horizontal-offset: -120
+    vertical-offset: 0

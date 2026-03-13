@@ -9,6 +9,7 @@ import com.abilitycombat.game.Participant;
 import io.papermc.paper.datacomponent.item.ResolvableProfile;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Mannequin;
@@ -136,11 +137,11 @@ public class TestProneDash extends AbilityBase implements ActiveHandler {
         player.setFallDistance(0f);
         syncMannequin(player);
 
-        if (!player.isOnGround()) {
+        if (!isOnGround(player)) {
             leftGround = true;
         }
 
-        if (leftGround && player.isOnGround()) {
+        if (leftGround && isOnGround(player)) {
             landedTicks++;
         } else {
             landedTicks = 0;
@@ -169,7 +170,6 @@ public class TestProneDash extends AbilityBase implements ActiveHandler {
             event.setCancelled(true);
             return;
         }
-        event.setCancelled(true);
         Player player = getPlayer();
         if (player == null || !player.isOnline() || player.isDead()) {
             return;
@@ -191,10 +191,14 @@ public class TestProneDash extends AbilityBase implements ActiveHandler {
     private void spawnMannequin(Player player, Vector dashVelocity) {
         removeMannequin();
         mannequin = player.getWorld().spawn(player.getLocation(), Mannequin.class, entity -> {
-            entity.setInvulnerable(true);
+            entity.setInvulnerable(false);
             entity.setImmovable(false);
             entity.setGravity(true);
             entity.setAI(false);
+            if (entity.getAttribute(Attribute.MAX_HEALTH) != null) {
+                entity.getAttribute(Attribute.MAX_HEALTH).setBaseValue(100.0);
+            }
+            entity.setHealth(100.0);
             entity.customName(player.displayName());
             entity.setCustomNameVisible(true);
             entity.setDescription(null);
@@ -221,13 +225,17 @@ public class TestProneDash extends AbilityBase implements ActiveHandler {
             return;
         }
         mannequin.setPose(Pose.SWIMMING, true);
-        mannequin.setSwimming(true);
         mannequin.setGliding(false);
         mannequin.setFallDistance(0f);
         if (!leftGround) {
             mannequin.teleport(getMannequinLocation(player));
             mannequin.setVelocity(player.getVelocity().clone());
         }
+    }
+
+    @SuppressWarnings("deprecation")
+    private boolean isOnGround(Player player) {
+        return player.isOnGround();
     }
 
     private void removeMannequin() {
