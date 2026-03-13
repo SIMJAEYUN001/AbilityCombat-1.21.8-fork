@@ -76,8 +76,6 @@ public class Soul extends AbilityBase implements ActiveHandler {
     private final List<PendingBurst> pendingBursts = new ArrayList<>();
 
     private boolean storedInvulnerable;
-    private boolean storedInvisible;
-    private boolean storedCollidable;
     private boolean storedAllowFlight;
     private boolean storedFlying;
     private boolean storedTargetable;
@@ -246,9 +244,11 @@ public class Soul extends AbilityBase implements ActiveHandler {
         if (player == null) {
             return;
         }
+        if (com.abilitycombat.AbilityCombat.getPlugin() != null
+                && com.abilitycombat.AbilityCombat.getPlugin().getSprintHudService() != null) {
+            com.abilitycombat.AbilityCombat.getPlugin().getSprintHudService().cancelDashState(player);
+        }
         storedInvulnerable = player.isInvulnerable();
-        storedInvisible = player.isInvisible();
-        storedCollidable = player.isCollidable();
         storedTargetable = getParticipant() != null && getParticipant().isTargetable();
         player.setInvulnerable(true);
         player.setInvisible(true);
@@ -271,8 +271,8 @@ public class Soul extends AbilityBase implements ActiveHandler {
         Player player = getPlayer();
         if (player != null) {
             player.setInvulnerable(storedInvulnerable);
-            player.setInvisible(storedInvisible);
-            player.setCollidable(storedCollidable);
+            player.setInvisible(false);
+            player.setCollidable(true);
             if (getParticipant() != null) {
                 getParticipant().setTargetable(storedTargetable);
             }

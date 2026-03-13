@@ -3,6 +3,7 @@ package com.abilitycombat.effect;
 import com.abilitycombat.AbilityCombat;
 import com.abilitycombat.game.GameManager;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,6 +26,11 @@ public final class Stun {
         Long current = STUN_ENDS.get(uuid);
         if (current == null || current < until) {
             STUN_ENDS.put(uuid, until);
+        }
+        if (target instanceof Player player) {
+            if (AbilityCombat.getPlugin() != null && AbilityCombat.getPlugin().getSprintHudService() != null) {
+                AbilityCombat.getPlugin().getSprintHudService().cancelDashState(player);
+            }
         }
         refreshMovementLock(target);
     }

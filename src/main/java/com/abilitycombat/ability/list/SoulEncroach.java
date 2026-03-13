@@ -418,8 +418,6 @@ public class SoulEncroach extends AbilityBase implements ActiveHandler {
         private boolean storedAllowFlight;
         private boolean storedFlying;
         private boolean storedInvulnerable;
-        private boolean storedInvisible;
-        private boolean storedCollidable;
         private boolean encroaching;
         private int remainingEncroachTicks = 0;
 
@@ -528,8 +526,6 @@ public class SoulEncroach extends AbilityBase implements ActiveHandler {
                 storedAllowFlight = player.getAllowFlight();
                 storedFlying = player.isFlying();
                 storedInvulnerable = player.isInvulnerable();
-                storedInvisible = player.isInvisible();
-                storedCollidable = player.isCollidable();
                 encroaching = true;
                 player.setInvulnerable(true);
                 player.setInvisible(true);
@@ -544,8 +540,8 @@ public class SoulEncroach extends AbilityBase implements ActiveHandler {
                 }
                 Player player = getPlayer();
                 player.setInvulnerable(storedInvulnerable);
-                player.setInvisible(storedInvisible);
-                player.setCollidable(storedCollidable);
+                player.setInvisible(false);
+                player.setCollidable(true);
                 player.setAllowFlight(storedAllowFlight);
                 player.setFlying(storedFlying);
 

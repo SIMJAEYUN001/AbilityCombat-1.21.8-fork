@@ -3359,6 +3359,7 @@ public class GameManager implements Listener {
                 }
             }
 
+            cancelDashForAbilityUse(player);
             if (activeHandler.activeSkill(mainHand, clickType)) {
                 event.setCancelled(true);
             }
@@ -3390,8 +3391,16 @@ public class GameManager implements Listener {
         AbilityBase ability = participant.getAbility();
         if (ability instanceof TargetHandler targetHandler
                 && event.getRightClicked() instanceof org.bukkit.entity.LivingEntity target) {
+            cancelDashForAbilityUse(player);
             targetHandler.targetSkill(player.getInventory().getItemInMainHand().getType(), target);
         }
+    }
+
+    private void cancelDashForAbilityUse(Player player) {
+        if (player == null || plugin.getSprintHudService() == null) {
+            return;
+        }
+        plugin.getSprintHudService().cancelDashForAbilityUse(player);
     }
 
     @EventHandler

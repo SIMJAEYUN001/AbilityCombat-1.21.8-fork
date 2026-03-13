@@ -44,8 +44,6 @@ public class Liberator extends AbilityBase implements ActiveHandler {
     private Location origin;
     private final Map<UUID, Double> dealtDamage = new HashMap<>();
     private boolean storedInvulnerable;
-    private boolean storedInvisible;
-    private boolean storedCollidable;
 
     public Liberator(Participant participant) {
         super(participant);
@@ -110,8 +108,6 @@ public class Liberator extends AbilityBase implements ActiveHandler {
         origin = player.getLocation().clone();
         dealtDamage.clear();
         storedInvulnerable = player.isInvulnerable();
-        storedInvisible = player.isInvisible();
-        storedCollidable = player.isCollidable();
         player.setInvulnerable(false);
         player.setInvisible(true);
         player.setCollidable(false);
@@ -136,8 +132,13 @@ public class Liberator extends AbilityBase implements ActiveHandler {
         liberated = false;
         Player player = getPlayer();
         player.setInvulnerable(storedInvulnerable);
-        player.setInvisible(storedInvisible);
-        player.setCollidable(storedCollidable);
+        player.setInvisible(false);
+        player.setCollidable(true);
+        player.removePotionEffect(org.bukkit.potion.PotionEffectType.INVISIBILITY);
+        if (com.abilitycombat.AbilityCombat.getPlugin() != null) {
+            org.bukkit.Bukkit.getOnlinePlayers()
+                    .forEach(other -> other.showPlayer(com.abilitycombat.AbilityCombat.getPlugin(), player));
+        }
         if (origin != null) {
             player.teleport(origin);
         }

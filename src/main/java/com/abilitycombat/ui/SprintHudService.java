@@ -11,6 +11,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Mannequin;
@@ -587,16 +588,22 @@ public final class SprintHudService implements Listener {
             return;
         }
         Vector dashVelocity = buildDashVelocity(player, ratio);
-        DashState state = new DashState(player.getUniqueId(), player.isInvisible(), player.isCollidable());
+        boolean preserveViewerHide = isHermitHidden(player);
+        DashState state = new DashState(player.getUniqueId(), player.isInvisible(), player.isCollidable(),
+                preserveViewerHide);
         dashStates.put(player.getUniqueId(), state);
-        hideRealPlayer(player);
+        if (!preserveViewerHide) {
+            hideRealPlayer(player);
+        }
         player.setInvisible(true);
         player.setCollidable(false);
         player.addPotionEffect(
                 new PotionEffect(PotionEffectType.INVISIBILITY, MAX_DASH_HOLD_TICKS + 10, 0, true, false));
         player.setVelocity(dashVelocity);
         player.setFallDistance(0f);
-        state.mannequin = spawnMannequin(player, dashVelocity);
+        if (!preserveViewerHide) {
+            state.mannequin = spawnMannequin(player, dashVelocity);
+        }
     }
 
     private void tickDash(Player player, DashState state) {
@@ -632,7 +639,7 @@ public final class SprintHudService implements Listener {
         if (state == null) {
             return;
         }
-        restoreDashVisuals(player, state.storedInvisible, state.storedCollidable);
+        restoreDashVisuals(player, state.storedInvisible, state.storedCollidable, state.preserveViewerHide);
         if (state.mannequin != null && !state.mannequin.isDead()) {
             state.mannequin.remove();
         }
@@ -661,6 +668,7 @@ public final class SprintHudService implements Listener {
             }
             entity.setPose(Pose.SWIMMING, true);
             entity.setVelocity(dashVelocity.clone());
+            syncMannequinScale(player, entity);
         });
         player.hideEntity(plugin, mannequin);
         return mannequin;
@@ -674,6 +682,7 @@ public final class SprintHudService implements Listener {
         mannequin.setPose(Pose.SWIMMING, true);
         mannequin.setGliding(false);
         mannequin.setFallDistance(0f);
+        syncMannequinScale(player, mannequin);
         if (!state.leftGround) {
             mannequin.teleport(getMannequinLocation(player));
             mannequin.setVelocity(player.getVelocity().clone());
@@ -705,10 +714,31 @@ public final class SprintHudService implements Listener {
         if (forward.lengthSquared() <= 0.0001) {
             forward = new Vector(0, 0, 1);
         }
-        forward.normalize().multiply(FORWARD_OFFSET);
+        double scale = getEntityScale(player);
+        forward.normalize().multiply(FORWARD_OFFSET * scale);
         location.add(forward);
-        location.add(0, HEIGHT_OFFSET, 0);
+        location.add(0, HEIGHT_OFFSET * scale, 0);
         return location;
+    }
+
+    private void syncMannequinScale(Player player, Mannequin mannequin) {
+        AttributeInstance mannequinScale = mannequin.getAttribute(Attribute.SCALE);
+        if (mannequinScale == null) {
+            return;
+        }
+        double playerScale = getEntityScale(player);
+        if (Math.abs(mannequinScale.getBaseValue() - playerScale) > 0.0001D) {
+            mannequinScale.setBaseValue(playerScale);
+        }
+    }
+
+    private double getEntityScale(Player player) {
+        AttributeInstance scale = player.getAttribute(Attribute.SCALE);
+        if (scale == null) {
+            return 1.0D;
+        }
+        double value = scale.getValue();
+        return value > 0.0D ? value : 1.0D;
     }
 
     private void hideRealPlayer(Player source) {
@@ -724,8 +754,10 @@ public final class SprintHudService implements Listener {
         }
     }
 
-    private void restoreDashVisuals(Player player, boolean invisible, boolean collidable) {
-        showRealPlayer(player);
+    private void restoreDashVisuals(Player player, boolean invisible, boolean collidable, boolean preserveViewerHide) {
+        if (!preserveViewerHide) {
+            showRealPlayer(player);
+        }
         hiddenByDash.remove(player.getUniqueId());
         player.setInvisible(invisible);
         player.setCollidable(collidable);
@@ -738,7 +770,7 @@ public final class SprintHudService implements Listener {
         if (stored == null) {
             return;
         }
-        restoreDashVisuals(player, false, stored);
+        restoreDashVisuals(player, false, stored, false);
     }
 
     public void forceVisible(Player player) {
@@ -756,6 +788,32 @@ public final class SprintHudService implements Listener {
         }
         player.setCollidable(true);
         player.setFallDistance(0f);
+    }
+
+    public void cancelDashState(Player player) {
+        if (player == null) {
+            return;
+        }
+        UUID playerId = player.getUniqueId();
+        if (!dashStates.containsKey(playerId) && !hiddenByDash.containsKey(playerId)) {
+            return;
+        }
+        forceVisible(player);
+    }
+
+    public void cancelDashForAbilityUse(Player player) {
+        cancelDashState(player);
+    }
+
+    private boolean isHermitHidden(Player player) {
+        if (player == null || plugin.getGameManager() == null) {
+            return false;
+        }
+        com.abilitycombat.game.Participant participant = plugin.getGameManager().getParticipant(player.getUniqueId());
+        if (participant == null || !(participant.getAbility() instanceof com.abilitycombat.ability.list.Hermit hermit)) {
+            return false;
+        }
+        return hermit.isHidden();
     }
 
     private ItemStack cloneItem(ItemStack item) {
@@ -1316,9 +1374,8 @@ public final class SprintHudService implements Listener {
     }
 
     private void uploadPackToDropbox(String accessToken, String filePath) throws IOException, InterruptedException {
-        String argument = """
-                {"path":"%s","mode":"overwrite","autorename":false,"mute":true,"strict_conflict":false}
-                """.formatted(escapeJson(filePath));
+        String argument = ("{\"path\":\"%s\",\"mode\":\"overwrite\",\"autorename\":false,\"mute\":true,"
+                + "\"strict_conflict\":false}").formatted(escapeJson(filePath));
         HttpRequest request = HttpRequest.newBuilder(URI.create("https://content.dropboxapi.com/2/files/upload"))
                 .timeout(Duration.ofSeconds(60))
                 .header("Authorization", "Bearer " + accessToken)
@@ -1655,15 +1712,18 @@ public final class SprintHudService implements Listener {
         private final UUID playerId;
         private final boolean storedInvisible;
         private final boolean storedCollidable;
+        private final boolean preserveViewerHide;
         private int dashTicks;
         private boolean leftGround;
         private int recoveryTicks = -1;
         private Mannequin mannequin;
 
-        private DashState(UUID playerId, boolean storedInvisible, boolean storedCollidable) {
+        private DashState(UUID playerId, boolean storedInvisible, boolean storedCollidable,
+                boolean preserveViewerHide) {
             this.playerId = playerId;
             this.storedInvisible = storedInvisible;
             this.storedCollidable = storedCollidable;
+            this.preserveViewerHide = preserveViewerHide;
         }
     }
 }

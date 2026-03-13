@@ -67,7 +67,6 @@ import com.abilitycombat.ability.list.SurvivalInstinct;
 import com.abilitycombat.ability.list.Swap;
 import com.abilitycombat.ability.list.SwordMaster;
 import com.abilitycombat.ability.list.Terrorist;
-import com.abilitycombat.ability.list.TestProneDash;
 import com.abilitycombat.ability.list.Themis;
 import com.abilitycombat.ability.list.TimeRewind;
 import com.abilitycombat.ability.list.Vampire;
@@ -327,7 +326,6 @@ public final class AbilityCombat extends JavaPlugin {
         AbilityFactory.register(Magician.class);
         AbilityFactory.register(Stalker.class);
         AbilityFactory.register(Terrorist.class);
-        AbilityFactory.register(TestProneDash.class);
         AbilityFactory.register(Ira.class);
         AbilityFactory.register(Virtus.class);
         AbilityFactory.register(Liberator.class);

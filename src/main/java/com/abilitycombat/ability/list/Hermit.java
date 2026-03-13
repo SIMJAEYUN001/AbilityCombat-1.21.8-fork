@@ -26,8 +26,6 @@ public class Hermit extends AbilityBase {
 
     private long lastCombatTime;
     private boolean hidden;
-    private boolean storedInvisible;
-    private boolean storedCollidable;
 
     public Hermit(Participant participant) {
         super(participant);
@@ -67,8 +65,6 @@ public class Hermit extends AbilityBase {
 
     private void enableHide() {
         Player player = getPlayer();
-        storedInvisible = player.isInvisible();
-        storedCollidable = player.isCollidable();
         player.setInvisible(true);
         player.setCollidable(false);
         player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 40, 0, true, false));
@@ -85,8 +81,8 @@ public class Hermit extends AbilityBase {
 
     private void disableHide() {
         Player player = getPlayer();
-        player.setInvisible(storedInvisible);
-        player.setCollidable(storedCollidable);
+        player.setInvisible(false);
+        player.setCollidable(true);
         player.removePotionEffect(PotionEffectType.INVISIBILITY);
 
         // Show player to everyone
@@ -108,5 +104,9 @@ public class Hermit extends AbilityBase {
                 enableHide();
             }
         }
+    }
+
+    public boolean isHidden() {
+        return hidden;
     }
 }

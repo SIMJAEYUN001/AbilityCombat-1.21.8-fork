@@ -43,8 +43,6 @@ public class Ghost extends AbilityBase implements ActiveHandler {
     private int cooldownExtra;
     private boolean ghosting;
     private boolean storedInvulnerable;
-    private boolean storedInvisible;
-    private boolean storedCollidable;
 
     public Ghost(Participant participant) {
         super(participant);
@@ -121,8 +119,6 @@ public class Ghost extends AbilityBase implements ActiveHandler {
     private void startGhost() {
         Player player = getPlayer();
         storedInvulnerable = player.isInvulnerable();
-        storedInvisible = player.isInvisible();
-        storedCollidable = player.isCollidable();
         ghosting = true;
         player.setInvulnerable(true);
         player.setInvisible(true);
@@ -150,8 +146,8 @@ public class Ghost extends AbilityBase implements ActiveHandler {
         }
         Player player = getPlayer();
         player.setInvulnerable(storedInvulnerable);
-        player.setInvisible(storedInvisible);
-        player.setCollidable(storedCollidable);
+        player.setInvisible(false);
+        player.setCollidable(true);
         ghosting = false;
         remainingGhostSeconds = 0;
     }

@@ -258,6 +258,7 @@ public class GrapplingHook extends AbilityBase implements ActiveHandler {
         if (player == null) {
             return;
         }
+        cancelSprintDashState(player);
         Vector leap = player.getLocation().getDirection().normalize().multiply(AMBUSH_LEAP_SPEED);
         leap.setY(AMBUSH_LEAP_Y);
         player.setVelocity(leap);
@@ -293,6 +294,7 @@ public class GrapplingHook extends AbilityBase implements ActiveHandler {
     }
 
     private void dashTowards(Player player, Location target) {
+        cancelSprintDashState(player);
         Location playerLoc = player.getLocation();
         Vector direction = target.toVector().subtract(playerLoc.toVector());
         double distance = direction.length();
@@ -305,6 +307,16 @@ public class GrapplingHook extends AbilityBase implements ActiveHandler {
             velocity.setY(Math.min(velocity.getY() + 0.35, 1.4));
         }
         player.setVelocity(velocity);
+    }
+
+    private void cancelSprintDashState(Player player) {
+        if (player == null) {
+            return;
+        }
+        if (AbilityCombat.getPlugin() == null || AbilityCombat.getPlugin().getSprintHudService() == null) {
+            return;
+        }
+        AbilityCombat.getPlugin().getSprintHudService().cancelDashState(player);
     }
 
     private void removeHookProjectile() {

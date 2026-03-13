@@ -46,8 +46,6 @@ public class Stalker extends AbilityBase implements ActiveHandler {
     private int remainingDashSeconds = 0;
     private int remainingStackSeconds = 0;
     private boolean storedInvulnerable;
-    private boolean storedInvisible;
-    private boolean storedCollidable;
     private UUID lastTarget;
     private int stack;
 
@@ -156,8 +154,6 @@ public class Stalker extends AbilityBase implements ActiveHandler {
     private void startGhostMode() {
         Player player = getPlayer();
         storedInvulnerable = player.isInvulnerable();
-        storedInvisible = player.isInvisible();
-        storedCollidable = player.isCollidable();
         player.setInvulnerable(true);
         player.setInvisible(true);
         player.setCollidable(false);
@@ -166,8 +162,8 @@ public class Stalker extends AbilityBase implements ActiveHandler {
     private void endGhostMode() {
         Player player = getPlayer();
         player.setInvulnerable(storedInvulnerable);
-        player.setInvisible(storedInvisible);
-        player.setCollidable(storedCollidable);
+        player.setInvisible(false);
+        player.setCollidable(true);
         dashing = false;
         dashTarget = null;
     }

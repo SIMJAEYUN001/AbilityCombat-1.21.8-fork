@@ -19,6 +19,9 @@
 - [ ] **`@AbilityManifest`의 `name`과 `abilities.yml`의 `name`이 정확히 일치하는지 확인**
 - [ ] **플레이어 크기(SCALE) 변경 능력은 무적 해제 후(게임 시작 시점) 적용**
 - [ ] **능력에서 사용하는 ArmorStand는 `AbilityCombat.markAbilityArmorStand()`로 태그하여 상호작용을 차단**
+- [ ] **은신/영체화/잠입 능력은 `storedInvisible`/`storedCollidable` 저장-복원 방식 대신 강제 on/off 또는 별도 상태 관리자 사용**
+- [ ] **대시/임시 투명화와 겹칠 수 있는 능력은 은신 시작 전에 반드시 `SprintHudService.cancelDashState(player)`를 먼저 호출**
+- [ ] **`hidePlayer`/`showPlayer`를 쓰는 은신은 다른 은신 상태(예: 헤르밋)와 충돌하지 않도록 "누가 숨겼는지"를 고려**
 
 # AbilityCombat 능력 개발 최적화 가이드
 
@@ -154,6 +157,37 @@ applyIronCooldownIfEmpty(COOLDOWN_SECONDS);
 
 ### 적용 대상
 - 철괴 우/좌클릭 등 **철괴로 발동되는 모든 능력**
+
+---
+
+## 4-2. 은신 / 투명화 능력 주의사항
+
+### 원칙
+- **대시, 스턴, 강제 시각 효과와 겹칠 수 있는 은신은 현재 invis/collidable 상태를 저장한 뒤 복원하지 마세요.**
+- **기본은 강제 on/off** 입니다.
+- 정말 중첩 상태 보존이 필요하면 `storedInvisible` 같은 단순 bool이 아니라 **상태 관리자(reference/owner 기반)** 로 관리하세요.
+
+### 이유
+- 대시, 테스트 대시, 기타 임시 효과도 `setInvisible(true)`, `setCollidable(false)`를 사용할 수 있습니다.
+- 이 상태를 은신 능력이 "원래 상태"로 저장하면 종료 시 다시 `true/false`를 복원해서 **무한 은신 / 충돌 비활성화**가 남습니다.
+
+### 필수 규칙
+- 은신 시작 전: `SprintHudService.cancelDashState(player)` 먼저 호출
+- 은신 시작: `player.setInvisible(true)`, `player.setCollidable(false)` 강제 적용
+- 은신 종료: `player.setInvisible(false)`, `player.setCollidable(true)` 강제 적용
+- `hidePlayer` / `showPlayer` 사용 시: 다른 능력의 숨김 상태와 충돌하지 않는지 확인
+
+### 현재 동일 위험 패턴 후보
+- `Liberator`
+- `Soul`
+- `SoulEncroach`
+- `Scarecrow`
+- `Stalker`
+- `Hermit`
+- `Ghost`
+
+### 부분 위험 후보
+- `Bellum`: `collidable`만 저장/복원하므로 완전 동일 이슈는 아니지만 임시 비충돌 상태와 충돌 가능
 
 ---
 

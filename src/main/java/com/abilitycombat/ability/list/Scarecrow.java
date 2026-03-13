@@ -62,8 +62,6 @@ public class Scarecrow extends AbilityBase implements ActiveHandler {
 
     private int hideRemainingSeconds;
     private boolean hidden;
-    private boolean storedInvisible;
-    private boolean storedCollidable;
 
     public Scarecrow(Participant participant) {
         super(participant);
@@ -204,8 +202,6 @@ public class Scarecrow extends AbilityBase implements ActiveHandler {
         if (player == null) {
             return;
         }
-        storedInvisible = player.isInvisible();
-        storedCollidable = player.isCollidable();
         player.setInvisible(true);
         player.setCollidable(false);
         player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, HIDE_SECONDS * 20, 0, true, false));
@@ -226,8 +222,8 @@ public class Scarecrow extends AbilityBase implements ActiveHandler {
             hidden = false;
             return;
         }
-        player.setInvisible(storedInvisible);
-        player.setCollidable(storedCollidable);
+        player.setInvisible(false);
+        player.setCollidable(true);
         player.removePotionEffect(PotionEffectType.INVISIBILITY);
         Bukkit.getOnlinePlayers().forEach(other -> {
             other.showPlayer(com.abilitycombat.AbilityCombat.getPlugin(), player);

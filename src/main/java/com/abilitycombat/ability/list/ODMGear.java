@@ -168,6 +168,11 @@ public class ODMGear extends AbilityBase {
     }
 
     private void dashTowards(Player player, Location target) {
+        if (com.abilitycombat.AbilityCombat.getPlugin() != null
+                && com.abilitycombat.AbilityCombat.getPlugin().getSprintHudService() != null) {
+            com.abilitycombat.AbilityCombat.getPlugin().getSprintHudService().cancelDashState(player);
+        }
+
         Location playerLoc = player.getLocation();
         Vector direction = target.toVector().subtract(playerLoc.toVector());
         double distance = direction.length();
