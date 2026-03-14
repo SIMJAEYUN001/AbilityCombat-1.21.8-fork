@@ -8,6 +8,7 @@ import com.abilitycombat.ability.list.Assassin;
 import com.abilitycombat.ability.list.BloodFiend;
 import com.abilitycombat.ability.list.Bellum;
 import com.abilitycombat.ability.list.Berserker;
+import com.abilitycombat.ability.list.BloodLord;
 import com.abilitycombat.ability.list.BulletBarrage;
 import com.abilitycombat.ability.list.CenterOfUniverse;
 import com.abilitycombat.ability.list.Clown;
@@ -387,6 +388,7 @@ public final class AbilityCombat extends JavaPlugin {
         AbilityFactory.register(Pumpkin.class);
         AbilityFactory.register(ExpertOfFall.class);
         AbilityFactory.register(BloodFiend.class);
+        AbilityFactory.register(BloodLord.class);
         AbilityFactory.register(Gardener.class);
         AbilityFactory.register(Giant.class);
         AbilityFactory.register(GiantSlayer.class);

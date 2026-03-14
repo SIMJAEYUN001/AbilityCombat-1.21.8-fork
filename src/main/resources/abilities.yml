@@ -157,6 +157,13 @@ abilities:
     summary:
       - "흡혈 스택: 스택당 +0.5 피해 (최대 4)"
       - "철괴 우클릭: 4칸 내 체력 강탈"
+  - name: "피의 군주 (BloodLord)"
+    rank: S
+    icon: REDSTONE_BLOCK
+    summary:
+      - "주변 15칸 플레이어 체력 손실 비례 피 중첩 획득"
+      - "철괴 좌클릭: 중첩 전부 소모, 주변 10칸 폭발"
+      - "철괴 우클릭: 중첩 20 소모, 적중 시 5초 기절 투사체"
   - name: "좀비 (Zombie)"
     rank: A
     icon: ROTTEN_FLESH
