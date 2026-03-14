@@ -85,6 +85,7 @@ import com.abilitycombat.effect.Bleed;
 import com.abilitycombat.effect.Infection;
 import com.abilitycombat.game.GameManager;
 import com.abilitycombat.game.MapManager;
+import com.abilitycombat.npc.PlayerReplicaManager;
 import com.abilitycombat.ui.ActionbarChannel;
 import com.abilitycombat.ui.BossBarManager;
 import com.abilitycombat.ui.SprintHudService;
@@ -106,6 +107,7 @@ public final class AbilityCombat extends JavaPlugin {
     private ActionbarChannel actionbarChannel;
     private BossBarManager bossBarManager;
     private SprintHudService sprintHudService;
+    private PlayerReplicaManager replicaManager;
     private EventBridge eventBridge;
     private SweepPacketSuppressor sweepPacketSuppressor;
 
@@ -127,6 +129,8 @@ public final class AbilityCombat extends JavaPlugin {
         actionbarChannel.start();
         bossBarManager = new BossBarManager(this);
         getServer().getPluginManager().registerEvents(bossBarManager, this);
+        replicaManager = new PlayerReplicaManager(this);
+        replicaManager.start();
         sprintHudService = new SprintHudService(this);
         getServer().getPluginManager().registerEvents(sprintHudService, this);
         sprintHudService.start();
@@ -158,6 +162,7 @@ public final class AbilityCombat extends JavaPlugin {
         updated |= ensureConfigDefault(config, "hud.sprint.http-port", 24891);
         updated |= ensureConfigDefault(config, "hud.sprint.http-path", "/abilitycombat-sprint-hud.zip");
         updated |= ensureConfigDefault(config, "hud.sprint.require-resource-pack", false);
+        updated |= ensureConfigDefault(config, "hud.sprint.show-own-dash-replica", false);
         updated |= ensureConfigDefault(config, "hud.sprint.horizontal-offset", -100);
         updated |= ensureConfigDefault(config, "hud.sprint.vertical-offset", 0);
         updated |= ensureConfigDefault(config, "hud.sprint.dropbox.enabled", false);
@@ -192,6 +197,10 @@ public final class AbilityCombat extends JavaPlugin {
         if (bossBarManager != null) {
             bossBarManager.shutdown();
         }
+        if (replicaManager != null) {
+            replicaManager.stop();
+            replicaManager = null;
+        }
         if (sprintHudService != null) {
             sprintHudService.stop();
             sprintHudService = null;
@@ -216,11 +225,13 @@ public final class AbilityCombat extends JavaPlugin {
         NamespacedKey emperorKey = Emperor.getGuardKey(this);
         NamespacedKey khazhadKey = Khazhad.getTridentKey(this);
         NamespacedKey voidKey = Void.getPortalKey(this);
+        NamespacedKey replicaKey = new NamespacedKey(this, "replica_anchor");
 
         for (World world : getServer().getWorlds()) {
             // ArmorStand 정리 (검기, 삼지창, 포탈 등)
             for (org.bukkit.entity.ArmorStand stand : world.getEntitiesByClass(org.bukkit.entity.ArmorStand.class)) {
                 if (stand.getPersistentDataContainer().has(abilityStandKey, PersistentDataType.BYTE)
+                        || stand.getPersistentDataContainer().has(replicaKey, PersistentDataType.BYTE)
                         || stand.getPersistentDataContainer().has(smKey, PersistentDataType.BYTE)
                         || stand.getPersistentDataContainer().has(khazhadKey, PersistentDataType.BYTE)
                         || stand.getPersistentDataContainer().has(voidKey, PersistentDataType.BYTE)) {
@@ -289,6 +300,10 @@ public final class AbilityCombat extends JavaPlugin {
 
     public SprintHudService getSprintHudService() {
         return sprintHudService;
+    }
+
+    public PlayerReplicaManager getReplicaManager() {
+        return replicaManager;
     }
 
     public EventBridge getEventBridge() {

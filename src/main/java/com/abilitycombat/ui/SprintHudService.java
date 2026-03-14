@@ -1,10 +1,11 @@
 package com.abilitycombat.ui;
 
 import com.abilitycombat.AbilityCombat;
+import com.abilitycombat.npc.PlayerReplica;
+import com.abilitycombat.npc.ReplicaProfile;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
-import com.destroystokyo.paper.SkinParts;
-import io.papermc.paper.datacomponent.item.ResolvableProfile;
+import io.papermc.paper.event.player.PrePlayerAttackEntityEvent;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
@@ -14,7 +15,6 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Pose;
@@ -108,6 +108,7 @@ public final class SprintHudService implements Listener {
     private static final int TICKS_PER_ARROW = 2;
     private static final int MAX_SPRINT_TICKS = MAX_ARROWS * TICKS_PER_ARROW;
     private static final int MIN_DASH_TICKS = MIN_DASH_ARROWS * TICKS_PER_ARROW;
+    private static final int LEDGE_GRACE_TICKS = 6;
     private static final int JUMP_GRACE_TICKS = 6;
     private static final int MAX_DASH_HOLD_TICKS = 30;
     private static final int POST_LAND_HOLD_TICKS = 4;
@@ -445,11 +446,36 @@ public final class SprintHudService implements Listener {
         }
         player.setNoDamageTicks(0);
         Entity source = resolveDamageSource(event.getDamager());
+        if (source != null && plugin.getGameManager() != null) {
+            plugin.getGameManager().allowReplicaDamageTransfer(source, player);
+        }
         if (source != null) {
             player.damage(event.getFinalDamage(), source);
         } else {
             player.damage(event.getFinalDamage());
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onDashMannequinPreAttack(PrePlayerAttackEntityEvent event) {
+        if (!event.willAttack()) {
+            return;
+        }
+        DashState state = getDashState(event.getAttacked());
+        if (state == null) {
+            return;
+        }
+        Player attacker = event.getPlayer();
+        Player target = Bukkit.getPlayer(state.playerId);
+        if (target == null || !target.isOnline() || target.isDead() || attacker.equals(target)) {
+            event.setCancelled(true);
+            return;
+        }
+        event.setCancelled(true);
+        if (plugin.getGameManager() != null) {
+            plugin.getGameManager().allowReplicaDamageTransfer(attacker, target);
+        }
+        attacker.attack(target);
     }
 
     @EventHandler
@@ -483,17 +509,22 @@ public final class SprintHudService implements Listener {
                 storedJumpCharge.put(uuid, charged);
                 sprintTicks.remove(uuid);
             }
-            int grace = jumpGraceTicks.getOrDefault(uuid, JUMP_GRACE_TICKS);
+            int initialGrace = getAirGraceTicks(player);
+            int grace = jumpGraceTicks.getOrDefault(uuid, initialGrace);
             grace--;
             if (grace > 0) {
                 jumpGraceTicks.put(uuid, grace);
-                return 0;
+                return storedJumpCharge.getOrDefault(uuid, charged);
             }
         }
         sprintTicks.remove(uuid);
         jumpGraceTicks.remove(uuid);
         storedJumpCharge.remove(uuid);
         return 0;
+    }
+
+    private int getAirGraceTicks(Player player) {
+        return player.getVelocity().getY() > 0.08 ? JUMP_GRACE_TICKS : LEDGE_GRACE_TICKS;
     }
 
     private boolean isActivelySprinting(Player player) {
@@ -644,48 +675,55 @@ public final class SprintHudService implements Listener {
         }
     }
 
-    private Mannequin spawnMannequin(Player player, Vector dashVelocity) {
-        Mannequin mannequin = player.getWorld().spawn(player.getLocation(), Mannequin.class, entity -> {
-            entity.setInvulnerable(false);
-            entity.setImmovable(false);
-            entity.setGravity(true);
-            entity.setAI(false);
-            if (entity.getAttribute(Attribute.MAX_HEALTH) != null) {
-                entity.getAttribute(Attribute.MAX_HEALTH).setBaseValue(100.0);
-            }
-            entity.setHealth(100.0);
-            entity.customName(player.displayName());
-            entity.setCustomNameVisible(false);
-            entity.setDescription(null);
-            entity.setProfile(ResolvableProfile.resolvableProfile(player.getPlayerProfile()));
-            entity.setSkinParts(SkinParts.allParts());
-            EntityEquipment equipment = entity.getEquipment();
-            if (equipment != null) {
-                equipment.setArmorContents(cloneItems(player.getInventory().getArmorContents()));
-                equipment.setItemInMainHand(cloneItem(player.getInventory().getItemInMainHand()));
-                equipment.setItemInOffHand(cloneItem(player.getInventory().getItemInOffHand()));
-            }
-            entity.setPose(Pose.SWIMMING, true);
-            entity.setVelocity(dashVelocity.clone());
-            syncMannequinScale(player, entity);
-        });
-        player.hideEntity(plugin, mannequin);
+    private PlayerReplica spawnMannequin(Player player, Vector dashVelocity) {
+        PlayerReplica mannequin = plugin.getReplicaManager().createReplica(getMannequinLocation(player),
+                ReplicaProfile.fromPlayer(player));
+        mannequin.setInvulnerable(false);
+        mannequin.setImmovable(false);
+        mannequin.setGravity(true);
+        mannequin.setAI(false);
+        mannequin.setCollidable(true);
+        mannequin.setSwimming(true);
+        mannequin.setNoDamageTicks(0);
+        if (mannequin.getAttribute(Attribute.MAX_HEALTH) != null) {
+            mannequin.getAttribute(Attribute.MAX_HEALTH).setBaseValue(100.0);
+        }
+        mannequin.setHealth(100.0);
+        mannequin.customName(player.displayName());
+        mannequin.setCustomNameVisible(false);
+        EntityEquipment equipment = mannequin.getEquipment();
+        if (equipment != null) {
+            equipment.setArmorContents(cloneItems(player.getInventory().getArmorContents()));
+            equipment.setItemInMainHand(cloneItem(player.getInventory().getItemInMainHand()));
+            equipment.setItemInOffHand(cloneItem(player.getInventory().getItemInOffHand()));
+        }
+        mannequin.setPose(Pose.SWIMMING, true);
+        mannequin.setVelocity(dashVelocity.clone());
+        syncMannequinScale(player, mannequin);
+        mannequin.syncEquipment();
+        mannequin.spawn();
+        if (!plugin.getConfig().getBoolean("hud.sprint.show-own-dash-replica", false)) {
+            mannequin.hideFrom(player);
+        }
         return mannequin;
     }
 
     private void syncMannequin(Player player, DashState state) {
-        Mannequin mannequin = state.mannequin;
+        PlayerReplica mannequin = state.mannequin;
         if (mannequin == null || mannequin.isDead()) {
             return;
         }
         mannequin.setPose(Pose.SWIMMING, true);
+        mannequin.setSwimming(true);
         mannequin.setGliding(false);
         mannequin.setFallDistance(0f);
+        mannequin.setNoDamageTicks(0);
         syncMannequinScale(player, mannequin);
-        if (!state.leftGround) {
-            mannequin.teleport(getMannequinLocation(player));
-            mannequin.setVelocity(player.getVelocity().clone());
-        }
+        org.bukkit.Location location = getMannequinLocation(player);
+        location.setYaw(player.getLocation().getYaw());
+        location.setPitch(player.getLocation().getPitch());
+        mannequin.teleport(location);
+        mannequin.setVelocity(player.getVelocity().clone());
     }
 
     @SuppressWarnings("deprecation")
@@ -720,7 +758,7 @@ public final class SprintHudService implements Listener {
         return location;
     }
 
-    private void syncMannequinScale(Player player, Mannequin mannequin) {
+    private void syncMannequinScale(Player player, PlayerReplica mannequin) {
         AttributeInstance mannequinScale = mannequin.getAttribute(Attribute.SCALE);
         if (mannequinScale == null) {
             return;
@@ -831,11 +869,8 @@ public final class SprintHudService implements Listener {
     }
 
     private DashState getDashState(Entity entity) {
-        if (!(entity instanceof Mannequin)) {
-            return null;
-        }
         for (DashState state : dashStates.values()) {
-            if (state.mannequin != null && state.mannequin.equals(entity)) {
+            if (state.mannequin != null && state.mannequin.matches(entity)) {
                 return state;
             }
         }
@@ -1727,7 +1762,7 @@ public final class SprintHudService implements Listener {
         private int dashTicks;
         private boolean leftGround;
         private int recoveryTicks = -1;
-        private Mannequin mannequin;
+        private PlayerReplica mannequin;
 
         private DashState(UUID playerId, boolean storedInvisible, boolean storedCollidable,
                 boolean preserveViewerHide) {

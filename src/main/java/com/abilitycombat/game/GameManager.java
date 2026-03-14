@@ -23,7 +23,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.GameMode;
-import org.bukkit.GameRules;
+import org.bukkit.GameRule;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -149,6 +149,8 @@ public class GameManager implements Listener {
     private static final int SELECTION_HUD_PRIORITY = 1;
     private static final String VICTORY_FIREWORK_KEY = "victory_firework";
     private static final int BORDER_DAMAGE_INTERVAL_SECONDS = 1;
+    private static final double STATIONARY_BORDER_RADIUS_SHRINK_PER_SECOND = 0.001;
+    private static final long STATIONARY_BORDER_SHRINK_DURATION_SECONDS = 1L;
     private GameState state = GameState.IDLE;
     private BukkitTask selectionTask;
     private BukkitTask gameTask;
@@ -167,6 +169,7 @@ public class GameManager implements Listener {
     private final Map<UUID, Integer> naturalRegenCounters = new HashMap<>();
     private final Set<UUID> manualNaturalRegen = new HashSet<>();
     private final Map<UUID, PendingKnockback> pendingKnockbacks = new HashMap<>();
+    private final Map<UUID, ReplicaDamageBypass> replicaDamageBypasses = new HashMap<>();
     private int selectionSeconds;
     private int selectionRemaining;
     private int invincibilitySeconds;
@@ -270,6 +273,18 @@ public class GameManager implements Listener {
             return true;
         }
         return !areTeammates(sourcePlayer, targetPlayer);
+    }
+
+    public void allowReplicaDamageTransfer(Entity source, Player target) {
+        if (target == null) {
+            return;
+        }
+        Player sourcePlayer = resolveCombatSourcePlayer(source);
+        if (sourcePlayer == null) {
+            return;
+        }
+        replicaDamageBypasses.put(target.getUniqueId(),
+                new ReplicaDamageBypass(sourcePlayer.getUniqueId(), Bukkit.getCurrentTick() + 1));
     }
 
     public int getCurrentPhaseIndex() {
@@ -1315,14 +1330,14 @@ public class GameManager implements Listener {
 	        worldBorder.setDamageBuffer(0.0);
 	        worldBorder.setDamageAmount(0.0);
 	        worldBorder.setWarningDistance(5);
-	        worldBorder.setWarningTimeTicks(15 * 20);
+        worldBorder.setWarningTime(15);
         noSafeZonePhaseActive = false;
 
 	        actualBorder.setSize(WORLD_BORDER_MAX_SIZE);
 	        actualBorder.setDamageBuffer(5.0);
 	        actualBorder.setDamageAmount(0.2);
 	        actualBorder.setWarningDistance(5);
-	        actualBorder.setWarningTimeTicks(15 * 20);
+        actualBorder.setWarningTime(15);
 	        syncWorldBorderForAllPlayers();
 	    }
 
@@ -1358,11 +1373,13 @@ public class GameManager implements Listener {
 
 	        // Last phase: no further shrink.
 	        if (currentPhaseIndex >= borderPhases.size()) {
+                refreshStationaryBorderMotion();
 	            return;
 	        }
 
 	        phaseRemaining = Math.max(0, phaseRemaining - 1);
 	        if (phaseRemaining > 0) {
+                refreshStationaryBorderMotion();
 	            return;
 	        }
 
@@ -1383,7 +1400,7 @@ public class GameManager implements Listener {
 	            borderShrinkRemaining = 0;
 	            return 0;
 	        }
-	        ensureGameWorldBorder(targetRadius);
+	        ensureGameWorldBorderExists();
 	        if (worldBorder == null) {
 	            return 0;
 	        }
@@ -1395,7 +1412,7 @@ public class GameManager implements Listener {
 	        }
 	        int duration = (int) Math.ceil(delta / speed);
 	        duration = Math.max(1, duration);
-	        worldBorder.changeSize(targetRadius * 2.0, (long) duration * 20);
+	        worldBorder.setSize(targetRadius * 2.0, duration);
 	        borderShrinkRemaining = duration;
 	        return duration;
 	    }
@@ -1415,6 +1432,18 @@ public class GameManager implements Listener {
 	        broadcastPhaseDamage(phase, radius);
 	    }
 
+        private void refreshStationaryBorderMotion() {
+            if (worldBorder == null || noSafeZonePhaseActive || borderShrinkRemaining > 0) {
+                return;
+            }
+            double currentSize = worldBorder.getSize();
+            double nextSize = clampWorldBorderSize(currentSize - (STATIONARY_BORDER_RADIUS_SHRINK_PER_SECOND * 2.0));
+            if (nextSize >= currentSize - 1.0E-6) {
+                return;
+            }
+            worldBorder.setSize(nextSize, STATIONARY_BORDER_SHRINK_DURATION_SECONDS);
+        }
+
 	    private void applyBorderDamageBufferForPhase(int phase) {
 	        if (worldBorder == null) {
 	            return;
@@ -1431,6 +1460,14 @@ public class GameManager implements Listener {
 	    }
 
 	    private void ensureGameWorldBorder(int radius) {
+	        ensureGameWorldBorderExists();
+	        if (worldBorder == null) {
+	            return;
+	        }
+	        worldBorder.setSize(Math.max(WORLD_BORDER_MIN_SIZE, radius * 2.0));
+	    }
+
+	    private void ensureGameWorldBorderExists() {
 	        World world = gameBorderWorld != null ? gameBorderWorld : getGameWorld();
 	        if (world == null) {
 	            return;
@@ -1442,11 +1479,10 @@ public class GameManager implements Listener {
 	            worldBorder.setDamageBuffer(0.0);
 	            worldBorder.setDamageAmount(0.0);
 	            worldBorder.setWarningDistance(5);
-	            worldBorder.setWarningTimeTicks(15 * 20);
+	            worldBorder.setWarningTime(15);
 	        } else {
 	            worldBorder.setCenter(center);
 	        }
-	        worldBorder.setSize(Math.max(WORLD_BORDER_MIN_SIZE, radius * 2.0));
 	    }
 
 	    private void broadcastPhaseDamage(int phase, int radius) {
@@ -1524,7 +1560,7 @@ public class GameManager implements Listener {
         border.setDamageBuffer(5.0); // 바닐라 기본값
         border.setDamageAmount(0.2); // 바닐라 기본값
         border.setWarningDistance(5); // 바닐라 기본값
-        border.setWarningTimeTicks(15 * 20); // 바닐라 기본값
+        border.setWarningTime(15); // 바닐라 기본값
 
         // 상태 초기화
         borderShrinkRemaining = 0;
@@ -1595,13 +1631,13 @@ public class GameManager implements Listener {
 
         fixedDaytimeWorld = world;
         if (originalDoDaylightCycle == null) {
-            originalDoDaylightCycle = world.getGameRuleValue(GameRules.ADVANCE_TIME);
+            originalDoDaylightCycle = world.getGameRuleValue(GameRule.DO_DAYLIGHT_CYCLE);
         }
         if (originalFullTime < 0) {
             originalFullTime = world.getFullTime();
         }
 
-        world.setGameRule(GameRules.ADVANCE_TIME, false);
+        world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
         world.setTime(2000L);
         fixedDaytimeTask = trackTask(Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             if (state == GameState.IDLE || fixedDaytimeWorld == null) {
@@ -1624,7 +1660,7 @@ public class GameManager implements Listener {
             return;
         }
         if (originalDoDaylightCycle != null) {
-            fixedDaytimeWorld.setGameRule(GameRules.ADVANCE_TIME, originalDoDaylightCycle);
+            fixedDaytimeWorld.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, originalDoDaylightCycle);
             originalDoDaylightCycle = null;
         }
         if (originalFullTime >= 0) {
@@ -2804,6 +2840,12 @@ public class GameManager implements Listener {
 	                plugin.saveConfig();
 	                gui.refresh(entry);
 	            }
+            case DASH_SELF_PREVIEW -> {
+                boolean enabled = plugin.getConfig().getBoolean("hud.sprint.show-own-dash-replica", false);
+                plugin.getConfig().set("hud.sprint.show-own-dash-replica", !enabled);
+                plugin.saveConfig();
+                gui.refresh(entry);
+            }
 	            case CRAFTING -> {
 	                boolean enabled = plugin.getConfig().getBoolean("crafting.enabled", true);
 	                boolean next = !enabled;
@@ -3415,7 +3457,8 @@ public class GameManager implements Listener {
             event.setCancelled(true);
             return;
         }
-        if (!attackCooldownEnabled) {
+        boolean replicaTransfer = consumeReplicaDamageBypass(event);
+        if (!attackCooldownEnabled && !replicaTransfer) {
             suppressSwordSweep(event);
         }
         if (event.getDamager() instanceof Player player && isSpectator(player)) {
@@ -3472,6 +3515,27 @@ public class GameManager implements Listener {
             return player;
         }
         return null;
+    }
+
+    private boolean consumeReplicaDamageBypass(EntityDamageByEntityEvent event) {
+        if (!(event.getEntity() instanceof Player targetPlayer)) {
+            return false;
+        }
+        ReplicaDamageBypass bypass = replicaDamageBypasses.get(targetPlayer.getUniqueId());
+        if (bypass == null) {
+            return false;
+        }
+        int currentTick = Bukkit.getCurrentTick();
+        if (bypass.expiresAtTick < currentTick) {
+            replicaDamageBypasses.remove(targetPlayer.getUniqueId());
+            return false;
+        }
+        Player sourcePlayer = resolveCombatSourcePlayer(event.getDamager());
+        if (sourcePlayer == null || !bypass.sourcePlayerId.equals(sourcePlayer.getUniqueId())) {
+            return false;
+        }
+        replicaDamageBypasses.remove(targetPlayer.getUniqueId());
+        return true;
     }
 
     private boolean isAxeWeapon(ItemStack item) {
@@ -3572,6 +3636,16 @@ public class GameManager implements Listener {
 
         private PendingKnockback(Vector velocity, int expiresAtTick) {
             this.velocity = velocity;
+            this.expiresAtTick = expiresAtTick;
+        }
+    }
+
+    private static final class ReplicaDamageBypass {
+        private final UUID sourcePlayerId;
+        private final int expiresAtTick;
+
+        private ReplicaDamageBypass(UUID sourcePlayerId, int expiresAtTick) {
+            this.sourcePlayerId = sourcePlayerId;
             this.expiresAtTick = expiresAtTick;
         }
     }

@@ -7,7 +7,7 @@ AbilityCombat is a Bukkit/Spigot(Paper) plugin that provides an ability-based Pv
 ## What is this project?
 
 - Minecraft plugin written in Java 21
-- Uses Paper API 1.21.x
+- Uses Paper API 1.21.8
 - Provides a full gameplay loop:
   - Game start/stop flow
   - Player ability assignment and reroll flow
@@ -26,7 +26,7 @@ AbilityCombat is a Bukkit/Spigot(Paper) plugin that provides an ability-based Pv
 ## Prerequisites
 
 - Java Development Kit (JDK) 21
-- Paper server 1.21+
+- Paper server 1.21.8
 - Maven
 
 ## Build

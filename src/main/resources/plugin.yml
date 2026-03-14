@@ -1,7 +1,7 @@
 name: AbilityCombat
 version: '${project.version}'
 main: com.abilitycombat.AbilityCombat
-api-version: '1.21'
+api-version: '1.21.8'
 prefix: AbilityCombat
 authors: [ Antigravity ]
 description: A Minecraft ability battle plugin based on Ability War.

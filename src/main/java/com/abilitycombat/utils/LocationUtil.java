@@ -2,12 +2,12 @@ package com.abilitycombat.utils;
 
 import com.abilitycombat.AbilityCombat;
 import com.abilitycombat.game.Participant;
+import com.abilitycombat.npc.PlayerReplicaManager;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -32,7 +32,7 @@ public class LocationUtil {
         if (entity == null) {
             return false;
         }
-        if (entity instanceof Mannequin) {
+        if (PlayerReplicaManager.isReplicaEntity(entity)) {
             return false;
         }
         if (entity instanceof Player player) {

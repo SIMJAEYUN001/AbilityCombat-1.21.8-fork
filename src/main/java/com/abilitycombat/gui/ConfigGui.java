@@ -34,6 +34,7 @@ public class ConfigGui implements InventoryHolder {
         SELECTION_TIME,
         BORDER_INITIAL_RADIUS,
         BORDER_SHRINK_SECONDS,
+        DASH_SELF_PREVIEW,
         SPECTATOR_HIDE,
         CRAFTING,
         MAP_RESTORE,
@@ -112,7 +113,8 @@ public class ConfigGui implements InventoryHolder {
         addEntry(26, Type.REROLL_COUNT, -1);
         addEntry(15, Type.BORDER_INITIAL_RADIUS, -1);
         addEntry(16, Type.BORDER_SHRINK_SECONDS, -1);
-        addEntry(17, Type.SPECTATOR_HIDE, -1);
+        addEntry(17, Type.DASH_SELF_PREVIEW, -1);
+        addEntry(8, Type.SPECTATOR_HIDE, -1);
         addEntry(18, Type.CRAFTING, -1);
         addEntry(9, Type.MOB_SPAWN_BLOCK, -1);
         addEntry(24, Type.INFINITE_DURABILITY, -1);
@@ -222,6 +224,13 @@ public class ConfigGui implements InventoryHolder {
                         "§f" + speed + " 블록/초",
                         "§7좌클릭: +1, 우클릭: -1",
                         "§7쉬프트: +5 / -5"));
+            }
+            case DASH_SELF_PREVIEW -> {
+                boolean show = config.getBoolean("hud.sprint.show-own-dash-replica", false);
+                yield createItem(Material.FEATHER, "§b대시 본인 모션 표시", List.of(
+                        "§f" + (show ? "활성화" : "비활성화"),
+                        "§7클릭: 토글",
+                        "§8디버그용: 내 화면에도 대시 복제 모션 표시"));
             }
             case SPECTATOR_HIDE -> {
                 boolean hide = config.getBoolean("spectator.hide-from-alive", true);

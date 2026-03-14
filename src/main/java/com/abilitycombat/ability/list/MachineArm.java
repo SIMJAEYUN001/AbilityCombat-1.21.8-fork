@@ -6,6 +6,7 @@ import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.ability.handler.ActiveHandler;
 import com.abilitycombat.effect.Stun;
 import com.abilitycombat.game.Participant;
+import com.abilitycombat.npc.PlayerReplicaManager;
 import com.abilitycombat.utils.LocationPool;
 import com.abilitycombat.utils.LocationUtil;
 import com.abilitycombat.utils.ParticleUtil;
@@ -18,7 +19,6 @@ import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
@@ -202,7 +202,7 @@ public class MachineArm extends AbilityBase implements ActiveHandler {
         for (LivingEntity target : LocationUtil.getNearbyLivingEntities(next, HIT_RADIUS, player,
                 entity -> !entity.equals(player)
                         && !(entity instanceof ArmorStand)
-                        && !(entity instanceof Mannequin))) {
+                        && !PlayerReplicaManager.isReplicaEntity(entity))) {
             onHitTarget(player, target);
             removeProjectile();
             return;

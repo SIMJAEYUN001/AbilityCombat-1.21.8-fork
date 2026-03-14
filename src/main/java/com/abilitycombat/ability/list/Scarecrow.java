@@ -5,7 +5,8 @@ import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.ability.handler.ActiveHandler;
 import com.abilitycombat.game.Participant;
-import io.papermc.paper.datacomponent.item.ResolvableProfile;
+import com.abilitycombat.npc.PlayerReplica;
+import com.abilitycombat.npc.ReplicaProfile;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
@@ -15,7 +16,6 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.Event;
@@ -107,16 +107,13 @@ public class Scarecrow extends AbilityBase implements ActiveHandler {
         if (event.isCancelled()) {
             return;
         }
-        if (!(event.getEntity() instanceof Mannequin mannequin)) {
-            return;
-        }
-        ScarecrowData data = getScarecrowData(mannequin.getUniqueId());
+        ScarecrowData data = getScarecrowData(event.getEntity().getUniqueId());
         if (data == null) {
             return;
         }
-        data.lastLocation = mannequin.getLocation();
+        data.lastLocation = data.mannequin.getLocation();
         LivingEntity attacker = resolveAttacker(event.getDamager());
-        if (!(attacker instanceof Player) || attacker.equals(mannequin)) {
+        if (!(attacker instanceof Player) || data.mannequin.matches(attacker)) {
             return;
         }
         if (!AbilityCombat.getPlugin().getGameManager().canApplyNegativeEffect(getPlayer(), attacker)) {
@@ -131,22 +128,22 @@ public class Scarecrow extends AbilityBase implements ActiveHandler {
             return;
         }
         Location location = player.getLocation().clone();
-        Mannequin mannequin = player.getWorld().spawn(location, Mannequin.class, entity -> {
-            entity.setInvulnerable(false);
-            entity.setImmovable(false);
-            entity.setGravity(true);
-            entity.setAI(false);
-            entity.customName(stripAfterNewline(player.displayName()));
-            entity.setCustomNameVisible(true);
-            entity.setDescription(null);
-            entity.setProfile(ResolvableProfile.resolvableProfile(player.getPlayerProfile()));
-            EntityEquipment equipment = entity.getEquipment();
-            if (equipment != null) {
-                equipment.setArmorContents(cloneItems(player.getInventory().getArmorContents()));
-                equipment.setItemInMainHand(cloneItem(player.getInventory().getItemInMainHand()));
-                equipment.setItemInOffHand(cloneItem(player.getInventory().getItemInOffHand()));
-            }
-        });
+        PlayerReplica mannequin = AbilityCombat.getPlugin().getReplicaManager()
+                .createReplica(location, ReplicaProfile.fromPlayer(player));
+        mannequin.setInvulnerable(false);
+        mannequin.setImmovable(false);
+        mannequin.setGravity(true);
+        mannequin.setAI(false);
+        mannequin.customName(stripAfterNewline(player.displayName()));
+        mannequin.setCustomNameVisible(true);
+        EntityEquipment equipment = mannequin.getEquipment();
+        if (equipment != null) {
+            equipment.setArmorContents(cloneItems(player.getInventory().getArmorContents()));
+            equipment.setItemInMainHand(cloneItem(player.getInventory().getItemInMainHand()));
+            equipment.setItemInOffHand(cloneItem(player.getInventory().getItemInOffHand()));
+        }
+        mannequin.syncEquipment();
+        mannequin.spawn();
         scarecrows.add(new ScarecrowData(mannequin, SCARECROW_DURATION_TICKS));
     }
 
@@ -343,12 +340,12 @@ public class Scarecrow extends AbilityBase implements ActiveHandler {
     }
 
     private static class ScarecrowData {
-        private final Mannequin mannequin;
+        private final PlayerReplica mannequin;
         private int remainingTicks;
         private UUID targetId;
         private Location lastLocation;
 
-        private ScarecrowData(Mannequin mannequin, int remainingTicks) {
+        private ScarecrowData(PlayerReplica mannequin, int remainingTicks) {
             this.mannequin = mannequin;
             this.remainingTicks = remainingTicks;
             this.lastLocation = mannequin.getLocation();

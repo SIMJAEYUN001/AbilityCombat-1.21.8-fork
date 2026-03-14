@@ -6,6 +6,8 @@ import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.ability.AbilityTickManager;
 import com.abilitycombat.ability.handler.ActiveHandler;
 import com.abilitycombat.game.Participant;
+import com.abilitycombat.npc.PlayerReplica;
+import com.abilitycombat.npc.ReplicaProfile;
 import com.abilitycombat.utils.LocationUtil;
 import com.abilitycombat.utils.ParticleUtil;
 import com.abilitycombat.vfx.Circle;
@@ -21,7 +23,6 @@ import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -56,7 +57,7 @@ public class Curse extends AbilityBase implements ActiveHandler {
     private static final double DOLL_SCALE = 0.7;
 
     private final Cooldown cooldown = new Cooldown(COOLDOWN_SECONDS);
-    private Mannequin doll;
+    private PlayerReplica doll;
     private LivingEntity target;
     private int particleStep;
     private int remainingCurseSeconds = 0;
@@ -151,32 +152,30 @@ public class Curse extends AbilityBase implements ActiveHandler {
         if (world == null) {
             return;
         }
-        doll = world.spawn(location, Mannequin.class, entity -> {
-            entity.setInvulnerable(false);
-            entity.setImmovable(true);
-            entity.setGravity(false);
-            entity.setAI(false);
-            entity.customName(Component.text("저주 인형", NamedTextColor.DARK_PURPLE));
-            entity.setCustomNameVisible(true);
-            entity.setDescription(null);
-            entity.setProfile(resolveProfile(target));
-            entity.setSkinParts(SkinParts.allParts());
-            AttributeInstance scale = entity.getAttribute(Attribute.SCALE);
-            if (scale != null) {
-                scale.setBaseValue(scale.getDefaultValue() * DOLL_SCALE);
-            }
-            EntityEquipment equipment = entity.getEquipment();
-            if (equipment != null) {
-                equipment.setItemInMainHand(new ItemStack(Material.POPPY));
-            }
-        });
+        doll = AbilityCombat.getPlugin().getReplicaManager().createReplica(location, resolveProfile(target));
+        doll.setInvulnerable(false);
+        doll.setImmovable(true);
+        doll.setGravity(false);
+        doll.setAI(false);
+        doll.customName(Component.text("저주 인형", NamedTextColor.DARK_PURPLE));
+        doll.setCustomNameVisible(true);
+        AttributeInstance scale = doll.getAttribute(Attribute.SCALE);
+        if (scale != null) {
+            scale.setBaseValue(scale.getDefaultValue() * DOLL_SCALE);
+        }
+        EntityEquipment equipment = doll.getEquipment();
+        if (equipment != null) {
+            equipment.setItemInMainHand(new ItemStack(Material.POPPY));
+        }
+        doll.syncEquipment();
+        doll.spawn();
     }
 
-    private ResolvableProfile resolveProfile(LivingEntity target) {
+    private ReplicaProfile resolveProfile(LivingEntity target) {
         if (target instanceof Player player) {
-            return ResolvableProfile.resolvableProfile(player.getPlayerProfile());
+            return ReplicaProfile.fromPlayer(player);
         }
-        return Mannequin.defaultProfile();
+        return ReplicaProfile.defaultProfile();
     }
 
     private void removeDoll() {

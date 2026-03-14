@@ -62,6 +62,7 @@ hud:
     public-host: ""
     http-port: 24891
     http-path: "/abilitycombat-sprint-hud.zip"
-    require-resource-pack: false
-    horizontal-offset: -100
+  require-resource-pack: false
+  show-own-dash-replica: false
+  horizontal-offset: -100
     vertical-offset: 0

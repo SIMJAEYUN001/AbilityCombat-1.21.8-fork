@@ -7,6 +7,7 @@ import com.abilitycombat.ability.handler.ActiveHandler;
 import com.abilitycombat.combat.SweepEffectAllowance;
 import com.abilitycombat.effect.Stun;
 import com.abilitycombat.game.Participant;
+import com.abilitycombat.npc.PlayerReplicaManager;
 import com.abilitycombat.utils.LocationPool;
 import com.abilitycombat.utils.LocationUtil;
 import com.abilitycombat.utils.VectorPool;
@@ -15,7 +16,6 @@ import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -220,7 +220,7 @@ public class GrapplingHook extends AbilityBase implements ActiveHandler {
                 target ->
                 !target.equals(hookProjectile.shooter)
                         && !(target instanceof ArmorStand)
-                        && !(target instanceof Mannequin))) {
+                        && !PlayerReplicaManager.isReplicaEntity(target))) {
             onHookHitEntity(entity);
             removeHookProjectile();
             return;
