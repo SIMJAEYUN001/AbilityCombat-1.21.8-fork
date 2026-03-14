@@ -9,6 +9,7 @@ import com.abilitycombat.ability.list.BloodFiend;
 import com.abilitycombat.ability.list.Bellum;
 import com.abilitycombat.ability.list.Berserker;
 import com.abilitycombat.ability.list.BulletBarrage;
+import com.abilitycombat.ability.list.CenterOfUniverse;
 import com.abilitycombat.ability.list.Clown;
 import com.abilitycombat.ability.list.Curse;
 import com.abilitycombat.ability.list.DarkVision;
@@ -26,6 +27,8 @@ import com.abilitycombat.ability.list.Gladiator;
 import com.abilitycombat.ability.list.Giant;
 import com.abilitycombat.ability.list.GiantSlayer;
 import com.abilitycombat.ability.list.Ghost;
+import com.abilitycombat.ability.list.Gardener;
+import com.abilitycombat.ability.list.GravityField;
 import com.abilitycombat.ability.list.GrapplingHook;
 import com.abilitycombat.ability.list.Hacker;
 import com.abilitycombat.ability.list.Hedgehog;
@@ -156,6 +159,7 @@ public final class AbilityCombat extends JavaPlugin {
         boolean updated = false;
 
         updated |= ensureConfigDefault(config, "game.fixed-daytime", true);
+        updated |= ensureConfigDefault(config, "ability.show-rank-in-lore", true);
         updated |= ensureConfigDefault(config, "hud.sprint.external-url", "");
         updated |= ensureConfigDefault(config, "hud.sprint.bind-host", "");
         updated |= ensureConfigDefault(config, "hud.sprint.public-host", "");
@@ -190,6 +194,7 @@ public final class AbilityCombat extends JavaPlugin {
         cleanupGlobalEntities();
         if (gameManager != null) {
             gameManager.stopGame();
+            gameManager.shutdown();
         }
         if (actionbarChannel != null) {
             actionbarChannel.stop();
@@ -319,6 +324,7 @@ public final class AbilityCombat extends JavaPlugin {
         AbilityFactory.register(Zeus.class);
         AbilityFactory.register(Berserker.class);
         AbilityFactory.register(Bellum.class);
+        AbilityFactory.register(CenterOfUniverse.class);
         AbilityFactory.register(Gladiator.class);
         AbilityFactory.register(Glacier.class);
         AbilityFactory.register(Sniper.class);
@@ -381,8 +387,10 @@ public final class AbilityCombat extends JavaPlugin {
         AbilityFactory.register(Pumpkin.class);
         AbilityFactory.register(ExpertOfFall.class);
         AbilityFactory.register(BloodFiend.class);
+        AbilityFactory.register(Gardener.class);
         AbilityFactory.register(Giant.class);
         AbilityFactory.register(GiantSlayer.class);
+        AbilityFactory.register(GravityField.class);
         AbilityFactory.register(DecayRay.class);
         AbilityFactory.register(BulletBarrage.class);
         AbilityFactory.register(LateBloom.class);

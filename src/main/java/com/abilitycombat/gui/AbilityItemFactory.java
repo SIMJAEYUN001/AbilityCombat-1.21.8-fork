@@ -1,5 +1,6 @@
 package com.abilitycombat.gui;
 
+import com.abilitycombat.AbilityCombat;
 import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityDefinition;
 import com.abilitycombat.ability.AbilityFactory;
@@ -49,7 +50,9 @@ public final class AbilityItemFactory {
             meta.displayName(Component.text(definition.getDisplayName(), definition.getRank().getColor())
                     .decoration(TextDecoration.ITALIC, false));
             List<String> lore = new ArrayList<>();
-            lore.add(buildRankLine(definition));
+            if (shouldShowRankLine()) {
+                lore.add(buildRankLine(definition));
+            }
             lore.add(buildCooldownLine(definition.getName()));
             if (extraLore != null && !extraLore.isEmpty()) {
                 lore.addAll(extraLore);
@@ -83,6 +86,14 @@ public final class AbilityItemFactory {
         }
         return "§6등급: " + LEGACY_SERIALIZER
                 .serialize(Component.text(definition.getRank().name(), definition.getRank().getColor()));
+    }
+
+    private static boolean shouldShowRankLine() {
+        AbilityCombat plugin = AbilityCombat.getPlugin();
+        if (plugin == null) {
+            return true;
+        }
+        return plugin.getConfig().getBoolean("ability.show-rank-in-lore", true);
     }
 
     private static AbilityManifest getManifest(String name) {

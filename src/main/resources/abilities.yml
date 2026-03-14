@@ -23,6 +23,13 @@ abilities:
     summary:
       - "기력 소모형 돌진"
       - "기절"
+  - name: "우주의 중심 (CenterOfUniverse)"
+    rank: S
+    icon: DRAGON_EGG
+    summary:
+      - "회전 구체 3개"
+      - "접촉 시 피해 5 + 2초 구속"
+      - "철괴 우클릭: 최근접 적에게 구체 3개 발사"
   - name: "글래디에이터 (Gladiator)"
     rank: S
     icon: IRON_BARS
@@ -219,8 +226,22 @@ abilities:
     rank: A
     icon: DRAGON_BREATH
     summary:
-      - "크기 -30%"
+      - "크기 -20%"
       - "크기 차이당 추가 피해"
+  - name: "중력장 (GravityField)"
+    rank: A
+    icon: ANVIL
+    summary:
+      - "철괴 우클릭: 주변 적 공중 발사"
+      - "2초 후 5배 중력"
+      - "낙하 피해만큼 회복"
+  - name: "정원사 (Gardener)"
+    rank: A
+    icon: OAK_SAPLING
+    summary:
+      - "철괴 좌클릭: 잔디화 + 팀 흡수 III + 3웨이브 개화 후 적 기절/15피해"
+      - "철괴 우클릭: 체력 75 참나무 설치, 아이템별 피해량 적용 + 주변 아군 1초마다 3 회복"
+      - "좌우클릭 공유 쿨타임 45초"
   - name: "탄환세례 (BulletBarrage)"
     rank: A
     icon: ARROW
@@ -281,7 +302,7 @@ abilities:
     icon: POTION
     summary:
       - "독성 자취 (4초) + 독 부여 시 쿨감"
-      - "철괴 우클릭: 25초 신속2/저항2, 독 강화"
+      - "철괴 우클릭: 25초 신속1/저항1, 독 강화"
   - name: "납치 (Kidnap)"
     rank: B
     icon: LEAD
@@ -402,7 +423,7 @@ abilities:
       - "재사용 시 원위치 복귀, 주변 적 공포"
       - "후방 공격 시 공포 + 1.35배 피해"
   - name: "그래플링 훅 (GrapplingHook)"
-    rank: L
+    rank: A
     icon: TRIPWIRE_HOOK
     summary:
       - "낙하 피해 무효"
@@ -447,6 +468,6 @@ abilities:
     icon: CROSSBOW
     summary:
       - "근접 피해 40% 감소"
-      - "석궁 자동 장전, 적중시 쿨감"
-      - "정조준: 폭발 화살 (18 광역, 50초)"
+      - "석궁 자동 장전, 적중 시 정조준 2초 쿨감"
+      - "정조준: 강화 화살 (18 광역, 20초)"
       - "추적: 발광 + 피해↑ (15초, 45초)"

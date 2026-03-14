@@ -123,13 +123,13 @@ public class Loki extends AbilityBase implements ActiveHandler {
 
     private void teleportAlong(LivingEntity target) {
         Location destination = getOffsetLocation(target, false);
-        getPlayer().teleport(destination);
+        teleportFacingTarget(destination, target);
         playTeleportEffect(destination);
     }
 
     private void teleportOpposite(LivingEntity target) {
         Location destination = getOffsetLocation(target, true);
-        getPlayer().teleport(destination);
+        teleportFacingTarget(destination, target);
         playTeleportEffect(destination);
     }
 
@@ -147,6 +147,21 @@ public class Loki extends AbilityBase implements ActiveHandler {
             }
         }
         return location;
+    }
+
+    private void teleportFacingTarget(Location destination, LivingEntity target) {
+        if (destination == null) {
+            return;
+        }
+        Location teleportLocation = destination.clone();
+        if (target != null && target.getWorld() != null && teleportLocation.getWorld() != null
+                && teleportLocation.getWorld().equals(target.getWorld())) {
+            Vector lookVector = target.getEyeLocation().toVector().subtract(teleportLocation.toVector());
+            if (lookVector.lengthSquared() > 1.0E-6) {
+                teleportLocation.setDirection(lookVector);
+            }
+        }
+        getPlayer().teleport(teleportLocation);
     }
 
     private void playTeleportEffect(Location location) {

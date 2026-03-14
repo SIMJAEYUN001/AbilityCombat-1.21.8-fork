@@ -26,7 +26,6 @@ public final class SweepPacketSuppressor implements Listener {
     private static final String LEVEL_PARTICLE_PACKET_NAME = "ClientboundLevelParticlesPacket";
     private static final String SOUND_PACKET_NAME = "ClientboundSoundPacket";
     private static final String SOUND_ENTITY_PACKET_NAME = "ClientboundSoundEntityPacket";
-
     private final AbilityCombat plugin;
     private final Map<UUID, Object> handlers = new ConcurrentHashMap<>();
     private Class<?> channelOutboundHandlerInterface;

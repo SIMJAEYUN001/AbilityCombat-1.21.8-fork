@@ -12,11 +12,15 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 기본 지급템 설정 GUI
@@ -76,23 +80,18 @@ public class ToolkitGui implements InventoryHolder {
      * 파일에서 아이템 불러오기
      */
     private void loadItems() {
-        File file = new File(plugin.getDataFolder(), DATA_FILE);
-        if (!file.exists()) {
-            return;
-        }
-
-        FileConfiguration config = YamlConfiguration.loadConfiguration(file);
-        level = Math.max(0, config.getInt("level", 0));
-        List<?> list = config.getList("toolkit");
-        if (list == null) {
+        ToolkitData toolkitData = loadToolkitData(plugin);
+        level = toolkitData.level();
+        if (toolkitData.items().isEmpty()) {
             return;
         }
 
         int slot = ITEM_START_SLOT;
-        for (Object obj : list) {
-            if (obj instanceof ItemStack item && slot < inventory.getSize()) {
-                inventory.setItem(slot++, item);
+        for (ItemStack item : toolkitData.items()) {
+            if (slot >= inventory.getSize()) {
+                break;
             }
+            inventory.setItem(slot++, item);
         }
     }
 
@@ -100,34 +99,21 @@ public class ToolkitGui implements InventoryHolder {
      * 저장된 기본 지급템 목록 반환
      */
     public static List<ItemStack> getToolkitItems(AbilityCombat plugin) {
-        File file = new File(plugin.getDataFolder(), DATA_FILE);
-        if (!file.exists()) {
-            return getDefaultItems();
-        }
-
-        FileConfiguration config = YamlConfiguration.loadConfiguration(file);
-        List<?> list = config.getList("toolkit");
-        if (list == null || list.isEmpty()) {
+        ToolkitData toolkitData = loadToolkitData(plugin);
+        if (toolkitData.items().isEmpty()) {
             return getDefaultItems();
         }
 
         List<ItemStack> result = new ArrayList<>();
-        for (Object obj : list) {
-            if (obj instanceof ItemStack item) {
-                result.add(item.clone());
-            }
+        for (ItemStack item : toolkitData.items()) {
+            result.add(item.clone());
         }
 
         return result.isEmpty() ? getDefaultItems() : result;
     }
 
     public static int getToolkitLevel(AbilityCombat plugin) {
-        File file = new File(plugin.getDataFolder(), DATA_FILE);
-        if (!file.exists()) {
-            return 0;
-        }
-        FileConfiguration config = YamlConfiguration.loadConfiguration(file);
-        return Math.max(0, config.getInt("level", 0));
+        return loadToolkitData(plugin).level();
     }
 
     public boolean isControlSlot(int slot) {
@@ -182,5 +168,94 @@ public class ToolkitGui implements InventoryHolder {
         items.add(new ItemStack(Material.COOKED_BEEF, 16));
         items.add(new ItemStack(Material.GOLDEN_APPLE, 3));
         return items;
+    }
+
+    private static ToolkitData loadToolkitData(AbilityCombat plugin) {
+        File file = new File(plugin.getDataFolder(), DATA_FILE);
+        if (!file.exists()) {
+            return new ToolkitData(List.of(), 0);
+        }
+
+        try {
+            String raw = Files.readString(file.toPath());
+            Object loaded = new Yaml().load(raw);
+            if (!(loaded instanceof Map<?, ?> root)) {
+                return new ToolkitData(List.of(), 0);
+            }
+
+            int level = readLevel(root.get("level"));
+            List<ItemStack> items = new ArrayList<>();
+            boolean removedUnsupported = false;
+
+            Object toolkitSection = root.get("toolkit");
+            if (toolkitSection instanceof List<?> entries) {
+                for (Object entry : entries) {
+                    if (!(entry instanceof Map<?, ?> entryMap)) {
+                        removedUnsupported = true;
+                        continue;
+                    }
+
+                    ItemStack item = deserializeItem(entryMap);
+                    if (item == null || item.getType() == Material.AIR) {
+                        removedUnsupported = true;
+                        continue;
+                    }
+                    items.add(item);
+                }
+            }
+
+            if (removedUnsupported) {
+                saveSanitizedToolkit(plugin, items, level);
+                plugin.getLogger().warning("지원되지 않는 툴킷 아이템을 toolkit.yml에서 자동으로 제거했습니다.");
+            }
+
+            return new ToolkitData(items, level);
+        } catch (Exception exception) {
+            plugin.getLogger().warning("툴킷 로드 실패: " + exception.getMessage());
+            return new ToolkitData(List.of(), 0);
+        }
+    }
+
+    private static int readLevel(Object levelValue) {
+        if (levelValue instanceof Number number) {
+            return Math.max(0, number.intValue());
+        }
+        if (levelValue instanceof String text) {
+            try {
+                return Math.max(0, Integer.parseInt(text));
+            } catch (NumberFormatException ignored) {
+                return 0;
+            }
+        }
+        return 0;
+    }
+
+    private static ItemStack deserializeItem(Map<?, ?> rawItem) {
+        try {
+            Map<String, Object> serialized = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : rawItem.entrySet()) {
+                if (entry.getKey() instanceof String key) {
+                    serialized.put(key, entry.getValue());
+                }
+            }
+            return ItemStack.deserialize(serialized);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private static void saveSanitizedToolkit(AbilityCombat plugin, List<ItemStack> items, int level) {
+        File file = new File(plugin.getDataFolder(), DATA_FILE);
+        FileConfiguration config = new YamlConfiguration();
+        config.set("toolkit", items);
+        config.set("level", level);
+        try {
+            config.save(file);
+        } catch (IOException exception) {
+            plugin.getLogger().warning("정리된 툴킷 저장 실패: " + exception.getMessage());
+        }
+    }
+
+    private record ToolkitData(List<ItemStack> items, int level) {
     }
 }

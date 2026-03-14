@@ -3,6 +3,7 @@ package com.abilitycombat.game;
 import org.bukkit.Bukkit;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -28,6 +29,7 @@ public class RegionSnapshot {
 
     private static final int FORMAT_VERSION = 1;
     private static final String DEFAULT_MAP_ID = "default";
+    private static final BlockData FALLBACK_BLOCK_DATA = Bukkit.createBlockData(Material.AIR);
 
     private final Path baseSnapshotDir;
     private Path snapshotDir;
@@ -128,18 +130,8 @@ public class RegionSnapshot {
             return;
         }
         Path file = getChunkFile(chunkX, chunkZ);
-        try (DataOutputStream out = new DataOutputStream(
-                new BufferedOutputStream(new GZIPOutputStream(Files.newOutputStream(file))))) {
-            out.writeInt(FORMAT_VERSION);
-            out.writeInt(minY);
-            out.writeInt(maxY);
-            out.writeInt(palette.size());
-            for (String entry : palette) {
-                out.writeUTF(entry);
-            }
-            for (short index : indices) {
-                out.writeShort(index);
-            }
+        try {
+            writeSnapshotFile(file, minY, maxY, palette, indices);
             chunkKeys.add(toKey(chunkX, chunkZ));
         } catch (IOException ex) {
             logger.warning("Failed to store snapshot chunk " + chunkX + "," + chunkZ + ": " + ex.getMessage());
@@ -190,14 +182,32 @@ public class RegionSnapshot {
             int maxY = in.readInt();
             int paletteSize = in.readInt();
             BlockData[] palette = new BlockData[paletteSize];
+            List<String> paletteStrings = new ArrayList<>(paletteSize);
+            boolean sanitized = false;
             for (int i = 0; i < paletteSize; i++) {
                 String data = in.readUTF();
-                palette[i] = Bukkit.createBlockData(data);
+                String normalizedData = normalizeBlockDataString(data);
+                paletteStrings.add(normalizedData);
+                BlockData blockData = parseBlockData(normalizedData);
+                if (blockData == null) {
+                    sanitized = true;
+                    palette[i] = FALLBACK_BLOCK_DATA;
+                    logger.warning("Unsupported snapshot block data '" + data + "' in map '" + mapId
+                            + "', replaced with air.");
+                } else {
+                    palette[i] = blockData;
+                    if (!normalizedData.equals(data)) {
+                        sanitized = true;
+                    }
+                }
             }
             int height = maxY - minY;
             short[] indices = new short[height * 16 * 16];
             for (int i = 0; i < indices.length; i++) {
                 indices[i] = (short) in.readUnsignedShort();
+            }
+            if (sanitized) {
+                rewriteSanitizedChunk(file, minY, maxY, palette, indices);
             }
             return new SnapshotData(minY, maxY, palette, indices);
         } catch (IOException ex) {
@@ -326,6 +336,56 @@ public class RegionSnapshot {
 
     private Path getChunkFile(int chunkX, int chunkZ) {
         return snapshotDir.resolve("chunk_" + chunkX + "_" + chunkZ + ".bin");
+    }
+
+    private void rewriteSanitizedChunk(Path file, int minY, int maxY, BlockData[] palette, short[] indices) {
+        List<String> sanitizedPalette = new ArrayList<>(palette.length);
+        for (BlockData blockData : palette) {
+            sanitizedPalette.add(blockData.getAsString());
+        }
+        try {
+            writeSnapshotFile(file, minY, maxY, sanitizedPalette, indices);
+        } catch (IOException ex) {
+            logger.warning("Failed to rewrite sanitized snapshot chunk " + file.getFileName() + ": "
+                    + ex.getMessage());
+        }
+    }
+
+    private void writeSnapshotFile(Path file, int minY, int maxY, List<String> palette, short[] indices) throws IOException {
+        try (DataOutputStream out = new DataOutputStream(
+                new BufferedOutputStream(new GZIPOutputStream(Files.newOutputStream(file))))) {
+            out.writeInt(FORMAT_VERSION);
+            out.writeInt(minY);
+            out.writeInt(maxY);
+            out.writeInt(palette.size());
+            for (String entry : palette) {
+                out.writeUTF(entry);
+            }
+            for (short index : indices) {
+                out.writeShort(index);
+            }
+        }
+    }
+
+    private BlockData parseBlockData(String data) {
+        try {
+            return Bukkit.createBlockData(data);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private String normalizeBlockDataString(String data) {
+        if (data == null || data.isEmpty()) {
+            return data;
+        }
+        if (data.startsWith("minecraft:iron_chain[")) {
+            return "minecraft:chain" + data.substring("minecraft:iron_chain".length());
+        }
+        if (data.equals("minecraft:iron_chain")) {
+            return "minecraft:chain";
+        }
+        return data;
     }
 
     private Long parseChunkKey(String fileName) {

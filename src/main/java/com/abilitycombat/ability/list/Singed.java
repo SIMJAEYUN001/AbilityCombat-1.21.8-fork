@@ -34,11 +34,11 @@ import java.util.UUID;
         "§7독을 부여할 때마다 §e광기의 물약§7 쿨타임이 §f0.4초§7 감소합니다.",
         "",
         "§e§l[철괴 우클릭 - 광기의 물약]§f §8(쿨타임: 180초)",
-        "§f25초§7간 §b신속 II§7, §b저항 I§7를 얻습니다.",
+        "§f25초§7간 §b신속 I§7, §b저항 I§7를 얻습니다.",
         "§7지속 중 패시브 독이 §2독 II§7로 강화됩니다."
 }, summarize = {
         "§7패시브§f: 독성 자취 + 독 부여 시 쿨감",
-        "§7철괴 우클릭§f: 25초 신속2/저항2, 독 강화"
+        "§7철괴 우클릭§f: 25초 신속1/저항1, 독 강화"
 })
 public class Singed extends AbilityBase implements ActiveHandler {
     private static final int COOLDOWN_SECONDS = 180;
@@ -113,7 +113,7 @@ public class Singed extends AbilityBase implements ActiveHandler {
         if (player == null) {
             return false;
         }
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, ACTIVE_SECONDS * 20, 1, true, false));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, ACTIVE_SECONDS * 20, 0, true, false));
         player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, ACTIVE_SECONDS * 20, 1, true, false));
         madnessDuration.start();
         cooldownReductionCarryTicks = 0;

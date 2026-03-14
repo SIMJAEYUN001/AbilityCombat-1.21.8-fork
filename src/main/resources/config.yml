@@ -6,6 +6,7 @@ game:
 ability:
   selection-seconds: 50
   reroll-count: 1
+  show-rank-in-lore: true
 world-border:
   initial-radius: 200
   shrink-seconds: 3
@@ -62,7 +63,7 @@ hud:
     public-host: ""
     http-port: 24891
     http-path: "/abilitycombat-sprint-hud.zip"
-  require-resource-pack: false
-  show-own-dash-replica: false
-  horizontal-offset: -100
+    require-resource-pack: false
+    show-own-dash-replica: false
+    horizontal-offset: -100
     vertical-offset: 0

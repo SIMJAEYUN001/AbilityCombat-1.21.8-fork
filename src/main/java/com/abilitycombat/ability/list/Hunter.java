@@ -14,7 +14,6 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Arrow;
-import org.bukkit.entity.Firework;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -26,7 +25,6 @@ import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.CrossbowMeta;
-import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -40,10 +38,11 @@ import java.util.UUID;
         "§e§l[패시브 - 사냥꾼의 본능]",
         "§7근접 공격(칼, 도끼) 피해가 §f40%§7 감소합니다.",
         "§7석궁 사용 시 §e자동 장전§7됩니다.",
-        "§7석궁 화살 적중 시 §b정조준§7 쿨타임이 §f5초§7 감소합니다.",
+        "§7석궁 화살 적중 시 §b정조준§7 쿨타임이",
+        "§f2초§7 감소합니다.",
         "",
-        "§e§l[석궁 좌클릭 - 정조준]§f §8(쿨타임: 50초)",
-        "§7다음 발사체를 §c폭발 화살§7로 강화합니다.",
+        "§e§l[석궁 좌클릭 - 정조준]§f §8(쿨타임: 20초)",
+        "§7다음 화살을 §c강화 화살§7로 강화합니다.",
         "§7적중 1초 후 §f3칸§7 반경에 §c18의 광역 피해§7를 입힙니다.",
         "",
         "§e§l[철괴 우클릭 - 추적]§f §8(쿨타임: 45초)",
@@ -51,13 +50,13 @@ import java.util.UUID;
         "§e발광§7 효과와 받는 피해 §c10% 증가§7 디버프를 §f15초§7간 부여합니다."
 }, summarize = {
         "§7패시브§f: 근접 피해 40%↓, 석궁 자동 장전",
-        "§7석궁 좌클릭§f: 폭발 화살 (18 광역, 50초)",
+        "§7석궁 좌클릭§f: 강화 화살 (18 광역, 20초)",
         "§7철괴 우클릭§f: 추적 (발광 + 피해↑, 45초)"
 })
 public class Hunter extends AbilityBase implements ActiveHandler {
 
     // 상수
-    private static final int AIM_COOLDOWN_SECONDS = 50;
+    private static final int AIM_COOLDOWN_SECONDS = 20;
     private static final int TRACK_COOLDOWN_SECONDS = 45;
     private static final int TRACK_DURATION_SECONDS = 15;
     private static final double TRACK_RANGE = 30.0;
@@ -66,7 +65,7 @@ public class Hunter extends AbilityBase implements ActiveHandler {
     private static final int EXPLOSION_DELAY_TICKS = 20; // 1초
     private static final double MELEE_DAMAGE_REDUCTION = 0.6; // 40% 감소
     private static final double TRACK_DAMAGE_INCREASE = 1.1; // 10% 증가
-    private static final int AIM_COOLDOWN_REDUCTION = 5;
+    private static final int AIM_COOLDOWN_REDUCTION = 2;
     private static final String HUNTER_ENHANCED_KEY_NAME = "hunter_enhanced";
 
     // 근접 무기 타입
@@ -122,7 +121,7 @@ public class Hunter extends AbilityBase implements ActiveHandler {
         // 인챈트 없는 석궁 지급
         ItemStack crossbow = new ItemStack(Material.CROSSBOW, 1);
         player.getInventory().addItem(crossbow);
-        player.getInventory().addItem(new ItemStack(Material.ARROW, 128));
+        player.getInventory().addItem(new ItemStack(Material.ARROW, 256));
     }
 
     // =============== ActiveHandler ===============
@@ -218,8 +217,8 @@ public class Hunter extends AbilityBase implements ActiveHandler {
             return;
         }
 
-        // 장전된 화살을 폭죽으로 교체
-        crossbowMeta.setChargedProjectiles(java.util.List.of(new ItemStack(Material.FIREWORK_ROCKET)));
+        // 장전된 다음 화살을 강화 화살로 표시
+        crossbowMeta.setChargedProjectiles(java.util.List.of(new ItemStack(Material.ARROW)));
         crossbow.setItemMeta(crossbowMeta);
 
         // 정조준 활성화
@@ -232,7 +231,7 @@ public class Hunter extends AbilityBase implements ActiveHandler {
     }
 
     /**
-     * 석궁 발사 처리 - 즉시 장전 & 정조준 시 폭죽 태깅
+     * 석궁 발사 처리 - 즉시 장전 & 정조준 시 강화 화살 태깅
      */
     private void onShootBow(EntityShootBowEvent event) {
         if (!(event.getEntity() instanceof Player player))
@@ -244,19 +243,14 @@ public class Hunter extends AbilityBase implements ActiveHandler {
         if (bow == null || bow.getType() != Material.CROSSBOW)
             return;
 
-        // 정조준 상태에서 폭죽 발사 시 태깅
-        if (nextShotEnhanced && event.getProjectile() instanceof Firework firework) {
+        // 정조준 상태에서 화살 발사 시 태깅
+        if (nextShotEnhanced && event.getProjectile() instanceof Arrow arrow) {
             nextShotEnhanced = false;
             aimCooldown.start();
 
-            // PersistentDataContainer로 강화된 폭죽 표시
+            // PersistentDataContainer로 강화 화살 표시
             NamespacedKey key = new NamespacedKey(AbilityCombat.getPlugin(), HUNTER_ENHANCED_KEY_NAME);
-            firework.getPersistentDataContainer().set(key, PersistentDataType.BYTE, (byte) 1);
-
-            // 체공시간 최대로 설정 (3 = 약 3초)
-            FireworkMeta fwMeta = firework.getFireworkMeta();
-            fwMeta.setPower(3);
-            firework.setFireworkMeta(fwMeta);
+            arrow.getPersistentDataContainer().set(key, PersistentDataType.BYTE, (byte) 1);
         }
 
         // 석궁 자동 재장전 (6틱 딜레이)
@@ -302,40 +296,32 @@ public class Hunter extends AbilityBase implements ActiveHandler {
         if (!shooter.equals(getPlayer()))
             return;
 
-        // 강화된 폭죽 적중
+        // 강화 화살 적중
         NamespacedKey key = new NamespacedKey(AbilityCombat.getPlugin(), HUNTER_ENHANCED_KEY_NAME);
-        if (projectile instanceof Firework firework &&
-                firework.getPersistentDataContainer().has(key, PersistentDataType.BYTE)) {
+        if (projectile instanceof Arrow arrow &&
+                arrow.getPersistentDataContainer().has(key, PersistentDataType.BYTE)) {
 
             // 플레이어 적중 시: 해당 플레이어를 추적하여 1초 후 그 위치에서 폭발
             if (event.getHitEntity() instanceof LivingEntity hitTarget) {
-                firework.remove();
+                arrow.remove();
                 AbilityCombat.getPlugin().getServer().getScheduler().runTaskLater(
                         AbilityCombat.getPlugin(),
                         () -> triggerExplosion(hitTarget.getLocation(), shooter),
                         EXPLOSION_DELAY_TICKS);
             } else {
-                // 블록/지형 적중 시: 폭죽 엔티티를 그 자리에 유지하여 폭발 지점 표시
-                Location hitLoc = firework.getLocation();
-
-                // 폭죽 움직임 정지
-                firework.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
-                firework.setGravity(false);
-
-                // 경고 파티클 표시
+                Location hitLoc = arrow.getLocation().clone();
+                arrow.remove();
                 AbilityCombat.getPlugin().getServer().getScheduler().runTaskLater(
                         AbilityCombat.getPlugin(),
-                        () -> {
-                            firework.remove();
-                            triggerExplosion(hitLoc, shooter);
-                        },
+                        () -> triggerExplosion(hitLoc, shooter),
                         EXPLOSION_DELAY_TICKS);
             }
             return;
         }
 
         // 일반 석궁 화살 적중 - 정조준 쿨타임 감소
-        if (projectile instanceof Arrow && event.getHitEntity() instanceof LivingEntity) {
+        if (projectile instanceof Arrow && event.getHitEntity() instanceof LivingEntity hitEntity) {
+            hitEntity.setNoDamageTicks(0);
             if (aimCooldown.isCooldown()) {
                 int newCount = Math.max(0, aimCooldown.getCount() - AIM_COOLDOWN_REDUCTION);
                 aimCooldown.setCount(newCount);

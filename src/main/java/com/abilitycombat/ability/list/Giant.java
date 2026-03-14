@@ -14,8 +14,8 @@ import org.bukkit.entity.Player;
         "§e§l[패시브 - 거인의 힘]",
         "§7플레이어 크기가 §f50%§7 증가합니다.",
         "§7최대 체력이 §c50%§7 증가합니다. (30 HP)",
-        "§7모든 공격의 데미지가 §c40%§7 증가합니다.",
-        "§7공격 사거리가 §e40%§7 증가합니다."
+        "§7모든 공격의 데미지가 §c25%§7 증가합니다.",
+        "§7공격 사거리가 §e25%§7 증가합니다."
 }, summarize = {
         "§7패시브§f: 크기/체력/데미지/사거리 증가"
 })
@@ -25,10 +25,10 @@ public class Giant extends AbilityBase {
     private static final double SCALE_MULTIPLIER = 1.5;
     // 체력 1.5배 (30 HP)
     private static final double HEALTH_MULTIPLIER = 1.5;
-    // 데미지 1.4배
-    private static final double DAMAGE_MULTIPLIER = 1.4;
-    // 사거리 1.4배
-    private static final double RANGE_MULTIPLIER = 1.4;
+    // 데미지 1.25배
+    private static final double DAMAGE_MULTIPLIER = 1.25;
+    // 사거리 1.25배
+    private static final double RANGE_MULTIPLIER = 1.25;
     private boolean pendingScale = false;
     private boolean scaleApplied = false;
 

@@ -17,23 +17,23 @@ import org.bukkit.potion.PotionEffectType;
 
 @AbilityManifest(name = "거인 학살자 (GiantSlayer)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 거인 사냥꾼]",
-        "§7플레이어 크기가 §f30%§7 감소하며,",
+        "§7플레이어 크기가 §f20%§7 감소하며,",
         "§b신속 I§7 효과를 무제한으로 얻습니다.",
         "",
         "§7상대와의 크기 차이 §f10%§7당",
-        "§c+12%§7의 추가 피해를 입힙니다.",
+        "§c+15%§7의 추가 피해를 입힙니다.",
         "",
-        "§8예시: 거인(150%) vs 거인 학살자(70%)",
-        "§8크기 차이 80% → 추가 피해 120%"
+        "§8예시: 거인(150%) vs 거인 학살자(80%)",
+        "§8크기 차이 70% → 추가 피해 105%"
 }, summarize = {
-        "§7패시브§f: 크기 -30%, 신속 1, 크기 차이당 추가 피해"
+        "§7패시브§f: 크기 -20%, 신속 1, 크기 차이당 추가 피해"
 })
 public class GiantSlayer extends AbilityBase {
 
-    // 크기 0.7배 (70%)
-    private static final double SCALE_MULTIPLIER = 0.7;
-    // 크기 차이 10%당 12% 추가 데미지
-    private static final double DAMAGE_PER_SIZE_DIFF = 0.12;
+    // 크기 0.8배 (80%)
+    private static final double SCALE_MULTIPLIER = 0.8;
+    // 크기 차이 10%당 15% 추가 데미지
+    private static final double DAMAGE_PER_SIZE_DIFF = 0.15;
     private static final double SIZE_DIFF_THRESHOLD = 0.1;
     private boolean pendingScale = false;
     private boolean scaleApplied = false;

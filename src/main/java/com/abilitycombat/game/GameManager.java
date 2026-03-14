@@ -142,6 +142,7 @@ public class GameManager implements Listener {
     private static final double NO_SWEEPING_DAMAGE_RATIO = 0.0;
     private static final double FIXED_AXE_ATTACK_DAMAGE = 5.0;
     private static final double FIXED_AXE_DAMAGE_MODIFIER = FIXED_AXE_ATTACK_DAMAGE - 1.0;
+    private static final int LEGACY_PLAYER_NO_DAMAGE_TICKS = 15;
     private static final String FIXED_AXE_DAMAGE_KEY = "fixed_axe_damage";
     private static final int MAP_SCAN_CHUNKS_PER_TICK = 2;
     private static final int MAP_RESTORE_CHUNKS_PER_TICK = 2;
@@ -151,6 +152,7 @@ public class GameManager implements Listener {
     private static final int BORDER_DAMAGE_INTERVAL_SECONDS = 1;
     private static final double STATIONARY_BORDER_RADIUS_SHRINK_PER_SECOND = 0.001;
     private static final long STATIONARY_BORDER_SHRINK_DURATION_SECONDS = 1L;
+    private static final double MIN_SAFE_ZONE_RADIUS = 0.01;
     private GameState state = GameState.IDLE;
     private BukkitTask selectionTask;
     private BukkitTask gameTask;
@@ -162,9 +164,7 @@ public class GameManager implements Listener {
     private final Set<BukkitTask> trackedTasks = new HashSet<>();
     private final Set<AbilityBase.AbilityTimer> runningTimers = new java.util.HashSet<>();
     private BukkitTask fixedDaytimeTask;
-    private World fixedDaytimeWorld;
-    private Boolean originalDoDaylightCycle;
-    private long originalFullTime = -1L;
+    private final Map<UUID, FixedWorldState> fixedWorldStates = new HashMap<>();
     private final Map<UUID, SwordSwingRecord> lastSwordSwings = new HashMap<>();
     private final Map<UUID, Integer> naturalRegenCounters = new HashMap<>();
     private final Set<UUID> manualNaturalRegen = new HashSet<>();
@@ -197,7 +197,7 @@ public class GameManager implements Listener {
 	    private boolean idleBlockPlaceAllowed;
 	    private boolean idleInvincible;
 
-    private static final double WORLD_BORDER_MIN_SIZE = 1.0;
+    private static final double WORLD_BORDER_MIN_SIZE = MIN_SAFE_ZONE_RADIUS * 2.0;
     private static final double WORLD_BORDER_MAX_SIZE = 5.9999968E7;
 
     private WorldBorder worldBorder;
@@ -233,6 +233,9 @@ public class GameManager implements Listener {
         this.abilityArmorStandKey = AbilityCombat.getAbilityArmorStandKey(plugin);
         this.fixedAxeDamageKey = new NamespacedKey(plugin, FIXED_AXE_DAMAGE_KEY);
         startAttackSpeedSyncTask();
+        if (fixedDaytimeEnabled) {
+            startFixedDaytime();
+        }
     }
 
     public GameState getState() {
@@ -245,6 +248,11 @@ public class GameManager implements Listener {
 
     public MatchMode getSelectedMatchMode() {
         return selectedMatchMode;
+    }
+
+    public void shutdown() {
+        stopTasks();
+        restoreFixedDaytime();
     }
 
     public boolean isTeamMode() {
@@ -394,7 +402,6 @@ public class GameManager implements Listener {
         Set<UUID> winners = resolveWinningPlayers();
         CombatTeam winningTeam = resolveWinningTeam();
         stopTasks();
-        restoreFixedDaytime();
         clearSelectionHud();
         resetWorldBorder();
         clearDroppedItems();
@@ -420,6 +427,11 @@ public class GameManager implements Listener {
         clearTeamHealthDisplays();
         selectedMatchMode = MatchMode.SOLO;
         state = GameState.IDLE;
+        if (fixedDaytimeEnabled) {
+            startFixedDaytime();
+        } else {
+            restoreFixedDaytime();
+        }
     }
 
     private Set<UUID> resolveWinningPlayers() {
@@ -1322,7 +1334,7 @@ public class GameManager implements Listener {
 	        }
 
 	        int startRadius = !borderPhases.isEmpty() ? borderPhases.get(0).getRadius() : initialBorderRadius;
-	        double gameSize = Math.max(WORLD_BORDER_MIN_SIZE, startRadius * 2.0);
+	        double gameSize = Math.max(WORLD_BORDER_MIN_SIZE, resolveSafeZoneRadius(startRadius) * 2.0);
 	        Location center = startLocation != null ? startLocation : world.getSpawnLocation();
 	        worldBorder = Bukkit.createWorldBorder();
 	        worldBorder.setCenter(center);
@@ -1396,38 +1408,29 @@ public class GameManager implements Listener {
 	    }
 
 	    private int startBorderShrink(int targetRadius) {
-	        if (targetRadius <= 0) {
-	            borderShrinkRemaining = 0;
-	            return 0;
-	        }
 	        ensureGameWorldBorderExists();
 	        if (worldBorder == null) {
 	            return 0;
 	        }
 	        double speed = Math.max(0.1, borderShrinkSpeed);
 	        double currentRadius = worldBorder.getSize() / 2.0;
-	        double delta = Math.abs(currentRadius - targetRadius);
+	        double safeTargetRadius = resolveSafeZoneRadius(targetRadius);
+	        double delta = Math.abs(currentRadius - safeTargetRadius);
 	        if (delta <= 0.01) {
 	            return 0;
 	        }
 	        int duration = (int) Math.ceil(delta / speed);
 	        duration = Math.max(1, duration);
-	        worldBorder.setSize(targetRadius * 2.0, duration);
+	        worldBorder.setSize(safeTargetRadius * 2.0, duration);
 	        borderShrinkRemaining = duration;
 	        return duration;
 	    }
 
 	    private void applyBorderPhaseState(int phase) {
 	        int radius = getPhaseRadius(phase);
-	        if (radius <= 0) {
-	            noSafeZonePhaseActive = true;
-	            worldBorder = null;
-	            syncWorldBorderForAllPlayers();
-	        } else {
-	            noSafeZonePhaseActive = false;
-	            ensureGameWorldBorder(radius);
-	            syncWorldBorderForAllPlayers();
-	        }
+	        noSafeZonePhaseActive = false;
+	        ensureGameWorldBorder(resolveSafeZoneRadius(radius));
+	        syncWorldBorderForAllPlayers();
 	        applyBorderDamageBufferForPhase(phase);
 	        broadcastPhaseDamage(phase, radius);
 	    }
@@ -1459,7 +1462,7 @@ public class GameManager implements Listener {
 	        return Math.max(0, borderPhases.get(phase - 1).getRadius());
 	    }
 
-	    private void ensureGameWorldBorder(int radius) {
+	    private void ensureGameWorldBorder(double radius) {
 	        ensureGameWorldBorderExists();
 	        if (worldBorder == null) {
 	            return;
@@ -1488,11 +1491,15 @@ public class GameManager implements Listener {
 	    private void broadcastPhaseDamage(int phase, int radius) {
 	        double damage = Math.max(1, phase);
 	        String message = radius <= 0
-	                ? "§c[자기장] §f페이즈 " + phase + " 시작: §4안전지대가 사라졌습니다§f. 자기장 데미지 §c"
+	                ? "§c[자기장] §f페이즈 " + phase + " 시작: 최소 안전지대 §c0.01칸§f 유지, 자기장 데미지 §c"
 	                        + formatBorderDamage(damage) + "§f/초"
 	                : "§c[자기장] §f페이즈 " + phase + " 시작: 자기장 데미지 §c"
 	                        + formatBorderDamage(damage) + "§f/초";
 	        plugin.getServer().broadcast(Component.text(message));
+	    }
+
+	    private double resolveSafeZoneRadius(int radius) {
+	        return radius <= 0 ? MIN_SAFE_ZONE_RADIUS : radius;
 	    }
 
 	    private String formatBorderDamage(double damage) {
@@ -1618,36 +1625,15 @@ public class GameManager implements Listener {
     }
 
     private void startFixedDaytime() {
-        World world = getGameWorld();
-        if (world == null) {
-            return;
-        }
-
         if (fixedDaytimeTask != null) {
             fixedDaytimeTask.cancel();
             untrackTask(fixedDaytimeTask);
             fixedDaytimeTask = null;
         }
-
-        fixedDaytimeWorld = world;
-        if (originalDoDaylightCycle == null) {
-            originalDoDaylightCycle = world.getGameRuleValue(GameRule.DO_DAYLIGHT_CYCLE);
-        }
-        if (originalFullTime < 0) {
-            originalFullTime = world.getFullTime();
-        }
-
-        world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
-        world.setTime(2000L);
         fixedDaytimeTask = trackTask(Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            if (state == GameState.IDLE || fixedDaytimeWorld == null) {
-                return;
-            }
-            if (!fixedDaytimeWorld.equals(getGameWorld())) {
-                return;
-            }
-            fixedDaytimeWorld.setTime(2000L);
+            applyFixedDaytimeToWorlds();
         }, 1L, 1L));
+        applyFixedDaytimeToWorlds();
     }
 
     private void restoreFixedDaytime() {
@@ -1656,18 +1642,41 @@ public class GameManager implements Listener {
             untrackTask(fixedDaytimeTask);
             fixedDaytimeTask = null;
         }
-        if (fixedDaytimeWorld == null) {
-            return;
+        for (Map.Entry<UUID, FixedWorldState> entry : new ArrayList<>(fixedWorldStates.entrySet())) {
+            World world = Bukkit.getWorld(entry.getKey());
+            if (world == null) {
+                continue;
+            }
+            FixedWorldState snapshot = entry.getValue();
+            world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, snapshot.doDaylightCycle());
+            world.setFullTime(snapshot.fullTime());
+            world.setStorm(snapshot.storm());
+            world.setThundering(snapshot.thundering());
+            world.setClearWeatherDuration(snapshot.clearWeatherDuration());
+            world.setWeatherDuration(snapshot.weatherDuration());
+            world.setThunderDuration(snapshot.thunderDuration());
         }
-        if (originalDoDaylightCycle != null) {
-            fixedDaytimeWorld.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, originalDoDaylightCycle);
-            originalDoDaylightCycle = null;
+        fixedWorldStates.clear();
+    }
+
+    private void applyFixedDaytimeToWorlds() {
+        for (World world : Bukkit.getWorlds()) {
+            fixedWorldStates.computeIfAbsent(world.getUID(), ignored -> new FixedWorldState(
+                    Boolean.TRUE.equals(world.getGameRuleValue(GameRule.DO_DAYLIGHT_CYCLE)),
+                    world.getFullTime(),
+                    world.hasStorm(),
+                    world.isThundering(),
+                    world.getClearWeatherDuration(),
+                    world.getWeatherDuration(),
+                    world.getThunderDuration()));
+            world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+            world.setTime(4000L);
+            world.setStorm(false);
+            world.setThundering(false);
+            world.setClearWeatherDuration(Integer.MAX_VALUE);
+            world.setWeatherDuration(0);
+            world.setThunderDuration(0);
         }
-        if (originalFullTime >= 0) {
-            fixedDaytimeWorld.setFullTime(originalFullTime);
-        }
-        fixedDaytimeWorld = null;
-        originalFullTime = -1L;
     }
 
     private World getGameWorld() {
@@ -1800,10 +1809,21 @@ public class GameManager implements Listener {
 
         // 공격 쿨타임 설정 반영
         applyAttackCooldownSetting(player);
+        applyLegacyDamageImmunity(player);
 
         // 포션 효과 초기화
         for (org.bukkit.potion.PotionEffect effect : player.getActivePotionEffects()) {
             player.removePotionEffect(effect.getType());
+        }
+    }
+
+    private void applyLegacyDamageImmunity(Player player) {
+        if (player == null) {
+            return;
+        }
+        player.setMaximumNoDamageTicks(LEGACY_PLAYER_NO_DAMAGE_TICKS);
+        if (player.getNoDamageTicks() > LEGACY_PLAYER_NO_DAMAGE_TICKS) {
+            player.setNoDamageTicks(LEGACY_PLAYER_NO_DAMAGE_TICKS);
         }
     }
 
@@ -2750,6 +2770,12 @@ public class GameManager implements Listener {
                 applyAttackCooldownSettingToOnlinePlayers();
                 gui.refresh(entry);
             }
+            case ABILITY_LORE_RANK -> {
+                boolean enabled = plugin.getConfig().getBoolean("ability.show-rank-in-lore", true);
+                plugin.getConfig().set("ability.show-rank-in-lore", !enabled);
+                plugin.saveConfig();
+                gui.refresh(entry);
+            }
             case LOBBY_BLOCK_BREAK -> {
                 if (state != GameState.IDLE) {
                     player.sendMessage("§c게임 진행 중에는 변경할 수 없습니다.");
@@ -2810,12 +2836,10 @@ public class GameManager implements Listener {
                 attackCooldownEnabled = plugin.getConfig().getBoolean("combat.attack-cooldown", true);
                 fixedDaytimeEnabled = plugin.getConfig().getBoolean("game.fixed-daytime", true);
                 applyAttackCooldownSettingToOnlinePlayers();
-                if (state != GameState.IDLE) {
-                    if (fixedDaytimeEnabled) {
-                        startFixedDaytime();
-                    } else {
-                        restoreFixedDaytime();
-                    }
+                if (fixedDaytimeEnabled) {
+                    startFixedDaytime();
+                } else {
+                    restoreFixedDaytime();
                 }
                 gui.refreshAll();
             }
@@ -2825,12 +2849,10 @@ public class GameManager implements Listener {
                 plugin.getConfig().set("game.fixed-daytime", next);
                 plugin.saveConfig();
                 fixedDaytimeEnabled = next;
-                if (state != GameState.IDLE) {
-                    if (fixedDaytimeEnabled) {
-                        startFixedDaytime();
-                    } else {
-                        restoreFixedDaytime();
-                    }
+                if (fixedDaytimeEnabled) {
+                    startFixedDaytime();
+                } else {
+                    restoreFixedDaytime();
                 }
                 gui.refresh(entry);
             }
@@ -3475,6 +3497,9 @@ public class GameManager implements Listener {
                 event.setCancelled(true);
                 return;
             }
+            if (sourcePlayer != null && !event.isCancelled()) {
+                applyLegacyDamageImmunity(targetPlayer);
+            }
             if (!event.isCancelled() && sourcePlayer != null
                     && event.getCause() == EntityDamageEvent.DamageCause.ENTITY_ATTACK) {
                 Vector knockback = createOldPlayerKnockback(sourcePlayer, targetPlayer);
@@ -3648,6 +3673,16 @@ public class GameManager implements Listener {
             this.sourcePlayerId = sourcePlayerId;
             this.expiresAtTick = expiresAtTick;
         }
+    }
+
+    private record FixedWorldState(
+            boolean doDaylightCycle,
+            long fullTime,
+            boolean storm,
+            boolean thundering,
+            int clearWeatherDuration,
+            int weatherDuration,
+            int thunderDuration) {
     }
 
     @EventHandler
