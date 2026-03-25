@@ -12,12 +12,12 @@ import org.bukkit.potion.PotionEffectType;
 @AbilityManifest(name = "심안 (DarkVision)", rank = AbilityManifest.Rank.B, species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 심안]",
         "§7영구적으로 §8실명§7 상태가 되지만,",
-        "§7§b신속 III§7 효과를 항상 받습니다.",
+        "§7§b신속 IV§7 효과를 항상 받습니다.",
         "",
         "§7주변 §f30칸§7 이내의 모든 생명체에게",
         "§e발광§7 효과가 적용되어 위치를 파악할 수 있습니다."
 }, summarize = {
-        "§7패시브§f: 실명 + 신속 III + 적 발광"
+        "§7패시브§f: 실명 + 신속 IV + 적 발광"
 })
 public class DarkVision extends AbilityBase {
 
@@ -42,7 +42,7 @@ public class DarkVision extends AbilityBase {
         if (tick % 20 == 0) {
             Player player = getPlayer();
             player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 0, true, false));
-            player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 40, 2, true, false));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 40, 3, true, false));
             for (LivingEntity entity : com.abilitycombat.utils.LocationUtil.getNearbyLivingEntities(
                     player.getLocation(), RANGE, com.abilitycombat.utils.LocationUtil
                             .withValidTarget(player, e -> !e.equals(player) && !(e instanceof ArmorStand)))) {

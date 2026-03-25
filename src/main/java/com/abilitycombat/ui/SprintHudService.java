@@ -113,8 +113,9 @@ public final class SprintHudService implements Listener {
             + ((MAX_ARROWS - SLOW_CHARGE_ARROWS) * FAST_CHARGE_TICKS_PER_ARROW);
     private static final int MIN_DASH_TICKS = SLOW_CHARGE_TICKS
             + ((MIN_DASH_ARROWS - SLOW_CHARGE_ARROWS) * FAST_CHARGE_TICKS_PER_ARROW);
-    private static final int LEDGE_GRACE_TICKS = 0;
+    private static final int LEDGE_GRACE_TICKS = 2;
     private static final int JUMP_GRACE_TICKS = 6;
+    private static final int CHARGE_INTERRUPT_GRACE_TICKS = 2;
     private static final double CHARGE_GROUND_SNAP_DISTANCE = 0.6D;
     private static final int MAX_DASH_HOLD_TICKS = 30;
     private static final int POST_LAND_HOLD_TICKS = 4;
@@ -152,9 +153,11 @@ public final class SprintHudService implements Listener {
     private final AbilityCombat plugin;
     private final Map<UUID, Integer> sprintTicks = new HashMap<>();
     private final Map<UUID, Integer> jumpGraceTicks = new HashMap<>();
+    private final Map<UUID, Integer> chargeInterruptGraceTicks = new HashMap<>();
     private final Map<UUID, Integer> storedJumpCharge = new HashMap<>();
     private final Map<UUID, org.bukkit.Location> lastLocations = new HashMap<>();
     private final Set<UUID> sprintingPlayers = new HashSet<>();
+    private final Set<UUID> sneakingPlayers = new HashSet<>();
     private final Map<UUID, Boolean> hiddenByDash = new HashMap<>();
     private final Map<UUID, BossBar> bars = new HashMap<>();
     private final Set<UUID> loadedPackPlayers = new HashSet<>();
@@ -305,8 +308,10 @@ public final class SprintHudService implements Listener {
         }
         sprintTicks.clear();
         jumpGraceTicks.clear();
+        chargeInterruptGraceTicks.clear();
         storedJumpCharge.clear();
         loadedPackPlayers.clear();
+        sneakingPlayers.clear();
         if (httpServer != null) {
             httpServer.stop(0);
             httpServer = null;
@@ -364,9 +369,11 @@ public final class SprintHudService implements Listener {
         UUID uuid = event.getPlayer().getUniqueId();
         sprintTicks.remove(uuid);
         jumpGraceTicks.remove(uuid);
+        chargeInterruptGraceTicks.remove(uuid);
         storedJumpCharge.remove(uuid);
         lastLocations.remove(uuid);
         sprintingPlayers.remove(uuid);
+        sneakingPlayers.remove(uuid);
         hiddenByDash.remove(uuid);
         loadedPackPlayers.remove(uuid);
         stopDash(event.getPlayer());
@@ -407,35 +414,17 @@ public final class SprintHudService implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onToggleSneak(PlayerToggleSneakEvent event) {
+        UUID uuid = event.getPlayer().getUniqueId();
         if (!event.isSneaking()) {
+            sneakingPlayers.remove(uuid);
             return;
         }
+        sneakingPlayers.add(uuid);
         Player player = event.getPlayer();
         if (!enabled || player.isDead() || dashStates.containsKey(player.getUniqueId())) {
             return;
         }
-        UUID uuid = player.getUniqueId();
-        Integer grace = jumpGraceTicks.get(uuid);
-        int ticks;
-        if (isChargeGrounded(player)) {
-            ticks = sprintTicks.getOrDefault(uuid, 0);
-            if (ticks < MIN_DASH_TICKS) {
-                return;
-            }
-        } else {
-            if (grace == null || grace <= 0) {
-                return;
-            }
-            ticks = storedJumpCharge.getOrDefault(uuid, 0);
-        }
-        if (ticks <= 0) {
-            return;
-        }
-        sprintTicks.remove(uuid);
-        jumpGraceTicks.remove(uuid);
-        storedJumpCharge.remove(uuid);
-        showBar(player, 0, 0f);
-        startDash(player, ticks);
+        tryEnterDash(player);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -484,6 +473,7 @@ public final class SprintHudService implements Listener {
         ChargeActivity activity = analyzeChargeActivity(player);
         if (activity.active) {
             jumpGraceTicks.remove(uuid);
+            chargeInterruptGraceTicks.remove(uuid);
             storedJumpCharge.remove(uuid);
             int updated = Math.min(MAX_SPRINT_TICKS, sprintTicks.getOrDefault(uuid, 0) + 1);
             sprintTicks.put(uuid, updated);
@@ -493,10 +483,19 @@ public final class SprintHudService implements Listener {
         int pending = storedJumpCharge.getOrDefault(uuid, 0);
         if (charged <= 0 && pending <= 0) {
             jumpGraceTicks.remove(uuid);
+            chargeInterruptGraceTicks.remove(uuid);
             storedJumpCharge.remove(uuid);
             return 0;
         }
-        if (!isChargeGrounded(player)) {
+        if (activity.grounded && !activity.blocked && (activity.sprintingFlag || player.isSprinting())) {
+            int grace = chargeInterruptGraceTicks.getOrDefault(uuid, CHARGE_INTERRUPT_GRACE_TICKS);
+            if (grace > 0) {
+                chargeInterruptGraceTicks.put(uuid, grace - 1);
+                return Math.max(charged, pending);
+            }
+        }
+        chargeInterruptGraceTicks.remove(uuid);
+        if (!activity.grounded) {
             if (charged > 0) {
                 storedJumpCharge.put(uuid, charged);
                 sprintTicks.remove(uuid);
@@ -552,6 +551,51 @@ public final class SprintHudService implements Listener {
         return analyzeChargeActivity(player).active;
     }
 
+    private void resetChargeState(Player player, boolean clearLocationSample) {
+        if (player == null) {
+            return;
+        }
+        UUID uuid = player.getUniqueId();
+        sprintTicks.remove(uuid);
+        jumpGraceTicks.remove(uuid);
+        chargeInterruptGraceTicks.remove(uuid);
+        storedJumpCharge.remove(uuid);
+        if (clearLocationSample) {
+            lastLocations.remove(uuid);
+        }
+        showBar(player, 0, 0f);
+    }
+
+    private boolean tryEnterDash(Player player) {
+        int chargedTicks = resolveDashCharge(player);
+        if (chargedTicks <= 0) {
+            resetChargeState(player, true);
+            return false;
+        }
+        if (!enterDash(player, chargedTicks)) {
+            resetChargeState(player, true);
+            return false;
+        }
+        resetChargeState(player, true);
+        return true;
+    }
+
+    private int resolveDashCharge(Player player) {
+        if (player == null) {
+            return 0;
+        }
+        UUID uuid = player.getUniqueId();
+        if (isChargeGrounded(player)) {
+            int ticks = sprintTicks.getOrDefault(uuid, 0);
+            return ticks >= MIN_DASH_TICKS ? ticks : 0;
+        }
+        Integer grace = jumpGraceTicks.get(uuid);
+        if (grace == null || grace <= 0) {
+            return 0;
+        }
+        return storedJumpCharge.getOrDefault(uuid, 0);
+    }
+
     private ChargeActivity analyzeChargeActivity(Player player) {
         UUID uuid = player.getUniqueId();
         boolean onlineAlive = player.isOnline() && !player.isDead();
@@ -559,6 +603,7 @@ public final class SprintHudService implements Listener {
         boolean grounded = isChargeGrounded(player);
         boolean onGround = isOnGround(player);
         boolean blocked = player.isSneaking()
+                || sneakingPlayers.contains(uuid)
                 || player.isFlying()
                 || player.isGliding()
                 || player.isSwimming()
@@ -655,13 +700,13 @@ public final class SprintHudService implements Listener {
         return builder.toString();
     }
 
-    private void startDash(Player player, int chargedTicks) {
+    private boolean enterDash(Player player, int chargedTicks) {
         if (chargedTicks < MIN_DASH_TICKS) {
-            return;
+            return false;
         }
         double ratio = Math.max(0.0, Math.min(1.0, chargedTicks / (double) MAX_SPRINT_TICKS));
         if (ratio <= 0.0) {
-            return;
+            return false;
         }
         Vector dashVelocity = buildDashVelocity(player, ratio);
         boolean preserveViewerHide = isHermitHidden(player);
@@ -680,6 +725,7 @@ public final class SprintHudService implements Listener {
         if (!preserveViewerHide) {
             state.mannequin = spawnMannequin(player, dashVelocity);
         }
+        return true;
     }
 
     private void tickDash(Player player, DashState state) {
@@ -713,6 +759,13 @@ public final class SprintHudService implements Listener {
     private void stopDash(Player player) {
         DashState state = dashStates.remove(player.getUniqueId());
         if (state == null) {
+            return;
+        }
+        exitDash(player, state);
+    }
+
+    private void exitDash(Player player, DashState state) {
+        if (player == null || state == null) {
             return;
         }
         restoreDashVisuals(player, state.storedInvisible, state.storedCollidable, state.preserveViewerHide);
@@ -886,6 +939,18 @@ public final class SprintHudService implements Listener {
 
     public void cancelDashForAbilityUse(Player player) {
         cancelDashState(player);
+    }
+
+    public void resetAllBossBars() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            BossBar bar = bars.remove(player.getUniqueId());
+            if (bar != null) {
+                player.hideBossBar(bar);
+            }
+            if (enabled) {
+                showBar(player, 0, 0f);
+            }
+        }
     }
 
     private boolean isHermitHidden(Player player) {

@@ -16,25 +16,25 @@ import org.bukkit.util.Vector;
 
 @AbilityManifest(name = "납치 (Kidnap)", rank = AbilityManifest.Rank.B, species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 납치]§f §8(쿨타임: 30초)",
-        "§f4칸§7 이내의 대상(플레이어/몬스터)을 납치하여 업습니다.",
+        "§f6칸§7 이내의 대상(플레이어/몬스터)을 납치하여 업습니다.",
         "§7업힌 대상은 §8실명§7 상태가 되며",
-        "§7행동할 수 없습니다. §f3초§7 후 자동으로 풀려납니다.",
+        "§7행동할 수 없습니다. §f8초§7 후 자동으로 풀려납니다.",
         "",
         "§7자신은 §b신속I§7 효과를 얻습니다.",
         "",
         "§e§l[철괴 좌클릭 - 투척]",
         "§7납치 중인 대상을 바라보는 방향으로 §6던져버립니다§7."
 }, summarize = {
-        "§7철괴 우클릭§f: 대상 납치 (3초)",
+        "§7철괴 우클릭§f: 대상 납치 (8초)",
         "§7철괴 좌클릭§f: 던지기"
 })
 public class Kidnap extends AbilityBase implements ActiveHandler {
 
     private static final int COOLDOWN_SECONDS = 30;
-    private static final int CARRY_SECONDS = 3;
-    private static final double RANGE = 4.0;
-    private static final double THROW_POWER = 0.8;
-    private static final double THROW_HEIGHT = 0.3;
+    private static final int CARRY_SECONDS = 8;
+    private static final double RANGE = 6.0;
+    private static final double THROW_POWER = 3.5;
+    private static final double THROW_HEIGHT = 1.5;
 
     private final Cooldown cooldown = new Cooldown(COOLDOWN_SECONDS);
     private int remainingCarrySeconds = 0;

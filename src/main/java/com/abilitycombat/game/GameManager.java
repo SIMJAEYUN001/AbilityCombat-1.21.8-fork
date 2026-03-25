@@ -66,6 +66,7 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
@@ -75,6 +76,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
@@ -131,6 +133,7 @@ public class GameManager implements Listener {
 
     private static final int FIXED_FOOD_LEVEL = 20;
     private static final float FIXED_SATURATION = 20.0f;
+    private static final int OLD_COMBAT_TASK_PERIOD_TICKS = 20;
     private static final int OLD_NATURAL_REGEN_INTERVAL_TICKS = 80;
     private static final double OLD_NATURAL_REGEN_AMOUNT = 1.0;
     private static final double OLD_PLAYER_KNOCKBACK_HORIZONTAL = 0.4;
@@ -972,12 +975,6 @@ public class GameManager implements Listener {
     }
 
     private void requestMapRestore(CommandSender sender) {
-        if (state != GameState.IDLE) {
-            if (sender != null) {
-                sender.sendMessage("§c게임 진행 중에는 맵 복원을 실행할 수 없습니다.");
-            }
-            return;
-        }
         if (!mapRestoreEnabled) {
             if (sender != null) {
                 sender.sendMessage("§c맵 복원이 비활성화되어 있습니다.");
@@ -1280,6 +1277,7 @@ public class GameManager implements Listener {
 	        borderDamageIntervalRemaining = BORDER_DAMAGE_INTERVAL_SECONDS;
 	        startAliveCount = alivePlayers.size();
 	        startedSolo = startAliveCount <= 1;
+            resetAllPlayerBossBars();
 	        setupWorldBorder();
 	        initBorderPhases();
 	        stopGameTask();
@@ -1287,6 +1285,17 @@ public class GameManager implements Listener {
             startVisualTask();
 	        startGameTimerInternal();
 	    }
+
+    private void resetAllPlayerBossBars() {
+        if (plugin.getBossBarManager() != null) {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                plugin.getBossBarManager().clearAll(player);
+            }
+        }
+        if (plugin.getSprintHudService() != null) {
+            plugin.getSprintHudService().resetAllBossBars();
+        }
+    }
 
     private void startVisualTask() {
         if (visualTask != null) {
@@ -1428,6 +1437,12 @@ public class GameManager implements Listener {
 
 	    private void applyBorderPhaseState(int phase) {
 	        int radius = getPhaseRadius(phase);
+            if (radius <= 0) {
+                noSafeZonePhaseActive = true;
+                syncWorldBorderForAllPlayers();
+                broadcastPhaseDamage(phase, radius);
+                return;
+            }
 	        noSafeZonePhaseActive = false;
 	        ensureGameWorldBorder(resolveSafeZoneRadius(radius));
 	        syncWorldBorderForAllPlayers();
@@ -1491,7 +1506,7 @@ public class GameManager implements Listener {
 	    private void broadcastPhaseDamage(int phase, int radius) {
 	        double damage = Math.max(1, phase);
 	        String message = radius <= 0
-	                ? "§c[자기장] §f페이즈 " + phase + " 시작: 최소 안전지대 §c0.01칸§f 유지, 자기장 데미지 §c"
+	                ? "§c[자기장] §f페이즈 " + phase + " 시작: §c안전지대 소멸§f, 모든 생존자에게 자기장 데미지 §c"
 	                        + formatBorderDamage(damage) + "§f/초"
 	                : "§c[자기장] §f페이즈 " + phase + " 시작: 자기장 데미지 §c"
 	                        + formatBorderDamage(damage) + "§f/초";
@@ -1807,9 +1822,8 @@ public class GameManager implements Listener {
         if (damage != null)
             damage.setBaseValue(damage.getDefaultValue());
 
-        // 공격 쿨타임 설정 반영
-        applyAttackCooldownSetting(player);
-        applyLegacyDamageImmunity(player);
+        // 전투 속성 초기화
+        syncCombatSettings(player);
 
         // 포션 효과 초기화
         for (org.bukkit.potion.PotionEffect effect : player.getActivePotionEffects()) {
@@ -1855,15 +1869,18 @@ public class GameManager implements Listener {
         }
     }
 
+    private void syncCombatSettings(Player player) {
+        if (player == null) {
+            return;
+        }
+        applyAttackCooldownSetting(player);
+        applyFixedAxeDamageComponents(player);
+        applyLegacyDamageImmunity(player);
+    }
+
     private void applyAttackCooldownSettingToOnlinePlayers() {
         for (Player online : Bukkit.getOnlinePlayers()) {
             applyAttackCooldownSetting(online);
-        }
-    }
-
-    private void applyFixedAxeDamageToOnlinePlayers() {
-        for (Player online : Bukkit.getOnlinePlayers()) {
-            applyFixedAxeDamageComponents(online);
         }
     }
 
@@ -1884,10 +1901,8 @@ public class GameManager implements Listener {
             return;
         }
         attackSpeedSyncTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            applyAttackCooldownSettingToOnlinePlayers();
-            applyFixedAxeDamageToOnlinePlayers();
-            tickOldCombatAdjustments();
-        }, 1L, 1L);
+            tickOldCombatAdjustments(OLD_COMBAT_TASK_PERIOD_TICKS);
+        }, OLD_COMBAT_TASK_PERIOD_TICKS, OLD_COMBAT_TASK_PERIOD_TICKS);
     }
 
     private void applyFixedAxeDamageComponents(Player player) {
@@ -2118,22 +2133,22 @@ public class GameManager implements Listener {
         player.setExhaustion(0.0f);
     }
 
-    private void tickOldCombatAdjustments() {
+    private void tickOldCombatAdjustments(int elapsedTicks) {
         int currentTick = Bukkit.getCurrentTick();
         pendingKnockbacks.entrySet().removeIf(entry -> entry.getValue().expiresAtTick < currentTick);
         for (Player player : Bukkit.getOnlinePlayers()) {
             applyHungerLock(player);
-            tickOldNaturalRegen(player);
+            tickOldNaturalRegen(player, elapsedTicks);
         }
     }
 
-    private void tickOldNaturalRegen(Player player) {
+    private void tickOldNaturalRegen(Player player, int elapsedTicks) {
         UUID uuid = player.getUniqueId();
         if (!canUseOldNaturalRegen(player)) {
             naturalRegenCounters.remove(uuid);
             return;
         }
-        int counter = naturalRegenCounters.getOrDefault(uuid, 0) + 1;
+        int counter = naturalRegenCounters.getOrDefault(uuid, 0) + Math.max(1, elapsedTicks);
         if (counter < OLD_NATURAL_REGEN_INTERVAL_TICKS) {
             naturalRegenCounters.put(uuid, counter);
             return;
@@ -3304,7 +3319,10 @@ public class GameManager implements Listener {
             Location lobby = lobbyLocation != null ? lobbyLocation : player.getWorld().getSpawnLocation();
             event.setRespawnLocation(lobby);
         }
-        Bukkit.getScheduler().runTask(plugin, () -> syncPlayerWorldBorder(player));
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            syncCombatSettings(player);
+            syncPlayerWorldBorder(player);
+        });
     }
 
     private Location loadStartLocation() {
@@ -3362,13 +3380,38 @@ public class GameManager implements Listener {
             participants.putIfAbsent(player.getUniqueId(), new Participant(player));
             setSpectator(player);
         }
-        Bukkit.getScheduler().runTask(plugin, () -> syncPlayerWorldBorder(player));
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            syncCombatSettings(player);
+            syncPlayerWorldBorder(player);
+        });
     }
 
     @EventHandler
     public void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
         Player player = event.getPlayer();
         Bukkit.getScheduler().runTask(plugin, () -> syncPlayerWorldBorder(player));
+    }
+
+    @EventHandler
+    public void onPlayerItemHeld(PlayerItemHeldEvent event) {
+        Player player = event.getPlayer();
+        Bukkit.getScheduler().runTask(plugin, () -> syncCombatSettings(player));
+    }
+
+    @EventHandler
+    public void onPlayerInventoryDrag(InventoryDragEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        Bukkit.getScheduler().runTask(plugin, () -> syncCombatSettings(player));
+    }
+
+    @EventHandler
+    public void onPlayerInventoryMutation(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        Bukkit.getScheduler().runTask(plugin, () -> syncCombatSettings(player));
     }
 
     @EventHandler

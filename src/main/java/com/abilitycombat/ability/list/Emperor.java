@@ -5,6 +5,7 @@ import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.ability.handler.ActiveHandler;
 import com.abilitycombat.game.Participant;
+import com.abilitycombat.utils.LocationUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
@@ -204,24 +205,9 @@ public class Emperor extends AbilityBase implements ActiveHandler {
 
     private LivingEntity getNearestTarget() {
         Player player = getPlayer();
-        LivingEntity nearest = null;
-        double min = Double.MAX_VALUE;
-        double range = 16.0;
-
-        for (LivingEntity entity : player.getWorld().getLivingEntities()) {
-            if (entity.equals(player) || !com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), entity)) {
-                continue;
-            }
-            if (entity instanceof Skeleton && isGuard((Skeleton) entity)) {
-                continue;
-            }
-            double dist = entity.getLocation().distanceSquared(player.getLocation());
-            if (dist <= range * range && dist < min) {
-                min = dist;
-                nearest = entity;
-            }
-        }
-        return nearest;
+        return LocationUtil.getNearestEntity(LivingEntity.class, player.getLocation(), 16.0,
+                entity -> !(entity instanceof Skeleton skeleton && isGuard(skeleton))
+                        && LocationUtil.isValidTarget(getPlayer(), entity));
     }
 
     private void retargetGuards(LivingEntity target) {
