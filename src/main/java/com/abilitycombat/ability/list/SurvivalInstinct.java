@@ -76,7 +76,7 @@ public class SurvivalInstinct extends AbilityBase {
         if (!charged || invulnerable) {
             return;
         }
-        double finalDamage = event.getFinalDamage();
+        double finalDamage = getCalculatedFinalDamage(event);
         if (player.getHealth() - finalDamage > 0.0) {
             return;
         }

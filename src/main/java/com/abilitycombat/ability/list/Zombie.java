@@ -123,7 +123,7 @@ public class Zombie extends AbilityBase implements ActiveHandler {
         if (event.getDamager() instanceof org.bukkit.entity.Zombie zombie && isMinion(zombie)
                 && event.getEntity() instanceof LivingEntity target) {
             Infection.apply(target, 20);
-            event.setDamage(event.getDamage() * 0.5);
+            decreaseOutgoingDamage(event, 50.0);
         }
     }
 

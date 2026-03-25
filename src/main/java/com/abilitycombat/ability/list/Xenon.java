@@ -8,8 +8,11 @@ import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.Event;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.util.Vector;
 
@@ -24,7 +27,7 @@ import org.bukkit.util.Vector;
         "",
         "§e§l[보호막 효과]",
         "§7피해를 받으면 §e보호막§7이 먼저 감소합니다.",
-        "§7피해가 보호막보다 작으면 §a넉백이 무시§7됩니다.",
+        "§7보호막이 피해를 막아도 §f넉백은 정상 적용§7됩니다.",
         "",
         "§e§l[부작용 - 금단현상]",
         "§6보호막§7이 없으면 받는 피해가 §c30% 증가§7합니다."
@@ -42,6 +45,7 @@ public class Xenon extends AbilityBase implements ActiveHandler {
     private static final double MAX_SHIELD = 20.0;
     private static final double NORMAL_SHIELD = 10.0;
     private static final double OVERCLOCK_SHIELD = 5.0;
+    private static final double MINIMAL_DAMAGE = 0.001;
 
     private final BossBarGauge shieldGauge = new BossBarGauge("shield", 5, BossBar.Color.YELLOW,
             BossBar.Overlay.PROGRESS);
@@ -103,11 +107,12 @@ public class Xenon extends AbilityBase implements ActiveHandler {
         }
 
         Player player = getPlayer();
-        double damage = event.getFinalDamage();
+        double damage = getCalculatedFinalDamage(event);
+        Entity source = event instanceof EntityDamageByEntityEvent byEntity ? byEntity.getDamager() : null;
 
         // 보호막이 없으면 +30% 피해
         if (shield <= 0) {
-            event.setDamage(event.getDamage() * 1.3);
+            increaseIncomingDamage(event, 30.0);
             return;
         }
 
@@ -115,24 +120,15 @@ public class Xenon extends AbilityBase implements ActiveHandler {
         event.setCancelled(true);
 
         if (damage <= shield) {
-            // 피해 < 보호막: 보호막만 감소, 넉백 무시
+            // 피해 < 보호막: 보호막만 감소, 넉백은 별도 재현
             shield -= damage;
-            Vector currentVel = player.getVelocity().clone();
-            player.getScheduler().runDelayed(com.abilitycombat.AbilityCombat.getPlugin(), task -> {
-                player.setVelocity(currentVel);
-            }, null, 1L);
+            applyKnockback(source);
         } else {
             // 피해 >= 보호막: 남은 피해 HP에 적용 + 넉백
             double remainingDamage = damage - shield;
             shield = 0;
-            // 0.001 데미지로 넉백 트리거
-            applyingDamage = true;
-            try {
-                player.damage(0.001);
-            } finally {
-                applyingDamage = false;
-            }
-            applyDamage(remainingDamage - 0.001); // 넉백 데미지 보정
+            applyKnockback(source);
+            applyDamage(remainingDamage);
         }
 
         updateShieldBar();
@@ -154,6 +150,61 @@ public class Xenon extends AbilityBase implements ActiveHandler {
         } finally {
             applyingDamage = false;
         }
+    }
+
+    private void applyKnockback(Entity source) {
+        Player player = getPlayer();
+        if (player == null || player.isDead()) {
+            return;
+        }
+        Vector knockback = createKnockbackVelocity(player, source);
+        double healthBefore = player.getHealth();
+        double maxHealth = getMaxHealth(player);
+        if (healthBefore <= MINIMAL_DAMAGE && maxHealth > healthBefore) {
+            player.setHealth(Math.min(maxHealth, healthBefore + MINIMAL_DAMAGE));
+        }
+        applyingDamage = true;
+        try {
+            if (source != null && source.isValid()) {
+                player.damage(MINIMAL_DAMAGE, source);
+            } else {
+                player.damage(MINIMAL_DAMAGE);
+            }
+        } finally {
+            applyingDamage = false;
+        }
+        if (!player.isDead()) {
+            player.setHealth(Math.min(maxHealth, healthBefore));
+            if (knockback != null) {
+                player.setVelocity(knockback);
+            }
+        }
+    }
+
+    private double getMaxHealth(Player player) {
+        var attribute = player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+        return attribute != null ? attribute.getValue() : 20.0;
+    }
+
+    private Vector createKnockbackVelocity(Player player, Entity source) {
+        if (source == null || !source.isValid()) {
+            return null;
+        }
+        Vector direction;
+        if (source instanceof Projectile projectile && projectile.getVelocity().lengthSquared() > 1.0E-6) {
+            direction = projectile.getVelocity().clone().setY(0);
+        } else {
+            direction = player.getLocation().toVector().subtract(source.getLocation().toVector()).setY(0);
+        }
+        if (direction.lengthSquared() <= 1.0E-6) {
+            return null;
+        }
+        direction.normalize().multiply(0.42);
+        Vector velocity = player.getVelocity().clone().multiply(0.5);
+        velocity.setX(velocity.getX() + direction.getX());
+        velocity.setZ(velocity.getZ() + direction.getZ());
+        velocity.setY(Math.min(0.4, Math.max(0.2, velocity.getY() + 0.35)));
+        return velocity;
     }
 
     private void addShield(double amount) {

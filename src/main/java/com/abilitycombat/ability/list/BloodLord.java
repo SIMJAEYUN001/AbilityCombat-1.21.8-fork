@@ -28,20 +28,19 @@ import java.util.List;
 
 @AbilityManifest(name = "피의 군주 (BloodLord)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.UNDEAD, explain = {
         "§e§l[패시브 - 핏빛 탐식]",
-        "§7주변 §f15칸§7 이내의 §f플레이어§7가 체력을 잃으면,",
-        "§7잃은 체력에 비례해 §4피 중첩§7을 얻습니다.",
+        "§7주변 §f15칸§7 이내의 §f플레이어§7가 체력을 잃을 때마다",
+        "§7잃은 체력 §f1§7당 §4피 중첩 1§7을 얻습니다.",
         "",
-        "§e§l[철괴 좌클릭 - 혈흔 폭발]§f §8(쿨타임 없음)",
-        "§7주변 §f10칸§7 내 적에게 §4피 중첩§7을 모두 폭발시킵니다. §8(최소 15)",
-        "§7소모한 피 중첩 §f1§7당 §c0.5 피해§7와",
-        "§7대상의 §c잃은 체력 30%§7만큼 피해를 입힙니다.",
+        "§e§l[철괴 좌클릭 - 혈흔 폭발]§f §8(쿨타임: 1초)",
+        "§7§4피 중첩§7을 모두 소모(최소 15)해서 주변 §f10칸§7 내 적에게 피해를 입힙니다.",
+        "§7소모한 피 중첩 §f1§7당 §c0.5 + 잃은 체력 50%§7의 피해를 입힙니다.",
         "",
-        "§e§l[철괴 우클릭 - 피의 속박]§f §8(쿨타임 없음)",
-        "§4피 중첩 20§7을 소모해 속박 투사체를 발사합니다.",
-        "§7투사체가 닿은 적은 §e5초간 기절§7합니다."
+        "§e§l[철괴 우클릭 - 피의 속박]§f §8(쿨타임: 1초)",
+        "§4피 중첩 20§7을 소모해 §e5초간 기절§7하는 투사체를 발사합니다.",
+        "§8좌클릭/우클릭 쿨타임은 서로 공유됩니다."
 }, summarize = {
-        "§7패시브§f: 주변 15칸 플레이어 체력 손실 비례 피 중첩 획득",
-        "§7철괴 좌클릭§f: 중첩 전부 소모, 주변 10칸 광역 폭발",
+        "§7패시브§f: 주변 15칸 플레이어가 체력 1 잃을 때마다 피 중첩 1 획득",
+        "§7철괴 좌클릭§f: 최소 15 중첩, 주변 10칸에 중첩당 0.25 + 잃은 체력 30% 피해",
         "§7철괴 우클릭§f: 중첩 20 소모, 적중 시 5초 기절 투사체"
 })
 public class BloodLord extends AbilityBase implements ActiveHandler {
@@ -51,18 +50,20 @@ public class BloodLord extends AbilityBase implements ActiveHandler {
     private static final double BLOOD_EXPLOSION_RANGE = 10.0;
     private static final double BLOOD_EXPLOSION_MIN_STACKS = 15.0;
     private static final double BLOOD_EXPLOSION_DAMAGE_PER_STACK = 0.5;
-    private static final double BLOOD_EXPLOSION_MISSING_HEALTH_RATIO = 0.30;
+    private static final double BLOOD_EXPLOSION_MISSING_HEALTH_RATIO = 0.50;
     private static final double BLOOD_BIND_COST = 20.0;
     private static final int BLOOD_BIND_STUN_TICKS = 100;
     private static final double PROJECTILE_SPEED = 1.35;
     private static final int PROJECTILE_MAX_TICKS = 28;
     private static final double PROJECTILE_HIT_RADIUS = 0.9;
+    private static final int SKILL_COOLDOWN_SECONDS = 1;
     private static final String HUD_KEY = "bloodlord:stacks";
     private static final int HUD_PRIORITY = 3;
     private static final BlockData BLOOD_BLOCK_DATA = Material.REDSTONE_BLOCK.createBlockData();
     private static final DecimalFormat STACK_FORMAT = new DecimalFormat("0.0");
 
     private final List<BloodBindProjectile> projectiles = new ArrayList<>();
+    private final Cooldown skillCooldown = new Cooldown(SKILL_COOLDOWN_SECONDS);
     private double bloodStacks;
 
     public BloodLord(Participant participant) {
@@ -94,6 +95,9 @@ public class BloodLord extends AbilityBase implements ActiveHandler {
         if (material != Material.IRON_INGOT) {
             return false;
         }
+        if (skillCooldown.isCooldown()) {
+            return false;
+        }
         if (clickType == ClickType.LEFT_CLICK) {
             return castBloodBurst();
         }
@@ -122,7 +126,7 @@ public class BloodLord extends AbilityBase implements ActiveHandler {
         if (event.isCancelled() || !(event.getEntity() instanceof Player target)) {
             return;
         }
-        double lostHealth = Math.min(target.getHealth(), event.getFinalDamage());
+        double lostHealth = Math.min(target.getHealth(), getCalculatedFinalDamage(event));
         if (lostHealth <= 0.0) {
             return;
         }
@@ -164,6 +168,8 @@ public class BloodLord extends AbilityBase implements ActiveHandler {
         spawnBurstEffect(owner.getLocation());
         owner.getWorld().playSound(owner.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.8f, 1.35f);
         owner.getWorld().playSound(owner.getLocation(), Sound.ENTITY_WARDEN_HEARTBEAT, 0.9f, 0.7f);
+        skillCooldown.start();
+        applyIronCooldownIfEmpty(SKILL_COOLDOWN_SECONDS);
         updateHud();
         return true;
     }
@@ -180,6 +186,8 @@ public class BloodLord extends AbilityBase implements ActiveHandler {
         Location start = owner.getEyeLocation().clone().add(direction.clone().multiply(0.6));
         projectiles.add(new BloodBindProjectile(start, direction));
         owner.getWorld().playSound(owner.getLocation(), Sound.ENTITY_EVOKER_CAST_SPELL, 0.85f, 0.7f);
+        skillCooldown.start();
+        applyIronCooldownIfEmpty(SKILL_COOLDOWN_SECONDS);
         updateHud();
         return true;
     }

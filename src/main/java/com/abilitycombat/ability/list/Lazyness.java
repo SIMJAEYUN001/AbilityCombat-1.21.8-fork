@@ -78,7 +78,7 @@ public class Lazyness extends AbilityBase implements ActiveHandler {
             return false;
         }
         if (pendingDamage > 0) {
-            applyImmediateDamage(pendingDamage * PAY_DAMAGE_MULTIPLIER, null);
+            applyDamage(pendingDamage * PAY_DAMAGE_MULTIPLIER);
             clearPendingDamage();
             updateHud();
         }
@@ -105,11 +105,11 @@ public class Lazyness extends AbilityBase implements ActiveHandler {
             return;
         }
 
-        double damage = event.getFinalDamage() * PASSIVE_DAMAGE_MULTIPLIER;
+        double damage = getCalculatedFinalDamage(event) * PASSIVE_DAMAGE_MULTIPLIER;
         Entity source = event instanceof EntityDamageByEntityEvent byEntity ? byEntity.getDamager() : null;
         event.setCancelled(true);
         applyKnockback(source);
-        scheduleDamage(damage, source);
+        scheduleDamage(damage);
         updateHud();
     }
 
@@ -126,12 +126,12 @@ public class Lazyness extends AbilityBase implements ActiveHandler {
     protected void onDestroy() {
     }
 
-    private void scheduleDamage(double damage, Entity source) {
+    private void scheduleDamage(double damage) {
         pendingDamage += damage;
         deferredActions.add(new DeferredAction(damage, DELAY_SECONDS * 20) {
             @Override
             void run() {
-                applyImmediateDamage(getAmount(), source);
+                applyDamage(getAmount());
                 pendingDamage = Math.max(0, pendingDamage - getAmount());
                 updateHud();
             }
@@ -167,24 +167,18 @@ public class Lazyness extends AbilityBase implements ActiveHandler {
         }
     }
 
-    private void applyImmediateDamage(double damage, Entity source) {
+    private void applyDamage(double damage) {
         Player player = getPlayer();
         if (player == null || player.isDead()) {
             return;
         }
-        double maxHealth = getMaxHealth(player);
-        double targetHealth = player.getHealth() - damage;
         applyingDamage = true;
         try {
-            if (targetHealth <= 0) {
-                player.setHealth(Math.min(maxHealth, MINIMAL_DAMAGE));
+            double newHealth = player.getHealth() - damage;
+            if (newHealth <= 0) {
+                player.setHealth(0);
             } else {
-                player.setHealth(Math.min(maxHealth, targetHealth + MINIMAL_DAMAGE));
-            }
-            if (source != null && source.isValid()) {
-                player.damage(MINIMAL_DAMAGE, source);
-            } else {
-                player.damage(MINIMAL_DAMAGE);
+                player.setHealth(newHealth);
             }
         } finally {
             applyingDamage = false;
@@ -281,10 +275,17 @@ public class Lazyness extends AbilityBase implements ActiveHandler {
             return;
         }
         double progress = Math.min(1.0, pendingDamage / MAX_PENDING_DAMAGE);
-        String damageText = String.format("%.1f", pendingDamage);
+        String damageText = formatDamageText(pendingDamage);
         Component title = Component.text("미뤄진 피해 ", NamedTextColor.RED)
                 .append(Component.text(damageText, NamedTextColor.WHITE))
                 .append(Component.text(" (" + DELAY_SECONDS + "초 후)", NamedTextColor.GRAY));
         pendingGauge.update(title, progress);
+    }
+
+    private String formatDamageText(double damage) {
+        if (damage < 1.0) {
+            return String.format("%.2f", damage);
+        }
+        return String.format("%.1f", damage);
     }
 }

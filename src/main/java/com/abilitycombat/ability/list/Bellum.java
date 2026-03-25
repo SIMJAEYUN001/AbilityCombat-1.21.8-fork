@@ -134,7 +134,7 @@ public class Bellum extends AbilityBase implements ActiveHandler {
         if (event.getDamager().equals(getPlayer()) && event.getEntity() instanceof LivingEntity target) {
             if (Stun.isStunned(target)) {
                 if (consumeStamina(BEAT_COST)) {
-                    event.setDamage(event.getDamage() * BEAT_DAMAGE_MULTIPLIER);
+                    scaleOutgoingDamage(event, BEAT_DAMAGE_MULTIPLIER);
                 }
             }
         }

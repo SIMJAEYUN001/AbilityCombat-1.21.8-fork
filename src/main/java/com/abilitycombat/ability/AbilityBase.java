@@ -1,6 +1,8 @@
 package com.abilitycombat.ability;
 
 import com.abilitycombat.AbilityCombat;
+import com.abilitycombat.effect.DamageModifier;
+import com.abilitycombat.effect.Slow;
 import com.abilitycombat.game.Participant;
 import com.abilitycombat.ui.ActionbarChannel;
 import com.abilitycombat.ui.BossBarManager;
@@ -15,6 +17,8 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -148,12 +152,107 @@ public abstract class AbilityBase implements Listener, AbilityTickManager.Tickab
         plugin.getGameManager().lockMovement(target, ticks);
     }
 
+    protected void applySlow(LivingEntity target, int ticks) {
+        if (target == null || ticks <= 0) {
+            return;
+        }
+        Slow.apply(target, ticks);
+    }
+
+    protected void applySlow(LivingEntity target, int ticks, int amplifier) {
+        if (target == null || ticks <= 0) {
+            return;
+        }
+        Slow.apply(target, ticks, amplifier);
+    }
+
+    protected void applySlow(LivingEntity target, int ticks, double percent) {
+        if (target == null || ticks <= 0) {
+            return;
+        }
+        Slow.apply(target, ticks, percent);
+    }
+
+    protected void applySlow(LivingEntity target, int ticks, Slow.SlowProfile profile) {
+        if (target == null || ticks <= 0) {
+            return;
+        }
+        Slow.apply(target, ticks, profile);
+    }
+
+    protected void scaleIncomingDamage(EntityDamageEvent event, double multiplier) {
+        applyIncomingPercentDamage(event, (multiplier - 1.0) * 100.0);
+    }
+
+    protected void scaleOutgoingDamage(EntityDamageByEntityEvent event, double multiplier) {
+        applyOutgoingPercentDamage(event, (multiplier - 1.0) * 100.0);
+    }
+
+    protected void increaseIncomingDamage(EntityDamageEvent event, double percent) {
+        applyIncomingPercentDamage(event, percent);
+    }
+
+    protected void decreaseIncomingDamage(EntityDamageEvent event, double percent) {
+        applyIncomingPercentDamage(event, -percent);
+    }
+
+    protected void increaseOutgoingDamage(EntityDamageByEntityEvent event, double percent) {
+        applyOutgoingPercentDamage(event, percent);
+    }
+
+    protected void decreaseOutgoingDamage(EntityDamageByEntityEvent event, double percent) {
+        applyOutgoingPercentDamage(event, -percent);
+    }
+
+    protected void addIncomingDamage(EntityDamageEvent event, double amount) {
+        addIncomingFlatDamage(event, amount);
+    }
+
+    protected void addOutgoingDamage(EntityDamageByEntityEvent event, double amount) {
+        addOutgoingFlatDamage(event, amount);
+    }
+
+    protected double getCalculatedFinalDamage(EntityDamageEvent event) {
+        if (event == null) {
+            return 0.0;
+        }
+        return DamageModifier.previewFinalDamage(event);
+    }
+
     protected boolean isMovementLocked(LivingEntity target) {
         AbilityCombat plugin = AbilityCombat.getPlugin();
         if (plugin == null || plugin.getGameManager() == null) {
             return false;
         }
         return plugin.getGameManager().isMovementLocked(target);
+    }
+
+    private void applyIncomingPercentDamage(EntityDamageEvent event, double percent) {
+        if (event == null || !Double.isFinite(percent)) {
+            return;
+        }
+        DamageModifier.addIncomingPercent(event, percent);
+    }
+
+    private void applyOutgoingPercentDamage(EntityDamageByEntityEvent event, double percent) {
+        if (event == null || !Double.isFinite(percent)) {
+            return;
+        }
+        DamageModifier.addOutgoingPercent(event, percent);
+    }
+
+    private void addIncomingFlatDamage(EntityDamageEvent event, double amount) {
+        if (event == null || !Double.isFinite(amount)) {
+            return;
+        }
+        DamageModifier.addIncomingFlat(event, amount);
+    }
+
+    private void addOutgoingFlatDamage(EntityDamageByEntityEvent event, double amount) {
+        if (event == null || !Double.isFinite(amount)) {
+            return;
+        }
+        DamageModifier.addOutgoingFlat(event, amount);
     }
 
     /**

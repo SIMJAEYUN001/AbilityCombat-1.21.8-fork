@@ -147,7 +147,7 @@ public class Zeus extends AbilityBase implements ActiveHandler {
             return;
         }
         if (isStormFloating()) {
-            event.setDamage(event.getDamage() * STORM_DAMAGE_REDUCTION_MULTIPLIER);
+            scaleIncomingDamage(event, STORM_DAMAGE_REDUCTION_MULTIPLIER);
         }
     }
 

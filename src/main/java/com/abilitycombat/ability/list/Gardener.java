@@ -241,7 +241,7 @@ public class Gardener extends AbilityBase implements ActiveHandler {
         if (event.getDamager() instanceof Player player) {
             return getHeldItemTreeDamage(player.getInventory().getItemInMainHand().getType());
         }
-        return Math.max(1.0, event.getFinalDamage());
+        return Math.max(1.0, getCalculatedFinalDamage(event));
     }
 
     private double getHeldItemTreeDamage(Material material) {

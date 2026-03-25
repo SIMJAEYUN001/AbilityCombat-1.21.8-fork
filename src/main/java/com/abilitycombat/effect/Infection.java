@@ -5,10 +5,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.HandlerList;
-import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.HashMap;
@@ -17,24 +13,17 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
-public final class Infection implements Listener {
+public final class Infection {
 
     private static final Map<UUID, InfectionEntry> INFECTED = new HashMap<>();
+    private static final String DAMAGE_SOURCE_KEY = "infection";
     private static BukkitTask task;
-    private static Infection listener;
 
     private Infection() {
     }
 
     public static void start(AbilityCombat plugin) {
-        if (plugin == null) {
-            return;
-        }
-        if (listener == null) {
-            listener = new Infection();
-            Bukkit.getPluginManager().registerEvents(listener, plugin);
-        }
-        if (task == null) {
+        if (plugin != null && task == null) {
             task = Bukkit.getScheduler().runTaskTimer(plugin, Infection::tick, 4L, 4L);
         }
     }
@@ -44,11 +33,10 @@ public final class Infection implements Listener {
             task.cancel();
             task = null;
         }
-        INFECTED.clear();
-        if (listener != null) {
-            HandlerList.unregisterAll(listener);
-            listener = null;
+        for (InfectionEntry entry : INFECTED.values()) {
+            DamageModifier.removeIncoming(entry.target, DAMAGE_SOURCE_KEY);
         }
+        INFECTED.clear();
     }
 
     public static void apply(LivingEntity target, int ticks) {
@@ -67,6 +55,7 @@ public final class Infection implements Listener {
             INFECTED.put(uuid, entry);
         }
         entry.until = Math.max(entry.until, until);
+        DamageModifier.applyIncoming(target, ticks, DAMAGE_SOURCE_KEY, -25.0);
     }
 
     public static boolean isInfected(LivingEntity target) {
@@ -102,10 +91,12 @@ public final class Infection implements Listener {
             InfectionEntry entry = iterator.next().getValue();
             LivingEntity target = entry.target;
             if (target == null || target.isDead() || !target.isValid()) {
+                DamageModifier.removeIncoming(target, DAMAGE_SOURCE_KEY);
                 iterator.remove();
                 continue;
             }
             if (entry.until <= now) {
+                DamageModifier.removeIncoming(target, DAMAGE_SOURCE_KEY);
                 iterator.remove();
                 continue;
             }
@@ -126,17 +117,6 @@ public final class Infection implements Listener {
                 player.setRotation(yaw, pitch);
             }
         }
-    }
-
-    @EventHandler
-    public void onDamage(EntityDamageEvent event) {
-        if (!(event.getEntity() instanceof LivingEntity target)) {
-            return;
-        }
-        if (getEndTime(target.getUniqueId()) <= 0L) {
-            return;
-        }
-        event.setDamage(event.getDamage() * 0.75);
     }
 
     private static final class InfectionEntry {

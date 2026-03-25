@@ -30,19 +30,20 @@ import java.util.UUID;
         "§7착지하면 중력은 정상으로 돌아옵니다.",
         "",
         "§7띄운 대상이 §c낙하 피해§7를 받으면,",
-        "§7받은 피해량만큼 체력을 §a회복§7합니다."
+        "§7받은 피해량의 §f50%§7만큼 체력을 §a회복§7합니다."
 }, summarize = {
         "§7철괴 우클릭§f: 주변 적 공중 발사",
         "§72초 후§f: 10배 중력 적용",
-        "§7낙하 피해 발생 시§f: 피해량만큼 회복"
+        "§7낙하 피해 발생 시§f: 피해량 50% 회복"
 })
 public class GravityField extends AbilityBase implements ActiveHandler {
 
     private static final int COOLDOWN_SECONDS = 25;
     private static final double RANGE = 8.0;
-    private static final double LAUNCH_VELOCITY = 4;
+    private static final double LAUNCH_VELOCITY = 3;
     private static final int GRAVITY_DELAY_TICKS = 20;
     private static final double HEAVY_GRAVITY_MULTIPLIER = 10.0;
+    private static final double FALL_DAMAGE_HEAL_RATIO = 0.5;
 
     private final Cooldown cooldown = new Cooldown(COOLDOWN_SECONDS);
     private final Map<UUID, LiftState> liftedTargets = new HashMap<>();
@@ -133,7 +134,7 @@ public class GravityField extends AbilityBase implements ActiveHandler {
         liftedTargets.remove(target.getUniqueId());
         restoreGravity(target, state);
         if (!event.isCancelled()) {
-            healCaster(event.getFinalDamage());
+            healCaster(getCalculatedFinalDamage(event) * FALL_DAMAGE_HEAL_RATIO);
         }
     }
 

@@ -101,7 +101,7 @@ public class Stalker extends AbilityBase implements ActiveHandler {
         }
         stack = Math.min(5, stack + 1);
         double bonusMultiplier = 1.0 + (stack * 0.03); // 스택당 +3%
-        event.setDamage(event.getDamage() * bonusMultiplier);
+        scaleOutgoingDamage(event, bonusMultiplier);
         target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 0, true, false));
 
         // 스택 리셋 타이머 갱신

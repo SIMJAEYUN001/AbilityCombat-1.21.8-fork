@@ -372,7 +372,7 @@ public class Hunter extends AbilityBase implements ActiveHandler {
             if (event.getDamager() instanceof Player attacker) {
                 ItemStack weapon = attacker.getInventory().getItemInMainHand();
                 if (MELEE_WEAPONS.contains(weapon.getType())) {
-                    event.setDamage(event.getDamage() * MELEE_DAMAGE_REDUCTION);
+                    scaleIncomingDamage(event, MELEE_DAMAGE_REDUCTION);
                 }
             }
         }
@@ -394,7 +394,7 @@ public class Hunter extends AbilityBase implements ActiveHandler {
                 Long expireTime = trackedTargets.get(victimUUID);
 
                 if (expireTime != null && System.currentTimeMillis() < expireTime) {
-                    event.setDamage(event.getDamage() * TRACK_DAMAGE_INCREASE);
+                    scaleOutgoingDamage(event, TRACK_DAMAGE_INCREASE);
                 }
             }
         }

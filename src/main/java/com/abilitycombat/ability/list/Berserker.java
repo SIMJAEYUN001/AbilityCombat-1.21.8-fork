@@ -113,7 +113,7 @@ public class Berserker extends AbilityBase implements ActiveHandler {
             return;
         }
         if (isRageActive()) {
-            double remaining = getPlayer().getHealth() - event.getFinalDamage();
+            double remaining = getPlayer().getHealth() - getCalculatedFinalDamage(event);
             if (remaining < 1.0) {
                 event.setDamage(Math.max(0, getPlayer().getHealth() - 1.0));
             }
@@ -125,12 +125,12 @@ public class Berserker extends AbilityBase implements ActiveHandler {
         if (event.getEntity().equals(getPlayer())) {
             Entity damager = event.getDamager();
             if (damager instanceof Projectile) {
-                event.setDamage(event.getDamage() * 0.5);
+                decreaseIncomingDamage(event, 50.0);
             }
             if (damager instanceof Entity) {
                 double distance = damager.getLocation().distance(getPlayer().getLocation());
                 if (distance > 5.0) {
-                    event.setDamage(event.getDamage() * 0.25);
+                    decreaseIncomingDamage(event, 75.0);
                 }
             }
         }
@@ -138,8 +138,7 @@ public class Berserker extends AbilityBase implements ActiveHandler {
             double maxHealth = getPlayer().getAttribute(Attribute.MAX_HEALTH).getValue();
             double missing = Math.max(0.0, maxHealth - getPlayer().getHealth());
             double ratio = missing / maxHealth;
-            double multiplier = 1.0 + (0.35 * ratio);
-            event.setDamage(event.getDamage() * multiplier);
+            increaseOutgoingDamage(event, 35.0 * ratio);
         }
     }
 

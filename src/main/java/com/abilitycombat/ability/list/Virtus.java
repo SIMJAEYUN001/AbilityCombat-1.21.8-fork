@@ -48,7 +48,6 @@ public class Virtus extends AbilityBase implements ActiveHandler {
     protected void onActivate() {
         registerTick();
         subscribeEvent(EntityDamageEvent.class);
-        subscribeEvent(EntityDamageByEntityEvent.class);
     }
 
     @Override
@@ -81,9 +80,7 @@ public class Virtus extends AbilityBase implements ActiveHandler {
 
     @Override
     public void handleBridgeEvent(Event event) {
-        if (event instanceof EntityDamageByEntityEvent e) {
-            onDamageByEntity(e);
-        } else if (event instanceof EntityDamageEvent e) {
+        if (event instanceof EntityDamageEvent e) {
             onDamage(e);
         }
     }
@@ -95,51 +92,38 @@ public class Virtus extends AbilityBase implements ActiveHandler {
         if (!guarding) {
             return;
         }
-        // 모든 피해 90% 감소
-        event.setDamage(event.getDamage() * DAMAGE_MULTIPLIER);
-    }
-
-    private void onDamageByEntity(EntityDamageByEntityEvent event) {
-        if (!(event.getEntity() instanceof Player player) || !player.equals(getPlayer())) {
+        double originalFinalDamage = getCalculatedFinalDamage(event);
+        if (originalFinalDamage <= 0.0) {
             return;
         }
-        if (!guarding) {
-            return;
-        }
-
-        // 원래 피해량 저장 (감소 적용 전)
-        double originalDamage = event.getDamage();
 
         // 피해 90% 감소 적용
-        event.setDamage(originalDamage * DAMAGE_MULTIPLIER);
+        scaleIncomingDamage(event, DAMAGE_MULTIPLIER);
 
-        // 넉백 무효화
-        Bukkit.getScheduler().runTaskLater(AbilityCombat.getPlugin(), () -> {
-            if (player.isOnline() && !player.isDead()) {
-                player.setVelocity(player.getVelocity().setX(0).setZ(0));
-            }
-        }, 1L);
+        if (event instanceof EntityDamageByEntityEvent byEntity) {
+            Bukkit.getScheduler().runTaskLater(AbilityCombat.getPlugin(), () -> {
+                if (player.isOnline() && !player.isDead()) {
+                    player.setVelocity(player.getVelocity().setX(0).setZ(0));
+                }
+            }, 1L);
 
-        // 공격자가 플레이어인 경우 반사
-        if (event.getDamager() instanceof Player attacker && !attacker.equals(player)) {
-            // 원래 피해량 100% 반사
+            if (byEntity.getDamager() instanceof Player attacker && !attacker.equals(player)) {
             Bukkit.getScheduler().runTaskLater(AbilityCombat.getPlugin(), () -> {
                 if (attacker.isOnline() && !attacker.isDead()
                         && AbilityCombat.getPlugin().getGameManager().canApplyNegativeEffect(player, attacker)) {
-                    attacker.damage(originalDamage, player);
+                    attacker.damage(originalFinalDamage, player);
                     attacker.playSound(attacker.getLocation(), Sound.ENCHANT_THORNS_HIT, 1.0f, 0.8f);
                     player.playSound(player.getLocation(), Sound.ENCHANT_THORNS_HIT, 1.0f, 0.8f);
                 }
             }, 1L);
 
-            // 쿨타임 4초로 감소 - 새 쿨다운 생성
-            cooldown.stop(true);
-            cooldown = new Cooldown(REDUCED_COOLDOWN_SECONDS);
-            cooldown.start();
-            applyIronCooldownIfEmpty(REDUCED_COOLDOWN_SECONDS);
+                cooldown.stop(true);
+                cooldown = new Cooldown(REDUCED_COOLDOWN_SECONDS);
+                cooldown.start();
+                applyIronCooldownIfEmpty(REDUCED_COOLDOWN_SECONDS);
 
-            // 가드 종료
-            stopGuard();
+                stopGuard();
+            }
         }
     }
 

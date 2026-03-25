@@ -68,6 +68,6 @@ public class Themis extends AbilityBase {
             return;
         }
         double bonus = Math.min(MAX_BONUS, kills * DAMAGE_PER_KILL);
-        event.setDamage(event.getDamage() + bonus);
+        addOutgoingDamage(event, bonus);
     }
 }

@@ -67,7 +67,7 @@ public class Vampire extends AbilityBase implements ActiveHandler {
         }
         if (bloodPowerStacks > 0) {
             double bonus = bloodPowerStacks * NIGHT_DAMAGE_MULTIPLIER;
-            event.setDamage(event.getDamage() + bonus);
+            addOutgoingDamage(event, bonus);
         }
     }
 

@@ -130,7 +130,7 @@ public class Clown extends AbilityBase implements ActiveHandler {
             return;
         }
         lastBackstab.put(target.getUniqueId(), now);
-        event.setDamage(event.getDamage() * BACKSTAB_DAMAGE_MULTIPLIER);
+        scaleOutgoingDamage(event, BACKSTAB_DAMAGE_MULTIPLIER);
         Stun.apply(target, BACKSTAB_STUN_TICKS);
     }
 

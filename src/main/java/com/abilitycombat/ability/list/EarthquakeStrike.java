@@ -33,10 +33,10 @@ import java.util.UUID;
         "§7(최대 §f15칸§7, 폭 §f3§7)",
         "",
         "§7적중 시 §c5의 피해§7와 함께",
-        "§7§e6초 기절§7, §e채굴피로3§7, §e멀미§7를 부여합니다."
+        "§7§e6초 기절§7, §e50% 슬로우§7, §e멀미§7를 부여합니다."
 }, summarize = {
         "§7철괴 우클릭§f: 전방 지진파 (15칸)",
-        "§7적중§f: 피해 5 + 기절/채굴피로/멀미 (4초)"
+        "§7적중§f: 피해 5 + 기절/50% 슬로우/멀미 (4초)"
 })
 public class EarthquakeStrike extends AbilityBase implements ActiveHandler {
 
@@ -266,7 +266,7 @@ public class EarthquakeStrike extends AbilityBase implements ActiveHandler {
     private void applyDebuffs(Player player, LivingEntity target) {
         target.damage(DAMAGE, player);
         Stun.apply(target, STUN_TICKS);
-        target.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, DEBUFF_TICKS, 2, true, true));
+        applySlow(target, DEBUFF_TICKS, 50.0);
         target.addPotionEffect(new PotionEffect(PotionEffectType.NAUSEA, DEBUFF_TICKS, 0, true, true));
     }
 

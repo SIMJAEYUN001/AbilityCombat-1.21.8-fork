@@ -48,6 +48,7 @@ public class Curse extends AbilityBase implements ActiveHandler {
 
     private static final int COOLDOWN_SECONDS = 40;
     private static final int DURATION_SECONDS = 10;
+    private static final double DOLL_HEALTH = 1000.0;
     private static final double RANGE = 12.0;
     private static final double SPIRAL_RADIUS = 1.4;
     private static final int SPIRAL_POINTS = 12;
@@ -116,7 +117,7 @@ public class Curse extends AbilityBase implements ActiveHandler {
         if (doll == null || target == null) {
             return;
         }
-        if (!event.getEntity().equals(doll)) {
+        if (!doll.matches(event.getEntity())) {
             return;
         }
         event.setCancelled(true);
@@ -133,7 +134,7 @@ public class Curse extends AbilityBase implements ActiveHandler {
         double maxHealth = maxAttr != null ? maxAttr.getValue() : 20.0;
         double healthRatio = Math.max(0.0, target.getHealth() / maxHealth);
         double multiplier = 0.4 + (1.0 - healthRatio) * 0.6;
-        double transfer = event.getFinalDamage() * multiplier;
+        double transfer = getCalculatedFinalDamage(event) * multiplier;
         int previousNoDamageTicks = target.getNoDamageTicks();
         target.setNoDamageTicks(0);
         target.damage(transfer, getPlayer());
@@ -163,6 +164,11 @@ public class Curse extends AbilityBase implements ActiveHandler {
         if (scale != null) {
             scale.setBaseValue(scale.getDefaultValue() * DOLL_SCALE);
         }
+        AttributeInstance maxHealth = doll.getAttribute(Attribute.MAX_HEALTH);
+        if (maxHealth != null) {
+            maxHealth.setBaseValue(DOLL_HEALTH);
+        }
+        doll.setHealth(DOLL_HEALTH);
         EntityEquipment equipment = doll.getEquipment();
         if (equipment != null) {
             equipment.setItemInMainHand(new ItemStack(Material.POPPY));

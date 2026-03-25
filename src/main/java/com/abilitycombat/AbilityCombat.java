@@ -86,7 +86,9 @@ import com.abilitycombat.ability.AbilityTickManager;
 import com.abilitycombat.combat.SweepPacketSuppressor;
 import com.abilitycombat.entity.CustomEntityManager;
 import com.abilitycombat.effect.Bleed;
+import com.abilitycombat.effect.DamageModifier;
 import com.abilitycombat.effect.Infection;
+import com.abilitycombat.effect.Slow;
 import com.abilitycombat.game.GameManager;
 import com.abilitycombat.game.MapManager;
 import com.abilitycombat.npc.PlayerReplicaManager;
@@ -138,8 +140,10 @@ public final class AbilityCombat extends JavaPlugin {
         sprintHudService = new SprintHudService(this);
         getServer().getPluginManager().registerEvents(sprintHudService, this);
         sprintHudService.start();
+        DamageModifier.start(this);
         Bleed.start(this);
         Infection.start(this);
+        Slow.start(this);
         CustomEntityManager.start(this);
         AbilityTickManager.start(this);
         sweepPacketSuppressor = new SweepPacketSuppressor(this);
@@ -211,8 +215,10 @@ public final class AbilityCombat extends JavaPlugin {
             sprintHudService.stop();
             sprintHudService = null;
         }
+        DamageModifier.stop();
         Bleed.stop();
         Infection.stop();
+        Slow.stop();
         CustomEntityManager.stop();
         AbilityTickManager.stop();
         if (sweepPacketSuppressor != null) {
@@ -401,6 +407,5 @@ public final class AbilityCombat extends JavaPlugin {
         AbilityFactory.register(ODMGear.class);
         AbilityFactory.register(Hunter.class);
         AbilityFactory.register(Doppelganger.class);
-        AbilityFactory.register(MachineArm.class);
     }
 }

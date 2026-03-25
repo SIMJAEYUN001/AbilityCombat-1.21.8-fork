@@ -150,7 +150,7 @@ public class BloodFiend extends AbilityBase implements ActiveHandler {
         if (!activeCooldown.isCooldown()) {
             double bonusDamage = stacks * BONUS_DAMAGE_PER_STACK;
             if (bonusDamage > 0) {
-                event.setDamage(event.getDamage() + bonusDamage);
+                addOutgoingDamage(event, bonusDamage);
             }
         }
 

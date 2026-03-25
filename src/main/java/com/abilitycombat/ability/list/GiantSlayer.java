@@ -130,10 +130,7 @@ public class GiantSlayer extends AbilityBase {
 
         // 추가 데미지 계산: 크기 차이 10%당 증가치 반영
         double bonusMultiplier = (sizeDiff / SIZE_DIFF_THRESHOLD) * DAMAGE_PER_SIZE_DIFF;
-        double originalDamage = event.getDamage();
-        double bonusDamage = originalDamage * bonusMultiplier;
-
-        event.setDamage(originalDamage + bonusDamage);
+        increaseOutgoingDamage(event, bonusMultiplier * 100.0);
     }
 
     private double getEntityScale(LivingEntity entity) {

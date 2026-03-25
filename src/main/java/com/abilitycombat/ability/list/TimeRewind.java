@@ -92,7 +92,7 @@ public class TimeRewind extends AbilityBase implements ActiveHandler {
         if (rewinding || cooldown.isCooldown()) {
             return;
         }
-        double finalDamage = event.getFinalDamage();
+        double finalDamage = getCalculatedFinalDamage(event);
         if (player.getHealth() - finalDamage <= 0.0) {
             if (performRewind(false)) {
                 event.setCancelled(true);

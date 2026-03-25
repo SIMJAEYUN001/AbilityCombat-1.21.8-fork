@@ -157,8 +157,7 @@ public class DecayRay extends AbilityBase implements ActiveHandler {
 
             // 버프 데미지 적용
             if (buffRemainingTicks > 0 && buffDamageMultiplier > 0) {
-                double original = event.getDamage();
-                event.setDamage(original * (1 + buffDamageMultiplier));
+                scaleOutgoingDamage(event, 1 + buffDamageMultiplier);
             }
         }
 
@@ -167,8 +166,7 @@ public class DecayRay extends AbilityBase implements ActiveHandler {
             WeaknessData data = weaknessMap.get(attacker.getUniqueId());
             if (data != null && data.stacks > 0) {
                 double reduction = data.stacks * DAMAGE_REDUCTION_PER_STACK;
-                double original = event.getDamage();
-                event.setDamage(original * (1 - reduction));
+                scaleOutgoingDamage(event, 1 - reduction);
             }
         }
     }

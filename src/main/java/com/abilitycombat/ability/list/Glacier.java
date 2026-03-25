@@ -93,7 +93,7 @@ public class Glacier extends AbilityBase implements ActiveHandler {
         UUID targetId = target.getUniqueId();
         if (Freeze.isFrozen(target)) {
             // 빙결 상태인 적 공격 시 추가 피해 (무한 루프 방지)
-            event.setDamage(event.getDamage() + 1.0);
+            addOutgoingDamage(event, 1.0);
             if (cooldown.isCooldown()) {
                 cooldown.setCount(Math.max(0, cooldown.getCount() - 1));
             }
