@@ -118,8 +118,8 @@ public class Emperor extends AbilityBase implements ActiveHandler {
             return;
         }
         if (isGuard(skeleton)) {
-            if (event.getTarget() instanceof LivingEntity living
-                    && !com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), living)) {
+            LivingEntity living = event.getTarget();
+            if (!com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), living)) {
                 event.setCancelled(true);
             }
         }

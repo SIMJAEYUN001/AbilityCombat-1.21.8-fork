@@ -106,8 +106,8 @@ public class Zombie extends AbilityBase implements ActiveHandler {
             return;
         }
         if (isMinion(zombie)) {
-            if (event.getTarget() instanceof LivingEntity living
-                    && !com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), living)) {
+            LivingEntity living = event.getTarget();
+            if (!com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), living)) {
                 event.setCancelled(true);
             }
         }

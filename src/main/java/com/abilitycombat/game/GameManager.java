@@ -1941,6 +1941,7 @@ public class GameManager implements Listener {
         return true;
     }
 
+    @SuppressWarnings("unused")
     private void assignAbility(Player player, AbilityDefinition definition) {
         assignAbility(player, definition, false);
     }
@@ -3575,7 +3576,8 @@ public class GameManager implements Listener {
             return player;
         }
         if (entity instanceof org.bukkit.entity.TNTPrimed tnt
-                && tnt.getSource() instanceof Entity sourceEntity) {
+                && tnt.getSource() != null) {
+            Entity sourceEntity = tnt.getSource();
             return resolveCombatSourcePlayer(sourceEntity);
         }
         if (entity instanceof org.bukkit.entity.Projectile projectile
@@ -3818,8 +3820,8 @@ public class GameManager implements Listener {
 
     @EventHandler
     public void onArmorStandManipulate(PlayerArmorStandManipulateEvent event) {
-        if (event.getRightClicked() instanceof org.bukkit.entity.ArmorStand stand
-                && isAbilityArmorStand(stand)) {
+        org.bukkit.entity.ArmorStand stand = event.getRightClicked();
+        if (isAbilityArmorStand(stand)) {
             event.setCancelled(true);
         }
     }
