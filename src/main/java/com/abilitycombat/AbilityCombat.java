@@ -87,6 +87,7 @@ import com.abilitycombat.ability.AbilityTickManager;
 import com.abilitycombat.combat.SweepPacketSuppressor;
 import com.abilitycombat.entity.CustomEntityManager;
 import com.abilitycombat.effect.Bleed;
+import com.abilitycombat.effect.CrowdControl;
 import com.abilitycombat.effect.DamageModifier;
 import com.abilitycombat.effect.Infection;
 import com.abilitycombat.effect.Slow;
@@ -145,6 +146,7 @@ public final class AbilityCombat extends JavaPlugin {
         Bleed.start(this);
         Infection.start(this);
         Slow.start(this);
+        CrowdControl.start(this);
         CustomEntityManager.start(this);
         AbilityTickManager.start(this);
         sweepPacketSuppressor = new SweepPacketSuppressor(this);
@@ -220,6 +222,7 @@ public final class AbilityCombat extends JavaPlugin {
         Bleed.stop();
         Infection.stop();
         Slow.stop();
+        CrowdControl.stop();
         CustomEntityManager.stop();
         AbilityTickManager.stop();
         if (sweepPacketSuppressor != null) {

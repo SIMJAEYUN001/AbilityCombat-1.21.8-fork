@@ -17,6 +17,7 @@ public final class Disarm {
         if (target == null || ticks <= 0) {
             return;
         }
+        CrowdControl.ensureRunning();
         long until = System.currentTimeMillis() + ticks * 50L;
         UUID uuid = target.getUniqueId();
         Long current = DISARM_ENDS.get(uuid);
@@ -52,5 +53,13 @@ public final class Disarm {
             return 0L;
         }
         return until;
+    }
+
+    static void cleanup(long now) {
+        DISARM_ENDS.values().removeIf(until -> until <= now);
+    }
+
+    static void clear() {
+        DISARM_ENDS.clear();
     }
 }

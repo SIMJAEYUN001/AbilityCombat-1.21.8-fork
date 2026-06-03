@@ -17,6 +17,7 @@ public final class Bind {
         if (target == null || ticks <= 0) {
             return;
         }
+        CrowdControl.ensureRunning();
         long until = System.currentTimeMillis() + ticks * 50L;
         UUID uuid = target.getUniqueId();
         Long current = BIND_ENDS.get(uuid);
@@ -55,5 +56,13 @@ public final class Bind {
             return 0L;
         }
         return until;
+    }
+
+    static void cleanup(long now) {
+        BIND_ENDS.values().removeIf(until -> until <= now);
+    }
+
+    static void clear() {
+        BIND_ENDS.clear();
     }
 }

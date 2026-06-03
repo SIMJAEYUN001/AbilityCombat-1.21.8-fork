@@ -7,12 +7,40 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.UUID;
 
 public final class CrowdControl {
 
+    private static final long CLEANUP_PERIOD_TICKS = 20L;
+
+    private static BukkitTask cleanupTask;
+
     private CrowdControl() {
+    }
+
+    public static void start(AbilityCombat plugin) {
+        if (plugin == null || cleanupTask != null) {
+            return;
+        }
+        cleanupTask = plugin.getServer().getScheduler().runTaskTimer(plugin, CrowdControl::cleanup,
+                CLEANUP_PERIOD_TICKS, CLEANUP_PERIOD_TICKS);
+    }
+
+    public static void stop() {
+        if (cleanupTask != null) {
+            cleanupTask.cancel();
+            cleanupTask = null;
+        }
+        clearAll();
+    }
+
+    public static void clearAll() {
+        Stun.clear();
+        Freeze.clear();
+        Bind.clear();
+        Disarm.clear();
     }
 
     public static void handleDamageByEntity(EntityDamageByEntityEvent event) {
@@ -52,6 +80,12 @@ public final class CrowdControl {
         }
     }
 
+    static void ensureRunning() {
+        if (cleanupTask == null) {
+            start(AbilityCombat.getPlugin());
+        }
+    }
+
     static void refreshMovementLock(LivingEntity target) {
         AbilityCombat plugin = AbilityCombat.getPlugin();
         if (plugin == null) {
@@ -69,5 +103,13 @@ public final class CrowdControl {
         } else {
             gameManager.setMovementLockUntil(target, maxUntil);
         }
+    }
+
+    private static void cleanup() {
+        long now = System.currentTimeMillis();
+        Stun.cleanup(now);
+        Freeze.cleanup(now);
+        Bind.cleanup(now);
+        Disarm.cleanup(now);
     }
 }

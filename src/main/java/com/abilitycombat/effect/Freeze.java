@@ -17,6 +17,7 @@ public final class Freeze {
         if (target == null || ticks <= 0) {
             return;
         }
+        CrowdControl.ensureRunning();
         long now = System.currentTimeMillis();
         long until = now + ticks * 50L;
         UUID uuid = target.getUniqueId();
@@ -55,6 +56,14 @@ public final class Freeze {
             return 0L;
         }
         return until;
+    }
+
+    static void cleanup(long now) {
+        FREEZE_ENDS.values().removeIf(until -> until <= now);
+    }
+
+    static void clear() {
+        FREEZE_ENDS.clear();
     }
 
 }

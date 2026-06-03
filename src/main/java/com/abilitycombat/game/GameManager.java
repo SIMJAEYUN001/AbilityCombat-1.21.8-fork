@@ -9,6 +9,7 @@ import com.abilitycombat.ability.AbilityRank;
 import com.abilitycombat.ability.AbilityRegistry;
 import com.abilitycombat.ability.handler.ActiveHandler;
 import com.abilitycombat.ability.handler.TargetHandler;
+import com.abilitycombat.effect.CrowdControl;
 import com.abilitycombat.gui.AbilityDebugGui;
 import com.abilitycombat.gui.AbilitySelectGui;
 import com.abilitycombat.gui.ConfigGui;
@@ -255,6 +256,8 @@ public class GameManager implements Listener {
 
     public void shutdown() {
         stopTasks();
+        clearMovementLocks();
+        CrowdControl.clearAll();
         restoreFixedDaytime();
     }
 
@@ -420,8 +423,8 @@ public class GameManager implements Listener {
         alivePlayers.clear();
         spectators.clear();
         debugAbilityUsers.clear();
-        movementLocks.clear();
-        storedAi.clear();
+        clearMovementLocks();
+        CrowdControl.clearAll();
         lastSwordSwings.clear();
         naturalRegenCounters.clear();
         manualNaturalRegen.clear();
@@ -1735,8 +1738,7 @@ public class GameManager implements Listener {
             player.setFlying(false);
             player.setCollidable(true);
         }
-        movementLocks.clear();
-        storedAi.clear();
+        clearMovementLocks();
         for (Player viewer : Bukkit.getOnlinePlayers()) {
             for (Player target : Bukkit.getOnlinePlayers()) {
                 viewer.showPlayer(plugin, target);
@@ -2076,6 +2078,16 @@ public class GameManager implements Listener {
             return;
         }
         clearMovementLock(target.getUniqueId());
+    }
+
+    public void clearMovementLocks() {
+        Set<UUID> lockedIds = new HashSet<>(movementLocks.keySet());
+        lockedIds.addAll(storedAi.keySet());
+        for (UUID uuid : lockedIds) {
+            clearMovementLock(uuid);
+        }
+        movementLocks.clear();
+        storedAi.clear();
     }
 
     public boolean isMovementLocked(LivingEntity target) {
