@@ -1,7 +1,5 @@
 package com.abilitycombat.effect;
 
-import com.abilitycombat.AbilityCombat;
-import com.abilitycombat.game.GameManager;
 import org.bukkit.entity.LivingEntity;
 
 import java.util.HashMap;
@@ -26,7 +24,7 @@ public final class Freeze {
         if (current == null || current < until) {
             FREEZE_ENDS.put(uuid, until);
         }
-        refreshMovementLock(target);
+        CrowdControl.refreshMovementLock(target);
     }
 
     public static boolean isFrozen(LivingEntity target) {
@@ -41,7 +39,7 @@ public final class Freeze {
             return;
         }
         FREEZE_ENDS.remove(target.getUniqueId());
-        refreshMovementLock(target);
+        CrowdControl.refreshMovementLock(target);
     }
 
     static long getEndTime(UUID uuid) {
@@ -59,22 +57,4 @@ public final class Freeze {
         return until;
     }
 
-    private static void refreshMovementLock(LivingEntity target) {
-        AbilityCombat plugin = AbilityCombat.getPlugin();
-        if (plugin == null) {
-            return;
-        }
-        GameManager gameManager = plugin.getGameManager();
-        if (gameManager == null) {
-            return;
-        }
-        UUID uuid = target.getUniqueId();
-        long now = System.currentTimeMillis();
-        long maxUntil = Math.max(getEndTime(uuid), Stun.getEndTime(uuid));
-        if (maxUntil <= now) {
-            gameManager.unlockMovement(target);
-        } else {
-            gameManager.setMovementLockUntil(target, maxUntil);
-        }
-    }
 }

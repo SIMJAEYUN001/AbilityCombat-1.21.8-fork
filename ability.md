@@ -50,7 +50,33 @@
 
 ---
 
+## 공통 군중제어기
+
+상태 이상은 `com.abilitycombat.effect` 패키지의 공통 API를 우선 사용합니다.
+
+| 상태 | 적용 API | 효과 |
+|------|----------|------|
+| 기절 | `Stun.apply(target, ticks)` | 이동불가 + 대상이 가하는 `EntityDamageByEntityEvent` 취소 |
+| 속박 | `Bind.apply(target, ticks)` | 이동불가만 적용 |
+| 무장해제 | `Disarm.apply(target, ticks)` | 대상이 가하는 `EntityDamageByEntityEvent` 취소 |
+| 빙결 | `Freeze.apply(target, ticks)` | 기존 빙결 이동불가 유지 |
+
+- 피해 차단은 `EventBridge#onEntityDamageByEntity`에서 `CrowdControl.handleDamageByEntity`로 일괄 처리합니다.
+- 기절과 무장해제는 근접 공격뿐 아니라 투사체의 발사자가 상태 이상일 때도 피해 이벤트를 취소합니다.
+- 이동불가는 `Stun`, `Bind`, `Freeze` 중 가장 긴 종료 시각을 기준으로 `GameManager` 이동 잠금을 유지합니다.
+
+---
+
 ## 📝 변경 이력 (Changelog)
+
+### 2026-06-03 군중제어기 정리
+
+| 항목 | 변경 내용 |
+|------|----------|
+| **기절 (Stun)** | 기존 이동불가에 더해, 기절 중인 주체가 가하는 피해 이벤트를 취소 |
+| **속박 (Bind)** | 이동불가만 적용하는 신규 효과 추가 |
+| **무장해제 (Disarm)** | 피해 이벤트만 취소하는 신규 효과 추가 |
+| **CrowdControl** | 상태별 이동잠금/피해차단 판정을 중앙화 |
 
 ### 2026-01-02 능력 리워크
 

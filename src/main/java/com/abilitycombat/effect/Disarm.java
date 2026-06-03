@@ -6,29 +6,26 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public final class Stun {
+public final class Disarm {
 
-    private static final Map<UUID, Long> STUN_ENDS = new HashMap<>();
+    private static final Map<UUID, Long> DISARM_ENDS = new HashMap<>();
 
-    private Stun() {
+    private Disarm() {
     }
 
     public static void apply(LivingEntity target, int ticks) {
         if (target == null || ticks <= 0) {
             return;
         }
-        long now = System.currentTimeMillis();
-        long until = now + ticks * 50L;
+        long until = System.currentTimeMillis() + ticks * 50L;
         UUID uuid = target.getUniqueId();
-        Long current = STUN_ENDS.get(uuid);
+        Long current = DISARM_ENDS.get(uuid);
         if (current == null || current < until) {
-            STUN_ENDS.put(uuid, until);
+            DISARM_ENDS.put(uuid, until);
         }
-        CrowdControl.cancelDashState(target);
-        CrowdControl.refreshMovementLock(target);
     }
 
-    public static boolean isStunned(LivingEntity target) {
+    public static boolean isDisarmed(LivingEntity target) {
         if (target == null) {
             return false;
         }
@@ -39,23 +36,21 @@ public final class Stun {
         if (target == null) {
             return;
         }
-        STUN_ENDS.remove(target.getUniqueId());
-        CrowdControl.refreshMovementLock(target);
+        DISARM_ENDS.remove(target.getUniqueId());
     }
 
     static long getEndTime(UUID uuid) {
         if (uuid == null) {
             return 0L;
         }
-        Long until = STUN_ENDS.get(uuid);
+        Long until = DISARM_ENDS.get(uuid);
         if (until == null) {
             return 0L;
         }
         if (until <= System.currentTimeMillis()) {
-            STUN_ENDS.remove(uuid);
+            DISARM_ENDS.remove(uuid);
             return 0L;
         }
         return until;
     }
-
 }

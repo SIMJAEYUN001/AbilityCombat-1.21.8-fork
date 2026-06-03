@@ -1,6 +1,7 @@
 package com.abilitycombat.event;
 
 import com.abilitycombat.ability.AbilityBase;
+import com.abilitycombat.effect.CrowdControl;
 import com.abilitycombat.utils.collection.QueueOnIterateHashSet;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
@@ -75,6 +76,10 @@ public final class EventBridge implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+        CrowdControl.handleDamageByEntity(event);
+        if (event.isCancelled()) {
+            return;
+        }
         dispatch(event, EntityDamageByEntityEvent.class);
     }
 

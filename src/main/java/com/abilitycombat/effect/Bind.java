@@ -6,29 +6,28 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public final class Stun {
+public final class Bind {
 
-    private static final Map<UUID, Long> STUN_ENDS = new HashMap<>();
+    private static final Map<UUID, Long> BIND_ENDS = new HashMap<>();
 
-    private Stun() {
+    private Bind() {
     }
 
     public static void apply(LivingEntity target, int ticks) {
         if (target == null || ticks <= 0) {
             return;
         }
-        long now = System.currentTimeMillis();
-        long until = now + ticks * 50L;
+        long until = System.currentTimeMillis() + ticks * 50L;
         UUID uuid = target.getUniqueId();
-        Long current = STUN_ENDS.get(uuid);
+        Long current = BIND_ENDS.get(uuid);
         if (current == null || current < until) {
-            STUN_ENDS.put(uuid, until);
+            BIND_ENDS.put(uuid, until);
         }
         CrowdControl.cancelDashState(target);
         CrowdControl.refreshMovementLock(target);
     }
 
-    public static boolean isStunned(LivingEntity target) {
+    public static boolean isBound(LivingEntity target) {
         if (target == null) {
             return false;
         }
@@ -39,7 +38,7 @@ public final class Stun {
         if (target == null) {
             return;
         }
-        STUN_ENDS.remove(target.getUniqueId());
+        BIND_ENDS.remove(target.getUniqueId());
         CrowdControl.refreshMovementLock(target);
     }
 
@@ -47,15 +46,14 @@ public final class Stun {
         if (uuid == null) {
             return 0L;
         }
-        Long until = STUN_ENDS.get(uuid);
+        Long until = BIND_ENDS.get(uuid);
         if (until == null) {
             return 0L;
         }
         if (until <= System.currentTimeMillis()) {
-            STUN_ENDS.remove(uuid);
+            BIND_ENDS.remove(uuid);
             return 0L;
         }
         return until;
     }
-
 }
