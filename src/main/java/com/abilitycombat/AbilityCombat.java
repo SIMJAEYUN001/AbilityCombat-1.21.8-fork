@@ -66,6 +66,7 @@ import com.abilitycombat.ability.list.Sniper;
 import com.abilitycombat.ability.list.Soul;
 import com.abilitycombat.ability.list.SoulEncroach;
 import com.abilitycombat.ability.list.Stalker;
+import com.abilitycombat.ability.list.StrategicSymbiosis;
 import com.abilitycombat.ability.list.SuperNova;
 import com.abilitycombat.ability.list.SurvivalInstinct;
 import com.abilitycombat.ability.list.Swap;
@@ -367,6 +368,7 @@ public final class AbilityCombat extends JavaPlugin {
         AbilityFactory.register(Terrorist.class);
         AbilityFactory.register(Ira.class);
         AbilityFactory.register(Virtus.class);
+        AbilityFactory.register(StrategicSymbiosis.class);
         AbilityFactory.register(Liberator.class);
         AbilityFactory.register(Hermit.class);
         AbilityFactory.register(Clown.class);

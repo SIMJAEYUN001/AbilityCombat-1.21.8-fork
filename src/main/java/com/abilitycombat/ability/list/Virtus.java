@@ -17,28 +17,36 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 @AbilityManifest(name = "베르투스 (Virtus)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 응보]§f §8(쿨타임: 40초)",
         "§f3초§7간 받는 모든 피해가 §b90% 감소§7합니다.",
         "§7능력 사용 시 §8회색 발광§7 효과가 적용됩니다.",
         "",
         "§e§l[반격]",
-        "§7피해 감소 효과 중 다른 플레이어에게 피해를 받으면,",
-        "§c원래 피해의 100%§7를 공격자에게 §c반사§7하고",
-        "§7쿨타임이 §e4초§7로 감소합니다."
+        "§7피해 감소 시간 동안 다른 플레이어에게 받은 피해를 축적하고,",
+        "§7종료 시 축적 피해의 §c40%§7를 공격자에게 한 번에 반사합니다.",
+        "§7반사 성공 시 쿨타임이 §e4초§7로 감소합니다.",
+        "§7반사하지 못하고 끝나면 쿨타임이 §e25초§7로 감소합니다."
 }, summarize = {
-        "§7철괴 우클릭§f: 3초간 피해 90% 감소 + 반격"
+        "§7철괴 우클릭§f: 3초간 피해 90% 감소 + 누적 반격"
 })
 public class Virtus extends AbilityBase implements ActiveHandler {
 
     private static final int COOLDOWN_SECONDS = 40;
-    private static final int REDUCED_COOLDOWN_SECONDS = 4;
+    private static final int REFLECT_COOLDOWN_SECONDS = 4;
+    private static final int NO_REFLECT_COOLDOWN_SECONDS = 25;
     private static final int DURATION_TICKS = 60; // 3초
     private static final double DAMAGE_MULTIPLIER = 0.1;
+    private static final double REFLECT_RATIO = 0.4;
 
     private Cooldown cooldown = new Cooldown(COOLDOWN_SECONDS);
     private boolean guarding;
     private int guardEndTick = -1;
+    private final Map<UUID, Double> accumulatedDamageByAttacker = new HashMap<>();
 
     public Virtus(Participant participant) {
         super(participant);
@@ -55,6 +63,7 @@ public class Virtus extends AbilityBase implements ActiveHandler {
         unregisterTick();
         guarding = false;
         guardEndTick = -1;
+        accumulatedDamageByAttacker.clear();
         removeGlowEffect();
     }
 
@@ -71,10 +80,7 @@ public class Virtus extends AbilityBase implements ActiveHandler {
             return false;
         }
         startGuard();
-        // 항상 40초 쿨다운으로 시작
-        cooldown = new Cooldown(COOLDOWN_SECONDS);
-        cooldown.start();
-        applyIronCooldownIfEmpty(COOLDOWN_SECONDS);
+        startCooldown(COOLDOWN_SECONDS);
         return true;
     }
 
@@ -107,22 +113,9 @@ public class Virtus extends AbilityBase implements ActiveHandler {
                 }
             }, 1L);
 
-            if (byEntity.getDamager() instanceof Player attacker && !attacker.equals(player)) {
-            Bukkit.getScheduler().runTaskLater(AbilityCombat.getPlugin(), () -> {
-                if (attacker.isOnline() && !attacker.isDead()
-                        && AbilityCombat.getPlugin().getGameManager().canApplyNegativeEffect(player, attacker)) {
-                    attacker.damage(originalFinalDamage, player);
-                    attacker.playSound(attacker.getLocation(), Sound.ENCHANT_THORNS_HIT, 1.0f, 0.8f);
-                    player.playSound(player.getLocation(), Sound.ENCHANT_THORNS_HIT, 1.0f, 0.8f);
-                }
-            }, 1L);
-
-                cooldown.stop(true);
-                cooldown = new Cooldown(REDUCED_COOLDOWN_SECONDS);
-                cooldown.start();
-                applyIronCooldownIfEmpty(REDUCED_COOLDOWN_SECONDS);
-
-                stopGuard();
+            if (byEntity.getDamager() instanceof Player attacker && !attacker.equals(player)
+                    && AbilityCombat.getPlugin().getGameManager().canApplyNegativeEffect(player, attacker)) {
+                accumulatedDamageByAttacker.merge(attacker.getUniqueId(), originalFinalDamage, Double::sum);
             }
         }
     }
@@ -130,6 +123,7 @@ public class Virtus extends AbilityBase implements ActiveHandler {
     private void startGuard() {
         guarding = true;
         guardEndTick = getCurrentTick() + DURATION_TICKS;
+        accumulatedDamageByAttacker.clear();
 
         Player player = getPlayer();
         player.playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1.0f, 1.2f);
@@ -138,10 +132,44 @@ public class Virtus extends AbilityBase implements ActiveHandler {
         applyGlowEffect();
     }
 
-    private void stopGuard() {
+    private void stopGuard(boolean naturalEnd) {
+        boolean reflected = false;
+        Player player = getPlayer();
+        if (naturalEnd && guarding && player != null && player.isOnline() && !player.isDead()) {
+            reflected = reflectAccumulatedDamage(player);
+            startCooldown(reflected ? REFLECT_COOLDOWN_SECONDS : NO_REFLECT_COOLDOWN_SECONDS);
+        }
         guarding = false;
         guardEndTick = -1;
+        accumulatedDamageByAttacker.clear();
         removeGlowEffect();
+    }
+
+    private boolean reflectAccumulatedDamage(Player player) {
+        boolean reflected = false;
+        for (Map.Entry<UUID, Double> entry : accumulatedDamageByAttacker.entrySet()) {
+            Player attacker = Bukkit.getPlayer(entry.getKey());
+            double reflectedDamage = entry.getValue() * REFLECT_RATIO;
+            if (attacker == null || !attacker.isOnline() || attacker.isDead() || reflectedDamage <= 0.0) {
+                continue;
+            }
+            attacker.damage(reflectedDamage, player);
+            attacker.playSound(attacker.getLocation(), Sound.ENCHANT_THORNS_HIT, 1.0f, 0.8f);
+            reflected = true;
+        }
+        if (reflected) {
+            player.playSound(player.getLocation(), Sound.ENCHANT_THORNS_HIT, 1.0f, 0.8f);
+        }
+        return reflected;
+    }
+
+    private void startCooldown(int seconds) {
+        if (cooldown != null && cooldown.isCooldown()) {
+            cooldown.stop(true);
+        }
+        cooldown = new Cooldown(seconds);
+        cooldown.start();
+        applyIronCooldownIfEmpty(seconds);
     }
 
     private void applyGlowEffect() {
@@ -184,7 +212,7 @@ public class Virtus extends AbilityBase implements ActiveHandler {
 
         // 가드 시간 체크
         if (guarding && guardEndTick > 0 && tick >= guardEndTick) {
-            stopGuard();
+            stopGuard(true);
         }
     }
 }

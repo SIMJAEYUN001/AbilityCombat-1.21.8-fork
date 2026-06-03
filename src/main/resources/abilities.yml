@@ -195,8 +195,18 @@ abilities:
     rank: A
     icon: TOTEM_OF_UNDYING
     summary:
-      - "피해 90% 감소"
-      - "지속시간 3초"
+      - "철괴 우클릭: 3초간 피해 90% 감소"
+      - "피해 감소 중 받은 플레이어 피해 누적"
+      - "종료 시 공격자별 누적 피해 40% 반사"
+      - "쿨타임: 기본 40초 / 반사 성공 4초 / 반사 없음 25초"
+  - name: "전략적 공생 (StrategicSymbiosis)"
+    rank: A
+    icon: AMETHYST_SHARD
+    summary:
+      - "철괴 타격: 적 1명을 공생 대상으로 지정"
+      - "대상 피격: 최종 피해 10%를 방어 무시로 대신 받음"
+      - "대상 공격: 대상이 입힌 최종 피해 25% 회복"
+      - "대상 사망: 최대 체력 +2, 쿨타임 초기화"
   - name: "리버레이터 (Liberator)"
     rank: A
     icon: SPECTRAL_ARROW
