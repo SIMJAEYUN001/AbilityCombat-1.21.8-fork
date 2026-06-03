@@ -28,39 +28,38 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
 
 @AbilityManifest(name = "정원사 (Gardener)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
-        "§e§l[철괴 좌클릭 - 개화]§f §8(공유 쿨타임: 45초)",
+        "§e§l[철괴 좌클릭 - 개화]§f §8(쿨타임: 25초)",
         "§7주변 §f10칸§7 지면을 §a잔디 블록§7으로 바꾸고,",
         "§7범위 내 자신과 팀원에게 §e흡수 III§7를 §f6초§7간 부여합니다.",
         "§7이후 §f1.5초§7마다 잔디 §a10개§7, 민들레 §e10개§7, 양귀비 §c10개§7를",
         "§7순서대로 피워낸 뒤, 범위 내 적을 §e5초 기절§7시키고 §c15 피해§7를 입힙니다.",
         "",
-        "§e§l[철괴 우클릭 - 생명의 나무]§f §8(공유 쿨타임: 45초)",
-        "§7바라보는 방향 §f앞 2칸§7에 파괴 가능한 §2나무 엔티티§7를 설치합니다. (체력: §f75§7)",
-        "§7나무를 공격할 때 들고 있는 아이템에 따라 피해량이 달라집니다.",
-        "§7나무는 §f20초§7간 유지되며, 주변 §f3칸§7 내 자신과 팀원을",
-        "§f1초§7마다 §a3 체력§7 회복시키고, 회복 범위를 이펙트로 표시합니다."
+        "§e§l[철괴 우클릭 - 생명의 나무]§f §8(쿨타임: 45초)",
+        "§7바라보는 방향 §f앞 2칸§7에 파괴 가능한 §2나무 엔티티§7를 설치합니다. (체력: §f50§7)",
+        "§7나무는 실제 무기 피해와 인챈트 피해를 반영해 피해를 받습니다.",
+        "§7나무는 §f20초§7간 유지되며, 주변 §f5칸§7 내 자신과 팀원을",
+        "§f0.5초§7마다 §a1 체력§7 회복시키고, 회복 범위를 이펙트로 표시합니다."
 }, summarize = {
         "§7철괴 좌클릭§f: 10칸 잔디화 + 팀 흡수 III + 순차 개화 후 적 기절/15피해",
-        "§7철괴 우클릭§f: 체력 75 참나무 설치, 아이템별 피해량 적용 + 주변 아군 1초마다 3 회복 (20초)",
-        "§7좌우클릭§f: 공유 쿨타임 45초"
+        "§7철괴 우클릭§f: 체력 50 참나무 설치, 실제 무기/인챈트 피해 반영",
+        "§7생명의 나무§f: 주변 5칸 아군 0.5초마다 1 회복",
+        "§7쿨타임§f: 개화 25초 / 생명의 나무 45초"
 })
 public class Gardener extends AbilityBase implements ActiveHandler {
 
-    private static final int SHARED_COOLDOWN_SECONDS = 45;
+    private static final int BLOOM_COOLDOWN_SECONDS = 25;
+    private static final int TREE_COOLDOWN_SECONDS = 45;
 
     private static final double BLOOM_RADIUS = 10.0;
     private static final int ABSORPTION_TICKS = 6 * 20;
@@ -72,13 +71,16 @@ public class Gardener extends AbilityBase implements ActiveHandler {
     private static final int FLOWERS_PER_TYPE = 10;
 
     private static final double TREE_FORWARD_DISTANCE = 2.0;
-    private static final double TREE_HEAL_RADIUS = 3.0;
-    private static final double TREE_HEAL_AMOUNT = 3.0;
+    private static final double TREE_HEAL_RADIUS = 5.0;
+    private static final double TREE_HEAL_AMOUNT = 1.0;
+    private static final int TREE_HEAL_INTERVAL_TICKS = 10;
     private static final int TREE_DURATION_TICKS = 20 * 20;
-    private static final double TREE_MAX_HEALTH = 75.0;
+    private static final double TREE_MAX_HEALTH = 50.0;
     private static final int TREE_DAMAGE_INVULNERABLE_TICKS = 15;
-    private static final float TREE_HITBOX_WIDTH = 3.0f;
-    private static final float TREE_HITBOX_HEIGHT = 4.0f;
+    private static final float TREE_TRUNK_RADIUS = 0.5f;
+    private static final float TREE_HITBOX_EXTRA_RADIUS = 0.2f;
+    private static final float TREE_HITBOX_WIDTH = (TREE_TRUNK_RADIUS + TREE_HITBOX_EXTRA_RADIUS) * 2.0f;
+    private static final float TREE_HITBOX_HEIGHT = 3.2f;
     private static final int TREE_RANGE_EFFECT_INTERVAL_TICKS = 6;
     private static final int TREE_RANGE_PARTICLE_POINTS = 36;
     private static final double TREE_RANGE_PARTICLE_Y = 0.15;
@@ -87,7 +89,7 @@ public class Gardener extends AbilityBase implements ActiveHandler {
     private static final Particle.DustOptions TREE_RANGE_DUST = new Particle.DustOptions(Color.fromRGB(90, 220, 120),
             1.25f);
 
-    private final Cooldown cooldown = new Cooldown(SHARED_COOLDOWN_SECONDS);
+    private final Cooldown cooldown = new Cooldown(TREE_COOLDOWN_SECONDS);
 
     private BloomField activeBloom;
     private TreeData activeTree;
@@ -127,10 +129,13 @@ public class Gardener extends AbilityBase implements ActiveHandler {
         }
 
         boolean activated = false;
+        int cooldownSeconds = TREE_COOLDOWN_SECONDS;
         if (clickType == ClickType.LEFT_CLICK) {
             activated = activateBloom();
+            cooldownSeconds = BLOOM_COOLDOWN_SECONDS;
         } else if (clickType == ClickType.RIGHT_CLICK) {
             activated = activateTree();
+            cooldownSeconds = TREE_COOLDOWN_SECONDS;
         }
 
         if (!activated) {
@@ -138,7 +143,8 @@ public class Gardener extends AbilityBase implements ActiveHandler {
         }
 
         cooldown.start();
-        applyIronCooldownIfEmpty(SHARED_COOLDOWN_SECONDS);
+        cooldown.setCount(cooldownSeconds);
+        applyIronCooldownIfEmpty(cooldownSeconds);
         return true;
     }
 
@@ -199,7 +205,7 @@ public class Gardener extends AbilityBase implements ActiveHandler {
             entity.setCustomNameVisible(true);
         });
         AbilityCombat.markAbilityArmorStand(stand);
-        Interaction hitbox = treeLocation.getWorld().spawn(treeLocation.clone().add(0.0, 1.5, 0.0), Interaction.class,
+        Interaction hitbox = treeLocation.getWorld().spawn(treeLocation.clone().add(0.0, 1.0, 0.0), Interaction.class,
                 entity -> {
                     entity.setInteractionWidth(TREE_HITBOX_WIDTH);
                     entity.setInteractionHeight(TREE_HITBOX_HEIGHT);
@@ -223,11 +229,12 @@ public class Gardener extends AbilityBase implements ActiveHandler {
             return;
         }
 
+        double damage = getTreeDamage(event);
         event.setCancelled(true);
         if (activeTree.damageInvulnerableTicks > 0) {
             return;
         }
-        activeTree.health = Math.max(0.0, activeTree.health - getTreeDamage(event));
+        activeTree.health = Math.max(0.0, activeTree.health - damage);
         activeTree.damageInvulnerableTicks = TREE_DAMAGE_INVULNERABLE_TICKS;
         activeTree.stand.customName(Component.text(buildTreeName(activeTree.health)));
         activeTree.stand.getWorld().playSound(activeTree.stand.getLocation(), Sound.BLOCK_WOOD_HIT, 0.9f, 0.9f);
@@ -238,53 +245,7 @@ public class Gardener extends AbilityBase implements ActiveHandler {
     }
 
     private double getTreeDamage(EntityDamageByEntityEvent event) {
-        if (event.getDamager() instanceof Player player) {
-            return getHeldItemTreeDamage(player.getInventory().getItemInMainHand().getType());
-        }
         return Math.max(1.0, getCalculatedFinalDamage(event));
-    }
-
-    private double getHeldItemTreeDamage(Material material) {
-        if (material == null || material == Material.AIR) {
-            return 1.0;
-        }
-        String name = material.name();
-        if (material == Material.MACE) {
-            return 9.0;
-        }
-        if (material == Material.TRIDENT) {
-            return 6.0;
-        }
-        if (name.endsWith("_AXE")) {
-            return getTierDamage(name, 4.0, 5.0, 6.0, 7.0, 8.0);
-        }
-        if (name.endsWith("_SWORD")) {
-            return getTierDamage(name, 3.0, 4.0, 5.0, 6.0, 7.0);
-        }
-        if (name.endsWith("_PICKAXE") || name.endsWith("_SHOVEL") || name.endsWith("_HOE")) {
-            return getTierDamage(name, 2.0, 3.0, 4.0, 5.0, 6.0);
-        }
-        return 1.0;
-    }
-
-    private double getTierDamage(String materialName, double woodOrGold, double stone, double iron, double diamond,
-            double netherite) {
-        if (materialName.startsWith("WOODEN_") || materialName.startsWith("GOLDEN_")) {
-            return woodOrGold;
-        }
-        if (materialName.startsWith("STONE_")) {
-            return stone;
-        }
-        if (materialName.startsWith("IRON_")) {
-            return iron;
-        }
-        if (materialName.startsWith("DIAMOND_")) {
-            return diamond;
-        }
-        if (materialName.startsWith("NETHERITE_")) {
-            return netherite;
-        }
-        return 1.0;
     }
 
     private void onBlockBreak(BlockBreakEvent event) {
@@ -344,7 +305,7 @@ public class Gardener extends AbilityBase implements ActiveHandler {
             activeTree.damageInvulnerableTicks--;
         }
 
-        if (tick % 20 == 0) {
+        if (tick % TREE_HEAL_INTERVAL_TICKS == 0) {
             healAroundTree();
         }
         if (tick % TREE_RANGE_EFFECT_INTERVAL_TICKS == 0) {
