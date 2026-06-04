@@ -37,7 +37,6 @@ import com.abilitycombat.ability.list.Hermit;
 import com.abilitycombat.ability.list.HigherBeing;
 import com.abilitycombat.ability.list.Hunter;
 import com.abilitycombat.ability.list.Imprison;
-import com.abilitycombat.ability.list.InspiredAbilityPack;
 import com.abilitycombat.ability.list.Ira;
 import com.abilitycombat.ability.list.JellyFish;
 import com.abilitycombat.ability.list.Khazhad;
@@ -414,6 +413,5 @@ public final class AbilityCombat extends JavaPlugin {
         AbilityFactory.register(ODMGear.class);
         AbilityFactory.register(Hunter.class);
         AbilityFactory.register(Doppelganger.class);
-        InspiredAbilityPack.registerAll();
     }
 }
