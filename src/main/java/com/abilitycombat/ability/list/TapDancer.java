@@ -32,7 +32,6 @@ public class TapDancer extends AbilityBase {
     private static final double SPEED_PER_STACK = 0.012;
     private static final int DECAY_IDLE_TICKS = 60;
     private static final int GAUGE_PRIORITY = 5;
-    private static final double GAUGE_REFERENCE_STACKS = 20.0;
 
     private final BossBarGauge stackGauge = new BossBarGauge("tempo", GAUGE_PRIORITY, BossBar.Color.YELLOW,
             BossBar.Overlay.NOTCHED_10);
@@ -84,7 +83,9 @@ public class TapDancer extends AbilityBase {
         idleTicks++;
         if (idleTicks >= DECAY_IDLE_TICKS) {
             clearStacks();
+            return;
         }
+        updateGauge();
     }
 
     private void addStack() {
@@ -125,7 +126,8 @@ public class TapDancer extends AbilityBase {
                 .append(Component.text(stack + "스택", NamedTextColor.WHITE))
                 .append(Component.text("  이동속도 +" + String.format("%.3f", SPEED_PER_STACK * stack),
                         NamedTextColor.GRAY));
-        stackGauge.update(title, Math.min(1.0, stack / GAUGE_REFERENCE_STACKS));
+        double remainingRatio = 1.0 - ((double) idleTicks / DECAY_IDLE_TICKS);
+        stackGauge.update(title, Math.max(0.0, Math.min(1.0, remainingRatio)));
     }
 
     private void clearStacks() {
