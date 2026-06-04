@@ -288,13 +288,6 @@ public abstract class AbilityBase implements Listener, AbilityTickManager.Tickab
     }
 
     /**
-     * 능력 등급 반환
-     */
-    public AbilityManifest.Rank getRank() {
-        return descriptor.rank();
-    }
-
-    /**
      * 능력 종족 반환
      */
     public AbilityManifest.Species getSpecies() {

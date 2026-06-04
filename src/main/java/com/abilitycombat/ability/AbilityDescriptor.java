@@ -7,7 +7,6 @@ import java.util.List;
 
 public record AbilityDescriptor(
         String name,
-        AbilityManifest.Rank rank,
         AbilityManifest.Species species,
         List<String> explain,
         List<String> summarize,
@@ -15,7 +14,6 @@ public record AbilityDescriptor(
         List<Integer> cooldowns) {
 
     public AbilityDescriptor {
-        rank = rank == null ? AbilityManifest.Rank.A : rank;
         species = species == null ? AbilityManifest.Species.OTHERS : species;
         explain = explain == null ? Collections.emptyList() : List.copyOf(explain);
         summarize = summarize == null ? Collections.emptyList() : List.copyOf(summarize);
@@ -28,7 +26,6 @@ public record AbilityDescriptor(
         }
         return new AbilityDescriptor(
                 manifest.name(),
-                manifest.rank(),
                 manifest.species(),
                 List.of(manifest.explain()),
                 List.of(manifest.summarize()),

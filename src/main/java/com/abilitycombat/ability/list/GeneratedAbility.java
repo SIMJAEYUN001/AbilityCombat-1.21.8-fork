@@ -1,11 +1,13 @@
 package com.abilitycombat.ability.list;
 
+import com.abilitycombat.AbilityCombat;
 import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.handler.ActiveHandler;
 import com.abilitycombat.effect.Bind;
 import com.abilitycombat.effect.Disarm;
 import com.abilitycombat.effect.Freeze;
 import com.abilitycombat.effect.Stun;
+import com.abilitycombat.game.GameManager;
 import com.abilitycombat.game.Participant;
 import com.abilitycombat.utils.LocationUtil;
 import com.abilitycombat.utils.ParticleUtil;
@@ -56,6 +58,7 @@ public class GeneratedAbility extends AbilityBase implements ActiveHandler {
             case GUARD -> castGuard(player);
             case PULL -> castPull(player);
         };
+        used = applyRoleBenefits(player) || used;
         if (!used) {
             player.sendMessage("§c대상이 없습니다.");
             return false;
@@ -97,7 +100,9 @@ public class GeneratedAbility extends AbilityBase implements ActiveHandler {
             hit = true;
         }
         playImpact(player.getLocation());
-        heal(player, spec.heal());
+        if (spec.role() == GeneratedAbilitySpec.Role.ATTACK) {
+            heal(player, spec.heal());
+        }
         return hit || spec.heal() > 0.0;
     }
 
@@ -111,15 +116,19 @@ public class GeneratedAbility extends AbilityBase implements ActiveHandler {
             knockAway(player, target);
         }
         playImpact(center);
-        heal(player, spec.heal());
+        if (spec.role() == GeneratedAbilitySpec.Role.ATTACK) {
+            heal(player, spec.heal());
+        }
         return true;
     }
 
     private boolean castGuard(Player player) {
         int duration = Math.max(40, spec.crowdControlTicks());
-        player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, duration, 0, true, false));
-        player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, duration, 0, true, false));
-        heal(player, spec.heal());
+        if (spec.role() != GeneratedAbilitySpec.Role.DEFENSE) {
+            player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, duration, 0, true, false));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, duration, 0, true, false));
+            heal(player, spec.heal());
+        }
         Collection<LivingEntity> targets = LocationUtil.getNearbyLivingEntities(
                 player.getLocation(), Math.max(3.0, spec.radius() * 0.7), player, null);
         for (LivingEntity target : targets) {
@@ -162,10 +171,14 @@ public class GeneratedAbility extends AbilityBase implements ActiveHandler {
         if (!LocationUtil.isValidTarget(source, target)) {
             return;
         }
+        boolean wasFrozen = Freeze.isFrozen(target);
         if (damage > 0.0) {
             target.damage(damage, source);
         }
         applyCrowdControl(target, spec.crowdControl(), crowdControlTicks);
+        if (wasFrozen && spec.crowdControl() == GeneratedAbilitySpec.CrowdControlType.FREEZE) {
+            heal(source, 1.0);
+        }
     }
 
     private void applyCrowdControl(LivingEntity target, GeneratedAbilitySpec.CrowdControlType type, int ticks) {
@@ -180,6 +193,62 @@ public class GeneratedAbility extends AbilityBase implements ActiveHandler {
             case NONE -> {
             }
         }
+    }
+
+    private boolean applyRoleBenefits(Player player) {
+        return switch (spec.role()) {
+            case ATTACK -> false;
+            case DEFENSE -> applyDefenseBenefits(player);
+            case SUPPORT -> applySupportBenefits(player);
+        };
+    }
+
+    private boolean applyDefenseBenefits(Player player) {
+        int duration = Math.max(80, Math.min(140, spec.cooldownSeconds() * 2));
+        cleanseCrowdControl(player);
+        player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, duration, 0, true, false));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, duration, 0, true, false));
+        heal(player, spec.heal());
+        return true;
+    }
+
+    private boolean applySupportBenefits(Player player) {
+        int duration = Math.max(80, Math.min(140, spec.cooldownSeconds() * 2));
+        double radius = Math.max(5.0, spec.radius());
+        boolean buffed = applySupportBuff(player, duration);
+        for (Player ally : LocationUtil.getNearbyEntities(Player.class, player.getLocation(), radius,
+                candidate -> isAlly(player, candidate))) {
+            buffed = applySupportBuff(ally, duration) || buffed;
+        }
+        return buffed;
+    }
+
+    private boolean applySupportBuff(Player player, int duration) {
+        if (player == null || player.isDead()) {
+            return false;
+        }
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, duration, 0, true, false));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, Math.max(60, duration / 2), 0, true,
+                false));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, Math.max(60, duration / 2), 0, true,
+                false));
+        return true;
+    }
+
+    private boolean isAlly(Player source, Player candidate) {
+        if (source == null || candidate == null || candidate.equals(source) || !LocationUtil.isValidTarget(candidate)) {
+            return false;
+        }
+        AbilityCombat plugin = AbilityCombat.getPlugin();
+        GameManager gameManager = plugin != null ? plugin.getGameManager() : null;
+        return gameManager != null && gameManager.areTeammates(source, candidate);
+    }
+
+    private void cleanseCrowdControl(LivingEntity target) {
+        Stun.remove(target);
+        Bind.remove(target);
+        Disarm.remove(target);
+        Freeze.remove(target);
     }
 
     private void knockAway(Player source, LivingEntity target) {

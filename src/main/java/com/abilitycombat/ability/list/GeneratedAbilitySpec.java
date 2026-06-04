@@ -4,6 +4,7 @@ import com.abilitycombat.ability.AbilityDescriptor;
 
 public record GeneratedAbilitySpec(
         AbilityDescriptor descriptor,
+        Role role,
         Pattern pattern,
         CrowdControlType crowdControl,
         int cooldownSeconds,
@@ -13,6 +14,12 @@ public record GeneratedAbilitySpec(
         int crowdControlTicks,
         double heal,
         double knockback) {
+
+    public enum Role {
+        ATTACK,
+        DEFENSE,
+        SUPPORT
+    }
 
     public enum Pattern {
         STRIKE,

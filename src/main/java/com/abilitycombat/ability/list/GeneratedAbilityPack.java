@@ -54,7 +54,45 @@ public final class GeneratedAbilityPack {
             Material.COPPER_INGOT, Material.ECHO_SHARD, Material.PRISMARINE_SHARD, Material.GOLD_INGOT
     };
 
-    private static final GeneratedAbilitySpec.Pattern[] PATTERNS = GeneratedAbilitySpec.Pattern.values();
+    private static final int ATTACK_COUNT = 60;
+    private static final int DEFENSE_COUNT = 20;
+    private static final int SUPPORT_COUNT = 20;
+    private static final GeneratedAbilitySpec.Pattern[] ATTACK_PATTERNS = {
+            GeneratedAbilitySpec.Pattern.STRIKE,
+            GeneratedAbilitySpec.Pattern.DASH,
+            GeneratedAbilitySpec.Pattern.BLAST,
+            GeneratedAbilitySpec.Pattern.NOVA,
+            GeneratedAbilitySpec.Pattern.STRIKE,
+            GeneratedAbilitySpec.Pattern.DASH,
+            GeneratedAbilitySpec.Pattern.PULL,
+            GeneratedAbilitySpec.Pattern.BLAST,
+            GeneratedAbilitySpec.Pattern.NOVA,
+            GeneratedAbilitySpec.Pattern.STRIKE
+    };
+    private static final GeneratedAbilitySpec.Pattern[] DEFENSE_PATTERNS = {
+            GeneratedAbilitySpec.Pattern.GUARD,
+            GeneratedAbilitySpec.Pattern.GUARD,
+            GeneratedAbilitySpec.Pattern.NOVA,
+            GeneratedAbilitySpec.Pattern.GUARD,
+            GeneratedAbilitySpec.Pattern.DASH,
+            GeneratedAbilitySpec.Pattern.GUARD,
+            GeneratedAbilitySpec.Pattern.PULL,
+            GeneratedAbilitySpec.Pattern.GUARD,
+            GeneratedAbilitySpec.Pattern.NOVA,
+            GeneratedAbilitySpec.Pattern.GUARD
+    };
+    private static final GeneratedAbilitySpec.Pattern[] SUPPORT_PATTERNS = {
+            GeneratedAbilitySpec.Pattern.PULL,
+            GeneratedAbilitySpec.Pattern.NOVA,
+            GeneratedAbilitySpec.Pattern.BLAST,
+            GeneratedAbilitySpec.Pattern.GUARD,
+            GeneratedAbilitySpec.Pattern.STRIKE,
+            GeneratedAbilitySpec.Pattern.PULL,
+            GeneratedAbilitySpec.Pattern.NOVA,
+            GeneratedAbilitySpec.Pattern.BLAST,
+            GeneratedAbilitySpec.Pattern.GUARD,
+            GeneratedAbilitySpec.Pattern.DASH
+    };
     private static final GeneratedAbilitySpec.CrowdControlType[] CONTROLS = {
             GeneratedAbilitySpec.CrowdControlType.STUN,
             GeneratedAbilitySpec.CrowdControlType.BIND,
@@ -81,56 +119,124 @@ public final class GeneratedAbilityPack {
     private static List<GeneratedAbilitySpec> buildSpecs() {
         List<GeneratedAbilitySpec> specs = new ArrayList<>(NAMES.length);
         for (int index = 0; index < NAMES.length; index++) {
-            GeneratedAbilitySpec.Pattern pattern = PATTERNS[index % PATTERNS.length];
-            GeneratedAbilitySpec.CrowdControlType control = CONTROLS[index % CONTROLS.length];
-            int cooldown = 18 + ((index * 7) % 43);
-            double damage = baseDamage(pattern) + (index % 4) * 0.35;
+            GeneratedAbilitySpec.Role role = roleFor(index);
+            int roleIndex = roleIndex(index, role);
+            GeneratedAbilitySpec.Pattern pattern = patternFor(role, roleIndex);
+            GeneratedAbilitySpec.CrowdControlType control = CONTROLS[(roleIndex + index / 20) % CONTROLS.length];
+            int cooldown = cooldownFor(role, roleIndex);
+            double damage = baseDamage(role, pattern) + (roleIndex % 4) * 0.25;
             if (control == GeneratedAbilitySpec.CrowdControlType.STUN
                     || control == GeneratedAbilitySpec.CrowdControlType.FREEZE) {
-                damage -= 0.75;
+                damage -= role == GeneratedAbilitySpec.Role.ATTACK ? 0.65 : 0.35;
             }
             double range = 11.0 + (index % 5) * 1.5;
-            double radius = baseRadius(pattern) + (index % 3) * 0.35;
+            double radius = baseRadius(role, pattern) + (roleIndex % 3) * 0.3;
             int controlTicks = controlTicks(control) + (cooldown > 45 ? 10 : 0);
-            double heal = pattern == GeneratedAbilitySpec.Pattern.GUARD ? 4.0 + (index % 3)
-                    : (pattern == GeneratedAbilitySpec.Pattern.DASH && index % 2 == 0 ? 1.5 : 0.0);
-            double knockback = pattern == GeneratedAbilitySpec.Pattern.PULL ? 0.65
-                    : (pattern == GeneratedAbilitySpec.Pattern.NOVA || pattern == GeneratedAbilitySpec.Pattern.DASH ? 0.55 : 0.0);
+            double heal = healFor(role, pattern, roleIndex);
+            double knockback = knockbackFor(pattern);
             String displayName = displayName(NAMES[index]);
             AbilityDescriptor descriptor = new AbilityDescriptor(
                     NAMES[index],
-                    null,
                     AbilityManifest.Species.OTHERS,
-                    explain(displayName, pattern, control, cooldown, damage, radius, range, controlTicks, heal),
-                    summarize(pattern, control, cooldown),
+                    explain(displayName, role, pattern, control, cooldown, damage, radius, range, controlTicks, heal),
+                    summarize(role, pattern, control, cooldown),
                     ICONS[index % ICONS.length],
                     List.of(cooldown));
             specs.add(new GeneratedAbilitySpec(
-                    descriptor, pattern, control, cooldown, Math.max(0.0, damage), range, radius,
+                    descriptor, role, pattern, control, cooldown, Math.max(0.0, damage), range, radius,
                     controlTicks, heal, knockback));
         }
         return List.copyOf(specs);
     }
 
-    private static double baseDamage(GeneratedAbilitySpec.Pattern pattern) {
-        return switch (pattern) {
-            case STRIKE -> 6.2;
-            case BLAST -> 4.3;
-            case NOVA -> 3.8;
-            case DASH -> 5.0;
-            case GUARD -> 0.0;
-            case PULL -> 3.2;
+    private static GeneratedAbilitySpec.Role roleFor(int index) {
+        if (index < ATTACK_COUNT) {
+            return GeneratedAbilitySpec.Role.ATTACK;
+        }
+        if (index < ATTACK_COUNT + DEFENSE_COUNT) {
+            return GeneratedAbilitySpec.Role.DEFENSE;
+        }
+        return GeneratedAbilitySpec.Role.SUPPORT;
+    }
+
+    private static int roleIndex(int index, GeneratedAbilitySpec.Role role) {
+        return switch (role) {
+            case ATTACK -> index;
+            case DEFENSE -> index - ATTACK_COUNT;
+            case SUPPORT -> index - ATTACK_COUNT - DEFENSE_COUNT;
         };
     }
 
-    private static double baseRadius(GeneratedAbilitySpec.Pattern pattern) {
-        return switch (pattern) {
+    private static GeneratedAbilitySpec.Pattern patternFor(GeneratedAbilitySpec.Role role, int roleIndex) {
+        return switch (role) {
+            case ATTACK -> ATTACK_PATTERNS[roleIndex % ATTACK_PATTERNS.length];
+            case DEFENSE -> DEFENSE_PATTERNS[roleIndex % DEFENSE_PATTERNS.length];
+            case SUPPORT -> SUPPORT_PATTERNS[roleIndex % SUPPORT_PATTERNS.length];
+        };
+    }
+
+    private static int cooldownFor(GeneratedAbilitySpec.Role role, int roleIndex) {
+        return switch (role) {
+            case ATTACK -> 20 + ((roleIndex * 7) % 41);
+            case DEFENSE -> 24 + ((roleIndex * 9) % 37);
+            case SUPPORT -> 18 + ((roleIndex * 8) % 35);
+        };
+    }
+
+    private static double baseDamage(GeneratedAbilitySpec.Role role, GeneratedAbilitySpec.Pattern pattern) {
+        return switch (role) {
+            case ATTACK -> switch (pattern) {
+                case STRIKE -> 6.2;
+                case BLAST -> 4.4;
+                case NOVA -> 3.8;
+                case DASH -> 5.4;
+                case GUARD -> 0.0;
+                case PULL -> 3.8;
+            };
+            case DEFENSE -> switch (pattern) {
+                case STRIKE -> 3.1;
+                case BLAST -> 2.7;
+                case NOVA -> 2.4;
+                case DASH -> 3.0;
+                case GUARD -> 0.0;
+                case PULL -> 2.0;
+            };
+            case SUPPORT -> switch (pattern) {
+                case STRIKE -> 2.8;
+                case BLAST -> 2.4;
+                case NOVA -> 2.0;
+                case DASH -> 2.8;
+                case GUARD -> 0.0;
+                case PULL -> 1.8;
+            };
+        };
+    }
+
+    private static double baseRadius(GeneratedAbilitySpec.Role role, GeneratedAbilitySpec.Pattern pattern) {
+        double radius = switch (pattern) {
             case STRIKE -> 0.0;
             case BLAST -> 3.2;
             case NOVA -> 4.2;
             case DASH -> 2.6;
             case GUARD -> 4.0;
             case PULL -> 6.0;
+        };
+        return role == GeneratedAbilitySpec.Role.SUPPORT ? Math.max(radius, 5.0) : radius;
+    }
+
+    private static double healFor(GeneratedAbilitySpec.Role role, GeneratedAbilitySpec.Pattern pattern, int roleIndex) {
+        return switch (role) {
+            case ATTACK -> pattern == GeneratedAbilitySpec.Pattern.DASH && roleIndex % 2 == 0 ? 1.2 : 0.0;
+            case DEFENSE -> 4.0 + (roleIndex % 3);
+            case SUPPORT -> pattern == GeneratedAbilitySpec.Pattern.GUARD ? 2.0 : 0.0;
+        };
+    }
+
+    private static double knockbackFor(GeneratedAbilitySpec.Pattern pattern) {
+        return switch (pattern) {
+            case PULL -> 0.65;
+            case NOVA, DASH -> 0.55;
+            default -> 0.0;
         };
     }
 
@@ -144,24 +250,21 @@ public final class GeneratedAbilityPack {
         };
     }
 
-    private static List<String> explain(String displayName, GeneratedAbilitySpec.Pattern pattern,
+    private static List<String> explain(String displayName, GeneratedAbilitySpec.Role role,
+            GeneratedAbilitySpec.Pattern pattern,
             GeneratedAbilitySpec.CrowdControlType control, int cooldown, double damage, double radius, double range,
             int controlTicks, double heal) {
         List<String> lines = new ArrayList<>();
         lines.add("§e§l[철괴 우클릭 - " + displayName + "]§f §8(쿨타임: " + cooldown + "초)");
-        lines.add(patternLine(pattern, damage, radius, range));
-        if (control != GeneratedAbilitySpec.CrowdControlType.NONE) {
-            lines.add("§7적중 대상에게 " + controlName(control) + " §f" + formatSeconds(controlTicks) + "§7 적용.");
-        }
-        if (heal > 0.0) {
-            lines.add("§7시전 시 체력 §a" + formatOne(heal) + "§7 회복.");
-        }
+        lines.add(patternLine(role, pattern, damage, radius, range));
+        lines.add(effectLine(role, control, controlTicks, heal));
         return List.copyOf(lines);
     }
 
-    private static List<String> summarize(GeneratedAbilitySpec.Pattern pattern,
+    private static List<String> summarize(GeneratedAbilitySpec.Role role, GeneratedAbilitySpec.Pattern pattern,
             GeneratedAbilitySpec.CrowdControlType control, int cooldown) {
         List<String> lines = new ArrayList<>();
+        lines.add("§7분류§f: " + roleName(role));
         lines.add("§7철괴 우클릭§f: " + patternName(pattern));
         if (control != GeneratedAbilitySpec.CrowdControlType.NONE) {
             lines.add("§7CC§f: " + controlName(control));
@@ -170,14 +273,51 @@ public final class GeneratedAbilityPack {
         return List.copyOf(lines);
     }
 
-    private static String patternLine(GeneratedAbilitySpec.Pattern pattern, double damage, double radius, double range) {
+    private static String patternLine(GeneratedAbilitySpec.Role role, GeneratedAbilitySpec.Pattern pattern,
+            double damage, double radius, double range) {
         return switch (pattern) {
             case STRIKE -> "§7바라본 적에게 피해 §c" + formatOne(damage) + "§7를 줍니다.";
             case BLAST -> "§7바라본 지점 주변 §f" + formatOne(radius) + "칸§7에 피해 §c" + formatOne(damage) + "§7.";
             case NOVA -> "§7자신 주변 §f" + formatOne(radius) + "칸§7 적을 밀치며 피해 §c" + formatOne(damage) + "§7.";
             case DASH -> "§7바라보는 방향으로 진입하고 주변 적에게 피해 §c" + formatOne(damage) + "§7.";
-            case GUARD -> "§7짧게 방어 태세를 갖추고 주변 적을 방해합니다.";
+            case GUARD -> role == GeneratedAbilitySpec.Role.SUPPORT
+                    ? "§7주변 팀원을 강화하고 가까운 적을 방해합니다."
+                    : "§7짧게 방어 태세를 갖추고 주변 적을 방해합니다.";
             case PULL -> "§7주변 §f" + formatOne(radius) + "칸§7 적을 끌어당기며 피해 §c" + formatOne(damage) + "§7.";
+        };
+    }
+
+    private static String effectLine(GeneratedAbilitySpec.Role role, GeneratedAbilitySpec.CrowdControlType control,
+            int controlTicks, double heal) {
+        List<String> parts = new ArrayList<>();
+        if (role == GeneratedAbilitySpec.Role.DEFENSE) {
+            parts.add("군중제어 해제");
+            parts.add("체력 " + formatOne(heal) + " 회복");
+        } else if (role == GeneratedAbilitySpec.Role.SUPPORT) {
+            parts.add("주변 팀원 신속/재생");
+            if (heal > 0.0) {
+                parts.add("체력 " + formatOne(heal) + " 회복");
+            }
+        } else if (heal > 0.0) {
+            parts.add("체력 " + formatOne(heal) + " 회복");
+        }
+        if (control != GeneratedAbilitySpec.CrowdControlType.NONE) {
+            parts.add("적중 대상 " + controlName(control) + " " + formatSeconds(controlTicks));
+        }
+        if (control == GeneratedAbilitySpec.CrowdControlType.FREEZE) {
+            parts.add("빙결 대상 타격 시 추가 회복");
+        }
+        if (parts.isEmpty()) {
+            parts.add("적중 시 짧은 압박");
+        }
+        return "§7" + String.join(" / ", parts) + ".";
+    }
+
+    private static String roleName(GeneratedAbilitySpec.Role role) {
+        return switch (role) {
+            case ATTACK -> "공격";
+            case DEFENSE -> "방어";
+            case SUPPORT -> "지원";
         };
     }
 

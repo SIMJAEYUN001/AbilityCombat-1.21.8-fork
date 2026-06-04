@@ -15,28 +15,6 @@ import java.lang.annotation.Target;
 public @interface AbilityManifest {
 
     /**
-     * 능력 등급
-     */
-    enum Rank {
-        SPECIAL("§cSPECIAL"),
-        L("§6L"),
-        S("§dS"),
-        A("§aA"),
-        B("§bB"),
-        C("§eC");
-
-        private final String display;
-
-        Rank(String display) {
-            this.display = display;
-        }
-
-        public String getDisplay() {
-            return display;
-        }
-    }
-
-    /**
      * 능력 종족
      */
     enum Species {
@@ -63,11 +41,6 @@ public @interface AbilityManifest {
      * 능력 이름
      */
     String name();
-
-    /**
-     * 능력 등급
-     */
-    Rank rank() default Rank.A;
 
     /**
      * 능력 종족

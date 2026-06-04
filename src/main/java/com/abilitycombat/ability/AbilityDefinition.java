@@ -7,16 +7,16 @@ import java.util.List;
 
 public class AbilityDefinition {
 
+    private static final Material DEFAULT_ICON = Material.IRON_INGOT;
+
     private final String name;
-    private final AbilityRank rank;
     private final List<String> summary;
     private final Material icon;
 
-    public AbilityDefinition(String name, AbilityRank rank, List<String> summary, Material icon) {
+    public AbilityDefinition(String name, List<String> summary, Material icon) {
         this.name = name;
-        this.rank = rank == null ? AbilityRank.A : rank;
         this.summary = summary == null ? Collections.emptyList() : List.copyOf(summary);
-        this.icon = icon == null ? this.rank.getDefaultIcon() : icon;
+        this.icon = icon == null ? DEFAULT_ICON : icon;
     }
 
     public String getName() {
@@ -35,10 +35,6 @@ public class AbilityDefinition {
             }
         }
         return name;
-    }
-
-    public AbilityRank getRank() {
-        return rank;
     }
 
     public List<String> getSummary() {

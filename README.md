@@ -142,7 +142,7 @@ visual-effects:
 To add an ability:
 
 1. Create a new class under `src/main/java/com/abilitycombat/ability/list/`.
-2. Add an entry to `src/main/resources/abilities.yml` with `name`, `rank`, `icon`, and `summary`.
+2. Add an entry to `src/main/resources/abilities.yml` with `name`, `icon`, and `summary`.
 3. Register the class in `AbilityCombat#registerAbilities()`.
 4. Add or update config usage if your ability requires tuneable values.
 

@@ -1,6 +1,6 @@
 version: "${project.version}"
 
-# 등급제는 제거되었으며 rank 필드는 더 이상 사용하지 않습니다.
+# 등급제는 제거되었습니다. 능력 선택 풀은 이름, 아이콘, 요약만 사용합니다.
 # 신규 100개 능력은 GeneratedAbilityPack 코드 메타데이터로 등록 후 선택 풀에 자동 병합됩니다.
 abilities:
   - name: "제우스 (Zeus)"

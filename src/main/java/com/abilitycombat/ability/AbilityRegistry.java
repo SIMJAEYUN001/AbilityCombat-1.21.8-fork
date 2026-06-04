@@ -35,13 +35,12 @@ public class AbilityRegistry {
         List<Map<?, ?>> list = config.getMapList("abilities");
         for (Map<?, ?> entry : list) {
             String name = toString(entry.get("name"));
-            AbilityRank rank = AbilityRank.fromString(toString(entry.get("rank")));
             List<String> summary = toStringList(entry.get("summary"));
             Material icon = toMaterial(entry.get("icon"));
             if (name == null || name.isBlank()) {
                 continue;
             }
-            AbilityDefinition definition = new AbilityDefinition(name, rank, summary, icon);
+            AbilityDefinition definition = new AbilityDefinition(name, summary, icon);
             definitions.put(name, definition);
         }
         mergeRegisteredDescriptors();
@@ -55,7 +54,6 @@ public class AbilityRegistry {
             }
             definitions.putIfAbsent(descriptor.name(), new AbilityDefinition(
                     descriptor.name(),
-                    AbilityRank.A,
                     descriptor.summarize(),
                     descriptor.icon()));
         }

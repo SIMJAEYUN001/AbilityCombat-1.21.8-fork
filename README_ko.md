@@ -120,7 +120,7 @@ crafting:
 
 1. `src/main/java/com/abilitycombat/ability/list/`에 능력 클래스 생성
 2. `src/main/resources/abilities.yml`에 항목 추가
-   - `name`, `rank`, `icon`, `summary`
+   - `name`, `icon`, `summary`
 3. `AbilityCombat#registerAbilities()`에 클래스 등록
 4. 능력에 필요한 설정 키를 `config.yml`/기본 설정 파일에 추가
 

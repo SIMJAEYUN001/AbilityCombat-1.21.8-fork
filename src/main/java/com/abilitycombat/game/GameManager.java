@@ -1195,7 +1195,7 @@ public class GameManager implements Listener {
             if (merged.containsKey(name)) {
                 continue;
             }
-            AbilityDefinition definition = new AbilityDefinition(name, null, descriptor.summarize(), descriptor.icon());
+            AbilityDefinition definition = new AbilityDefinition(name, descriptor.summarize(), descriptor.icon());
             merged.put(name, definition);
         }
         return new ArrayList<>(merged.values());
