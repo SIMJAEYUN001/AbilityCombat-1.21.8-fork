@@ -23,33 +23,40 @@ import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.UUID;
 
 @AbilityManifest(name = "검무 (SwordDance)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 검무]§f §8(쿨타임: 18초)",
-        "§7주변 §f5칸§7 내 적을 거리순으로 최대 §f4명§7까지 베어냅니다.",
-        "§7대상마다 §f0.2초§7 간격으로 등 뒤 §f1.5칸§7에 이동해 §c4 피해§7를 줍니다.",
-        "§7시전 중 §e1.2초간 무적§7 상태가 되며, 동일 대상은 한 번만 적중합니다."
+        "§7주변 §f5칸§7 내 적을 거리순으로 골라 총 §f4회§7 베어냅니다.",
+        "§7베기마다 §f0.2초§7 간격으로 대상 주변 §f1.5칸§7에 이동해 §c10 피해§7를 줍니다.",
+        "§7대상이 부족하면 같은 대상을 동서남북 방향에서 반복 베어냅니다.",
+        "§7시전 중 §e1.2초간 무적§7 상태가 됩니다."
 }, summarize = {
-        "§7철괴 우클릭§f: 5칸 내 최대 4명 순차 이동 타격",
-        "§7시전 중§f: 1.2초 무적, 타격당 피해 4"
+        "§7철괴 우클릭§f: 5칸 내 적을 총 4회 순차 이동 타격",
+        "§7시전 중§f: 1.2초 무적, 타격당 피해 10"
 })
 public class SwordDance extends AbilityBase implements ActiveHandler {
 
     private static final int COOLDOWN_SECONDS = 18;
-    private static final int MAX_TARGETS = 4;
+    private static final int TOTAL_STRIKES = 4;
     private static final double SCAN_RADIUS = 5.0;
     private static final int STEP_DELAY_TICKS = 4;
     private static final int INVINCIBLE_TICKS = 24;
-    private static final double DAMAGE_PER_HIT = 4.0;
-    private static final double BACK_DISTANCE = 1.5;
+    private static final double DAMAGE_PER_HIT = 10.0;
+    private static final double SLASH_DISTANCE = 1.5;
+    private static final Vector[] SLASH_DIRECTIONS = {
+            new Vector(1, 0, 0),
+            new Vector(-1, 0, 0),
+            new Vector(0, 0, 1),
+            new Vector(0, 0, -1)
+    };
 
     private final ActionbarCooldown cooldown = new ActionbarCooldown(COOLDOWN_SECONDS);
     private final List<LivingEntity> danceTargets = new ArrayList<>();
-    private final Set<UUID> hitTargets = new HashSet<>();
+    private final Map<UUID, Integer> targetSlashCounts = new HashMap<>();
     private boolean dancing;
     private int nextStepTick;
     private int invincibleUntilTick;
@@ -93,14 +100,13 @@ public class SwordDance extends AbilityBase implements ActiveHandler {
                 target -> !(target instanceof ArmorStand))
                 .stream()
                 .sorted(Comparator.comparingDouble(target -> target.getLocation().distanceSquared(player.getLocation())))
-                .limit(MAX_TARGETS)
                 .toList();
         if (targets.isEmpty()) {
             player.sendMessage("§c검무 대상이 없습니다.");
             return false;
         }
 
-        startDance(targets);
+        startDance(buildStrikeSequence(targets));
         cooldown.start();
         applyIronCooldownIfEmpty(COOLDOWN_SECONDS);
         return true;
@@ -136,7 +142,7 @@ public class SwordDance extends AbilityBase implements ActiveHandler {
     private void startDance(List<LivingEntity> targets) {
         danceTargets.clear();
         danceTargets.addAll(targets);
-        hitTargets.clear();
+        targetSlashCounts.clear();
         targetIndex = 0;
         int now = AbilityTickManager.getGlobalTick();
         invincibleUntilTick = now + INVINCIBLE_TICKS;
@@ -154,11 +160,19 @@ public class SwordDance extends AbilityBase implements ActiveHandler {
     private void stopDance() {
         dancing = false;
         danceTargets.clear();
-        hitTargets.clear();
+        targetSlashCounts.clear();
         targetIndex = 0;
         nextStepTick = 0;
         invincibleUntilTick = 0;
         unregisterTick();
+    }
+
+    private List<LivingEntity> buildStrikeSequence(List<LivingEntity> targets) {
+        List<LivingEntity> sequence = new ArrayList<>(TOTAL_STRIKES);
+        for (int i = 0; i < TOTAL_STRIKES; i++) {
+            sequence.add(targets.get(i % targets.size()));
+        }
+        return sequence;
     }
 
     private void strikeNextTarget() {
@@ -170,11 +184,11 @@ public class SwordDance extends AbilityBase implements ActiveHandler {
         while (targetIndex < danceTargets.size()) {
             LivingEntity target = danceTargets.get(targetIndex++);
             if (target == null || target.isDead() || !LocationUtil.isValidTarget(player, target)
-                    || target instanceof ArmorStand || !hitTargets.add(target.getUniqueId())) {
+                    || target instanceof ArmorStand) {
                 continue;
             }
             Location before = player.getLocation().clone();
-            Location destination = getSafeBackLocation(player, target, before);
+            Location destination = getSafeSlashLocation(target, before);
             player.teleport(destination);
             target.setNoDamageTicks(0);
             target.damage(DAMAGE_PER_HIT, player);
@@ -183,20 +197,17 @@ public class SwordDance extends AbilityBase implements ActiveHandler {
         }
     }
 
-    private Location getSafeBackLocation(Player player, LivingEntity target, Location fallback) {
-        Vector back = target.getLocation().getDirection();
-        back.setY(0);
-        if (back.lengthSquared() < 1.0E-4) {
-            back = player.getLocation().toVector().subtract(target.getLocation().toVector());
-            back.setY(0);
+    private Location getSafeSlashLocation(LivingEntity target, Location fallback) {
+        int slashIndex = targetSlashCounts.merge(target.getUniqueId(), 1, Integer::sum) - 1;
+        for (int i = 0; i < SLASH_DIRECTIONS.length; i++) {
+            Vector direction = SLASH_DIRECTIONS[(slashIndex + i) % SLASH_DIRECTIONS.length].clone();
+            Location destination = target.getLocation().clone().add(direction.multiply(SLASH_DISTANCE));
+            destination.setDirection(target.getLocation().toVector().subtract(destination.toVector()));
+            if (isSafeTeleportLocation(destination)) {
+                return destination;
+            }
         }
-        if (back.lengthSquared() < 1.0E-4) {
-            return fallback;
-        }
-        Location destination = target.getLocation().clone().subtract(back.normalize().multiply(BACK_DISTANCE));
-        destination.setYaw(player.getLocation().getYaw());
-        destination.setPitch(player.getLocation().getPitch());
-        return isSafeTeleportLocation(destination) ? destination : fallback;
+        return fallback;
     }
 
     private boolean isSafeTeleportLocation(Location location) {

@@ -36,7 +36,7 @@ import java.util.Locale;
 @AbilityManifest(name = "망령화 (WraithForm)", species = AbilityManifest.Species.UNDEAD, explain = {
         "§e§l[패시브 - 망령화]",
         "§7인간 상태에서는 입히는 피해가 §c50% 감소§7합니다.",
-        "§7피해를 입힐 때마다 §b망령화 6스택§7을 얻습니다. (최대 100)",
+        "§7피해를 입힐 때마다 §b망령화 4스택§7을 얻습니다. (최대 100)",
         "§7망령화 §f50스택§7 이상이면 검은 연기와 함께 말뚝과 §f18칸§7 필드를 생성합니다.",
         "§7필드 밖으로 벗어나면 현재 망령화의 §c80%§7를 잃습니다.",
         "§7망령 상태가 풀리면 §f15초§7간 재진입할 수 없습니다.",
@@ -49,7 +49,7 @@ import java.util.Locale;
         "§e§l[철괴 우클릭 - 혼령 속박]§f §8(쿨타임: 60초)",
         "§7망령 상태에서 바라본 적을 §f3 + 스택의 5%초§7간 속박합니다."
 }, summarize = {
-        "§7패시브§f: 피해 시 망령화 +6, 인간 상태 피해 -50%",
+        "§7패시브§f: 피해 시 망령화 +4, 인간 상태 피해 -50%",
         "§750스택 이상§f: 검은 연기 진입, 말뚝/18칸 필드, 피해 +20%, 사거리 +10%, 흡혈 15%",
         "§7철괴 우클릭§f: 망령 상태에서 대상 속박 (60초)"
 })
@@ -57,7 +57,7 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
 
     private static final int MAX_STACKS = 100;
     private static final int WRAITH_THRESHOLD = 50;
-    private static final int STACK_GAIN_ON_DAMAGE = 6;
+    private static final int STACK_GAIN_ON_DAMAGE = 4;
     private static final double FIELD_EXIT_STACK_LOSS_RATIO = 0.80;
     private static final int NON_COMBAT_DELAY_MILLIS = 7_000;
     private static final int NON_COMBAT_DRAIN_MILLIS = 3_000;
