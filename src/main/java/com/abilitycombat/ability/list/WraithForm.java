@@ -35,7 +35,7 @@ import java.util.Locale;
         "§e§l[패시브 - 망령화]",
         "§7인간 상태에서는 입히는 피해가 §c50% 감소§7합니다.",
         "§7피해를 입힐 때마다 §b망령화 10스택§7을 얻습니다. (최대 100)",
-        "§7망령화 §f50스택§7 이상이면 말뚝과 §f18칸§7 필드를 생성합니다.",
+        "§7망령화 §f50스택§7 이상이면 검은 연기와 함께 말뚝과 §f18칸§7 필드를 생성합니다.",
         "§7필드 밖으로 벗어나면 망령화 §c55스택§7을 잃습니다.",
         "",
         "§e§l[패시브 - 망령 상태]",
@@ -47,7 +47,7 @@ import java.util.Locale;
         "§7망령 상태에서 바라본 적을 §f3 + 스택의 5%초§7간 속박합니다."
 }, summarize = {
         "§7패시브§f: 피해 시 망령화 +10, 인간 상태 피해 -50%",
-        "§750스택 이상§f: 말뚝/18칸 필드, 피해 +20%, 사거리 +10%, 흡혈 15%",
+        "§750스택 이상§f: 검은 연기 진입, 말뚝/18칸 필드, 피해 +20%, 사거리 +10%, 흡혈 15%",
         "§7철괴 우클릭§f: 망령 상태에서 대상 속박 (60초)"
 })
 public class WraithForm extends AbilityBase implements ActiveHandler {
@@ -74,6 +74,8 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
     private static final String STATUS_KEY = "wraith:status";
     private static final int HUD_PRIORITY = 4;
     private static final Particle.DustOptions FIELD_DUST = new Particle.DustOptions(Color.fromRGB(93, 52, 168), 1.2f);
+    private static final Particle.DustOptions WRAITH_ENTRY_DUST =
+            new Particle.DustOptions(Color.fromRGB(12, 9, 16), 1.7f);
 
     private final Cooldown cooldown = new Cooldown(ACTIVE_COOLDOWN_SECONDS);
     private int stacks;
@@ -266,6 +268,7 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
             spawnStake();
             Player owner = getPlayer();
             if (owner != null) {
+                spawnWraithEntryEffect(owner);
                 owner.playSound(owner.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.8f, 0.45f);
             }
         } else if (wasWraith && !nowWraith) {
@@ -372,6 +375,29 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
                 20, 0.35, 0.45, 0.35, 0.02, 1, 64);
         ParticleUtil.spawnParticle(world, Particle.REVERSE_PORTAL, center,
                 16, 0.25, 0.35, 0.25, 0.04, 1, 64);
+    }
+
+    private void spawnWraithEntryEffect(Player owner) {
+        Location base = owner.getLocation();
+        World world = base.getWorld();
+        if (world == null) {
+            return;
+        }
+        Location center = base.clone().add(0, 1.0, 0);
+        ParticleUtil.spawnParticle(world, Particle.LARGE_SMOKE, center,
+                46, 0.8, 0.85, 0.8, 0.04, 1, 64);
+        ParticleUtil.spawnParticle(world, Particle.SMOKE, center,
+                34, 1.05, 0.65, 1.05, 0.03, 1, 64);
+        ParticleUtil.spawnParticle(world, Particle.DUST, center,
+                26, 0.75, 0.7, 0.75, 0.0, WRAITH_ENTRY_DUST, 1, 64);
+        for (int i = 0; i < 28; i++) {
+            double angle = (Math.PI * 2.0 * i) / 28.0;
+            double radius = i % 2 == 0 ? 1.25 : 1.65;
+            Location point = base.clone().add(Math.cos(angle) * radius, 0.15 + (i % 3) * 0.28,
+                    Math.sin(angle) * radius);
+            ParticleUtil.spawnParticle(world, Particle.DUST, point, 1, 0.0, 0.0, 0.0, 0.0,
+                    WRAITH_ENTRY_DUST, 1, 64);
+        }
     }
 
     private void applyRangeBonus() {
