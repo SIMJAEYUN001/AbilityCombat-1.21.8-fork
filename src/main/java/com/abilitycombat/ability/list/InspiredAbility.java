@@ -157,7 +157,8 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
     private boolean castDash(Player player) {
         Vector direction = player.getEyeLocation().getDirection().normalize();
         player.setVelocity(direction.clone().multiply(1.45).setY(Math.max(0.08, direction.getY() * 0.35)));
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 50, 1, true, false));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED,
+                InspiredAbilitySpec.DASH_SPEED_TICKS, 1, true, false));
         Location center = player.getLocation().clone().add(direction.multiply(Math.min(4.0, spec.range() * 0.35)));
         applyArea(player, center, spec.radius(), spec.damage(), true);
         playImpact(center);
@@ -179,8 +180,10 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
 
     private boolean castGuard(Player player) {
         cleanseCrowdControl(player);
-        player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 0, true, false));
-        player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 100, 1, true, false));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE,
+                InspiredAbilitySpec.GUARD_EFFECT_TICKS, 0, true, false));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION,
+                InspiredAbilitySpec.GUARD_EFFECT_TICKS, 1, true, false));
         heal(player, spec.heal());
         applyArea(player, player.getLocation(), Math.max(3.0, spec.radius() * 0.65), spec.damage() * 0.35, false);
         playImpact(player.getLocation());
@@ -188,7 +191,7 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
     }
 
     private boolean castAlly(Player player) {
-        int duration = 120;
+        int duration = InspiredAbilitySpec.ALLY_SPEED_TICKS;
         applyAllyBuff(player, duration);
         for (Player ally : LocationUtil.getNearbyEntities(Player.class, player.getLocation(), spec.radius(),
                 candidate -> isAlly(player, candidate))) {
@@ -206,8 +209,10 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
         }
         teleportBehind(player, target);
         applyEffect(player, target, spec.damage() + 1.2);
-        Bleed.apply(target, 80, 0.45, player);
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 60, 1, true, false));
+        Bleed.apply(target, InspiredAbilitySpec.ASSASSIN_BLEED_TICKS,
+                InspiredAbilitySpec.ASSASSIN_BLEED_DAMAGE, player);
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED,
+                InspiredAbilitySpec.ASSASSIN_SPEED_TICKS, 1, true, false));
         playImpact(target.getLocation());
         return true;
     }
@@ -218,7 +223,8 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
         boolean hit = false;
         for (LivingEntity target : targets) {
             pull(target, center, 0.82);
-            target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 45, 0, true, false));
+            target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS,
+                    InspiredAbilitySpec.BLACK_HOLE_BLINDNESS_TICKS, 0, true, false));
             applyEffect(player, target, spec.damage());
             hit = true;
         }
@@ -232,8 +238,9 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
             return false;
         }
         applyEffect(player, target, spec.damage());
-        Bleed.apply(target, 100, 0.55, player);
-        Infection.apply(target, 80);
+        Bleed.apply(target, InspiredAbilitySpec.CURSE_BLEED_TICKS,
+                InspiredAbilitySpec.CURSE_BLEED_DAMAGE, player);
+        Infection.apply(target, InspiredAbilitySpec.CURSE_INFECTION_TICKS);
         heal(player, spec.heal());
         playImpact(target.getLocation());
         return true;
@@ -249,7 +256,8 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
         target.teleport(playerLocation);
         player.teleport(targetLocation);
         applyEffect(player, target, spec.damage() * 0.7);
-        target.addPotionEffect(new PotionEffect(PotionEffectType.NAUSEA, 70, 0, true, false));
+        target.addPotionEffect(new PotionEffect(PotionEffectType.NAUSEA,
+                InspiredAbilitySpec.SWAP_NAUSEA_TICKS, 0, true, false));
         playImpact(targetLocation);
         return true;
     }
@@ -268,7 +276,8 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
         }
         teleportBehind(player, target);
         applyEffect(player, target, spec.damage());
-        target.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 60, 0, true, false));
+        target.addPotionEffect(new PotionEffect(PotionEffectType.WITHER,
+                InspiredAbilitySpec.SOUL_WITHER_TICKS, 0, true, false));
         heal(player, spec.heal());
         playImpact(target.getLocation());
         return true;
@@ -281,9 +290,12 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
         }
         AttributeInstance maxHealth = target.getAttribute(Attribute.MAX_HEALTH);
         double max = maxHealth != null ? maxHealth.getValue() : 20.0;
-        double damage = target.getHealth() <= max * 0.35 ? spec.damage() * 1.8 : spec.damage() * 0.85;
+        double damage = target.getHealth() <= max * InspiredAbilitySpec.EXECUTE_THRESHOLD
+                ? spec.damage() * InspiredAbilitySpec.EXECUTE_LOW_HEALTH_MULTIPLIER
+                : spec.damage() * InspiredAbilitySpec.EXECUTE_NORMAL_MULTIPLIER;
         applyEffect(player, target, damage);
-        target.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 90, 0, true, false));
+        target.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING,
+                InspiredAbilitySpec.EXECUTE_GLOWING_TICKS, 0, true, false));
         playImpact(target.getLocation());
         return true;
     }
@@ -291,8 +303,10 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
     private boolean castGamble(Player player) {
         int roll = ThreadLocalRandom.current().nextInt(4);
         if (roll == 0) {
-            player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 100, 0, true, false));
-            player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 0, true, false));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH,
+                    InspiredAbilitySpec.GAMBLE_BUFF_TICKS, 0, true, false));
+            player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED,
+                    InspiredAbilitySpec.GAMBLE_BUFF_TICKS, 0, true, false));
             heal(player, spec.heal());
             playImpact(player.getLocation());
             return true;
@@ -303,8 +317,10 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
         if (roll == 2) {
             return castPull(player);
         }
-        player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 0, true, false));
-        player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 80, 0, true, false));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE,
+                InspiredAbilitySpec.GAMBLE_BUFF_TICKS, 0, true, false));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION,
+                InspiredAbilitySpec.GAMBLE_REGENERATION_TICKS, 0, true, false));
         playImpact(player.getLocation());
         return true;
     }
@@ -313,14 +329,16 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
         LivingEntity target = findLookTarget(player);
         if (target != null) {
             teleportBehind(player, target);
-            applyEffect(player, target, spec.damage() * 0.85);
+            applyEffect(player, target, spec.damage() * InspiredAbilitySpec.PORTAL_TARGET_DAMAGE_MULTIPLIER);
             playImpact(target.getLocation());
             return true;
         }
         Vector direction = player.getEyeLocation().getDirection().normalize();
-        Location destination = player.getLocation().clone().add(direction.multiply(Math.min(8.0, spec.range())));
+        Location destination = player.getLocation().clone()
+                .add(direction.multiply(Math.min(InspiredAbilitySpec.PORTAL_MAX_DISTANCE, spec.range())));
         player.teleport(destination);
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 60, 1, true, false));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED,
+                InspiredAbilitySpec.PORTAL_SPEED_TICKS, 1, true, false));
         playImpact(destination);
         return true;
     }
@@ -331,15 +349,19 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
             return false;
         }
         applyEffect(player, target, spec.damage());
-        target.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 120, 0, true, false));
-        target.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 70, 0, true, false));
+        target.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING,
+                InspiredAbilitySpec.MARK_GLOWING_TICKS, 0, true, false));
+        target.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS,
+                InspiredAbilitySpec.MARK_WEAKNESS_TICKS, 0, true, false));
         playImpact(target.getLocation());
         return true;
     }
 
     private boolean castDeflect(Player player) {
-        player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 80, 1, true, false));
-        player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 80, 0, true, false));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE,
+                InspiredAbilitySpec.DEFLECT_EFFECT_TICKS, 1, true, false));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION,
+                InspiredAbilitySpec.DEFLECT_EFFECT_TICKS, 0, true, false));
         applyArea(player, player.getLocation(), spec.radius(), spec.damage() * 0.5, true);
         playImpact(player.getLocation());
         return true;
@@ -350,8 +372,9 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
         Collection<LivingEntity> targets = LocationUtil.getNearbyLivingEntities(center, spec.radius(), player, null);
         boolean hit = false;
         for (LivingEntity target : targets) {
-            Infection.apply(target, 100);
-            target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 80, 0, true, false));
+            Infection.apply(target, InspiredAbilitySpec.SUMMON_INFECTION_TICKS);
+            target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS,
+                    InspiredAbilitySpec.SUMMON_SLOWNESS_TICKS, 0, true, false));
             applyEffect(player, target, spec.damage() * 0.8);
             hit = true;
         }
@@ -390,12 +413,17 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
 
     private void applyStyleDebuff(Player source, LivingEntity target) {
         switch (spec.style()) {
-            case CURSE -> Bleed.apply(target, 80, 0.45, source);
-            case SUMMON -> Infection.apply(target, 80);
-            case BLACK_HOLE -> target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 0, true, false));
-            case FROST -> target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 70, 1, true, false));
-            case SOUL -> target.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 45, 0, true, false));
-            case MARK -> target.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 100, 0, true, false));
+            case CURSE -> Bleed.apply(target, InspiredAbilitySpec.ASSASSIN_BLEED_TICKS,
+                    InspiredAbilitySpec.ASSASSIN_BLEED_DAMAGE, source);
+            case SUMMON -> Infection.apply(target, InspiredAbilitySpec.CURSE_INFECTION_TICKS);
+            case BLACK_HOLE -> target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS,
+                    40, 0, true, false));
+            case FROST -> target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS,
+                    InspiredAbilitySpec.FROST_SLOWNESS_TICKS, 1, true, false));
+            case SOUL -> target.addPotionEffect(new PotionEffect(PotionEffectType.WITHER,
+                    45, 0, true, false));
+            case MARK -> target.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING,
+                    100, 0, true, false));
             default -> {
             }
         }
@@ -456,7 +484,8 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
         if (back.lengthSquared() <= 0.001) {
             back = new Vector(0, 0, 1);
         }
-        Location destination = target.getLocation().clone().subtract(back.normalize().multiply(1.3));
+        Location destination = target.getLocation().clone()
+                .subtract(back.normalize().multiply(InspiredAbilitySpec.TELEPORT_BEHIND_DISTANCE));
         destination.setYaw(player.getLocation().getYaw());
         destination.setPitch(player.getLocation().getPitch());
         player.teleport(destination);

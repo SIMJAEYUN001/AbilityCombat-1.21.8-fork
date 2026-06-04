@@ -8,6 +8,7 @@ import org.bukkit.Material;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import static com.abilitycombat.ability.list.InspiredAbilitySpec.CrowdControlType.BIND;
@@ -260,28 +261,37 @@ public final class InspiredAbilityPack {
 
     private static InspiredAbilitySpec p(String name, Material icon, InspiredAbilitySpec.Style style,
             InspiredAbilitySpec.CrowdControlType control, int cooldown, String action, String effect) {
+        int balancedCooldown = balancedCooldown(style, control, cooldown);
+        double damage = damageFor(style);
+        double range = rangeFor(style);
+        double radius = radiusFor(style);
+        int controlTicks = controlTicks(control);
+        double heal = healFor(style);
+        double knockback = knockbackFor(style);
         return new InspiredAbilitySpec(
                 new AbilityDescriptor(
                         name,
                         AbilityManifest.Species.OTHERS,
-                        explain(name, style, cooldown, action, effect),
-                        summarize(style, control, cooldown),
+                        explain(name, style, control, balancedCooldown, damage, range, radius, controlTicks, heal,
+                                knockback, action, effect),
+                        summarize(style, control, balancedCooldown, damage, range, radius, controlTicks, heal),
                         icon,
-                        cooldown > 0 ? List.of(cooldown) : List.of()),
+                        balancedCooldown > 0 ? List.of(balancedCooldown) : List.of()),
                 style,
                 control,
-                cooldown,
-                damageFor(style),
-                rangeFor(style),
-                radiusFor(style),
-                controlTicks(control),
-                healFor(style),
-                knockbackFor(style));
+                balancedCooldown,
+                damage,
+                range,
+                radius,
+                controlTicks,
+                heal,
+                knockback);
     }
 
-    private static List<String> explain(String name, InspiredAbilitySpec.Style style, int cooldown, String action,
-            String effect) {
-        List<String> lines = new ArrayList<>(3);
+    private static List<String> explain(String name, InspiredAbilitySpec.Style style,
+            InspiredAbilitySpec.CrowdControlType control, int cooldown, double damage, double range, double radius,
+            int controlTicks, double heal, double knockback, String action, String effect) {
+        List<String> lines = new ArrayList<>(8);
         if (style == GLASS_CANNON) {
             lines.add("§e§l[패시브 - " + name + "]");
         } else {
@@ -291,20 +301,195 @@ public final class InspiredAbilityPack {
         if (effect != null && !effect.isBlank()) {
             lines.add("§7" + effect);
         }
+        lines.addAll(styleExplain(style, damage, range, radius, heal, knockback));
+        if (control != NONE) {
+            lines.add("§7군중제어: §f" + controlName(control) + " " + seconds(controlTicks) + "초§7.");
+        }
         return List.copyOf(lines);
     }
 
     private static List<String> summarize(InspiredAbilitySpec.Style style,
-            InspiredAbilitySpec.CrowdControlType control, int cooldown) {
-        List<String> lines = new ArrayList<>(3);
+            InspiredAbilitySpec.CrowdControlType control, int cooldown, double damage, double range, double radius,
+            int controlTicks, double heal) {
+        List<String> lines = new ArrayList<>(4);
         lines.add((style == GLASS_CANNON ? "§7패시브§f: " : "§7철괴 우클릭§f: ") + styleName(style));
+        if (style != GLASS_CANNON && damage > 0.0) {
+            String area = radius > 0.0 ? " / 범위 " + format(radius) + "칸" : " / 사거리 " + format(range) + "칸";
+            lines.add("§7수치§f: 피해 " + format(damage) + area);
+        }
         if (control != NONE) {
-            lines.add("§7CC§f: " + controlName(control));
+            lines.add("§7CC§f: " + controlName(control) + " " + seconds(controlTicks) + "초");
+        } else if (heal > 0.0) {
+            lines.add("§7회복§f: " + format(heal));
         }
         if (cooldown > 0) {
             lines.add("§7쿨타임§f: " + cooldown + "초");
         }
         return List.copyOf(lines);
+    }
+
+    private static List<String> styleExplain(InspiredAbilitySpec.Style style, double damage, double range,
+            double radius, double heal, double knockback) {
+        return switch (style) {
+            case SINGLE -> List.of(
+                    "§7수치: §f사거리 " + format(range) + "칸§7, 단일 피해 §f" + format(damage)
+                            + "§7, 넉백 §f" + format(knockback * 0.6) + "§7.");
+            case BLAST -> List.of(
+                    "§7수치: §f최대 " + format(range) + "칸§7 지점 중심 §f반경 " + format(radius)
+                            + "칸§7, 피해 §f" + format(damage) + "§7, 넉백 §f" + format(knockback) + "§7.");
+            case NOVA -> List.of(
+                    "§7수치: §f자신 중심 반경 " + format(radius) + "칸§7, 피해 §f" + format(damage)
+                            + "§7, 넉백 §f" + format(knockback) + "§7.");
+            case DASH -> List.of(
+                    "§7수치: §f전방 최대 4칸§7 중심 §f반경 " + format(radius) + "칸§7, 피해 §f"
+                            + format(damage) + "§7, 넉백 §f" + format(knockback) + "§7.",
+                    "§7부가: 시전자에게 §f신속 II " + seconds(InspiredAbilitySpec.DASH_SPEED_TICKS)
+                            + "초§7를 부여합니다.");
+            case PULL -> List.of(
+                    "§7수치: §f자신 중심 반경 " + format(radius) + "칸§7, 피해 §f" + format(damage)
+                            + "§7, 견인 강도 §f" + format(knockback) + "§7.");
+            case GUARD -> List.of(
+                    "§7수치: 군중제어 해제, §f체력 " + format(heal) + " 회복§7.",
+                    "§7방어: §f저항 I " + seconds(InspiredAbilitySpec.GUARD_EFFECT_TICKS)
+                            + "초§7, §f흡수 II " + seconds(InspiredAbilitySpec.GUARD_EFFECT_TICKS) + "초§7.",
+                    "§7반격: §f자신 중심 반경 3칸§7 적에게 피해 §f" + format(damage * 0.35) + "§7.");
+            case ALLY -> List.of(
+                    "§7수치: §f자신과 반경 " + format(radius) + "칸§7 내 팀원에게 버프를 줍니다.",
+                    "§7버프: §f신속 I " + seconds(InspiredAbilitySpec.ALLY_SPEED_TICKS)
+                            + "초§7, §f재생 I/저항 I " + seconds(InspiredAbilitySpec.ALLY_DEFENSE_TICKS)
+                            + "초§7, 체력 §f" + format(heal * 0.5) + " 회복§7.",
+                    "§7견제: §f반경 " + format(Math.max(3.0, radius * 0.65)) + "칸§7 적에게 피해 §f"
+                            + format(damage * 0.45) + "§7.");
+            case ASSASSIN -> List.of(
+                    "§7수치: §f사거리 " + format(range) + "칸§7, 대상 뒤 §f"
+                            + format(InspiredAbilitySpec.TELEPORT_BEHIND_DISTANCE) + "칸§7으로 이동 후 피해 §f"
+                            + format(damage + 1.2) + "§7.",
+                    "§7출혈: §f" + seconds(InspiredAbilitySpec.ASSASSIN_BLEED_TICKS) + "초§7간 §f0.5초마다 "
+                            + format(InspiredAbilitySpec.ASSASSIN_BLEED_DAMAGE) + " 피해§7.",
+                    "§7부가: 시전자에게 §f신속 II " + seconds(InspiredAbilitySpec.ASSASSIN_SPEED_TICKS)
+                            + "초§7.");
+            case BLACK_HOLE -> List.of(
+                    "§7수치: §f최대 " + format(range) + "칸§7 지점 중심 §f반경 " + format(radius)
+                            + "칸§7, 피해 §f" + format(damage) + "§7, 견인 강도 §f0.82§7.",
+                    "§7디버프: §f실명 I " + seconds(InspiredAbilitySpec.BLACK_HOLE_BLINDNESS_TICKS) + "초§7.");
+            case CURSE -> List.of(
+                    "§7수치: §f사거리 " + format(range) + "칸§7, 피해 §f" + format(damage)
+                            + "§7, 체력 §f" + format(heal) + " 회복§7.",
+                    "§7출혈: §f" + seconds(InspiredAbilitySpec.CURSE_BLEED_TICKS) + "초§7간 §f0.5초마다 "
+                            + format(InspiredAbilitySpec.CURSE_BLEED_DAMAGE) + " 피해§7.",
+                    "§7감염: §f" + seconds(InspiredAbilitySpec.CURSE_INFECTION_TICKS) + "초§7간 받는 피해 §f+"
+                            + format(InspiredAbilitySpec.INFECTION_INCOMING_DAMAGE_DELTA) + "%§7, §f"
+                            + seconds(InspiredAbilitySpec.INFECTION_ROTATION_PERIOD_TICKS) + "초마다 "
+                            + format(InspiredAbilitySpec.INFECTION_ROTATION_CHANCE) + "%§7 확률로 시야 교란.");
+            case SWAP -> List.of(
+                    "§7수치: §f사거리 " + format(range) + "칸§7, 위치 교환 후 피해 §f"
+                            + format(damage * 0.7) + "§7.",
+                    "§7디버프: §f멀미 I " + seconds(InspiredAbilitySpec.SWAP_NAUSEA_TICKS) + "초§7.");
+            case FROST -> List.of(
+                    "§7수치: §f최대 " + format(range) + "칸§7 지점 중심 §f반경 " + format(radius)
+                            + "칸§7, 피해 §f" + format(damage) + "§7.",
+                    "§7디버프: §f빙결 대상 재타격 시 체력 1 회복§7, §f구속 II "
+                            + seconds(InspiredAbilitySpec.FROST_SLOWNESS_TICKS) + "초§7.");
+            case SOUL -> List.of(
+                    "§7수치: §f사거리 " + format(range) + "칸§7, 대상 뒤 §f"
+                            + format(InspiredAbilitySpec.TELEPORT_BEHIND_DISTANCE) + "칸§7 이동 후 피해 §f"
+                            + format(damage) + "§7.",
+                    "§7흡혈: 체력 §f" + format(heal) + " 회복§7, 대상에게 §f위더 I "
+                            + seconds(InspiredAbilitySpec.SOUL_WITHER_TICKS) + "초§7.");
+            case EXECUTE -> List.of(
+                    "§7수치: §f사거리 " + format(range) + "칸§7, 기본 피해 §f"
+                            + format(damage * InspiredAbilitySpec.EXECUTE_NORMAL_MULTIPLIER) + "§7.",
+                    "§7처형: 대상 체력 §f35% 이하§7면 피해 §f"
+                            + format(damage * InspiredAbilitySpec.EXECUTE_LOW_HEALTH_MULTIPLIER) + "§7.",
+                    "§7부가: 대상에게 §f발광 I " + seconds(InspiredAbilitySpec.EXECUTE_GLOWING_TICKS) + "초§7.");
+            case GAMBLE -> List.of(
+                    "§7수치: §f4가지 효과 중 1개§7가 같은 확률로 발동합니다.",
+                    "§7효과: §f힘 I/신속 I " + seconds(InspiredAbilitySpec.GAMBLE_BUFF_TICKS)
+                            + "초§7 + 회복 §f" + format(heal) + "§7, 지점 폭발, 견인,",
+                    "§7또는 §f저항 I " + seconds(InspiredAbilitySpec.GAMBLE_BUFF_TICKS) + "초§7 + §f재생 I "
+                            + seconds(InspiredAbilitySpec.GAMBLE_REGENERATION_TICKS) + "초§7.");
+            case PORTAL -> List.of(
+                    "§7수치: 바라본 적이 있으면 §f사거리 " + format(range) + "칸§7, 뒤 §f"
+                            + format(InspiredAbilitySpec.TELEPORT_BEHIND_DISTANCE) + "칸§7 이동 후 피해 §f"
+                            + format(damage * InspiredAbilitySpec.PORTAL_TARGET_DAMAGE_MULTIPLIER) + "§7.",
+                    "§7대상 없음: 바라보는 방향으로 §f최대 " + format(InspiredAbilitySpec.PORTAL_MAX_DISTANCE)
+                            + "칸§7 점멸하고 §f신속 II " + seconds(InspiredAbilitySpec.PORTAL_SPEED_TICKS)
+                            + "초§7.");
+            case MARK -> List.of(
+                    "§7수치: §f사거리 " + format(range) + "칸§7, 피해 §f" + format(damage) + "§7.",
+                    "§7표식: §f발광 I " + seconds(InspiredAbilitySpec.MARK_GLOWING_TICKS)
+                            + "초§7, §f나약함 I " + seconds(InspiredAbilitySpec.MARK_WEAKNESS_TICKS)
+                            + "초§7.");
+            case DEFLECT -> List.of(
+                    "§7수치: §f자신 중심 반경 " + format(radius) + "칸§7, 피해 §f"
+                            + format(damage * 0.5) + "§7, 넉백 §f" + format(knockback) + "§7.",
+                    "§7방어: §f저항 II " + seconds(InspiredAbilitySpec.DEFLECT_EFFECT_TICKS)
+                            + "초§7, §f흡수 I " + seconds(InspiredAbilitySpec.DEFLECT_EFFECT_TICKS) + "초§7.");
+            case SUMMON -> List.of(
+                    "§7수치: §f최대 " + format(range) + "칸§7 지점 중심 §f반경 " + format(radius)
+                            + "칸§7, 피해 §f" + format(damage * 0.8) + "§7.",
+                    "§7감염: §f" + seconds(InspiredAbilitySpec.SUMMON_INFECTION_TICKS)
+                            + "초§7간 받는 피해 §f+" + format(InspiredAbilitySpec.INFECTION_INCOMING_DAMAGE_DELTA)
+                            + "%§7, §f" + seconds(InspiredAbilitySpec.INFECTION_ROTATION_PERIOD_TICKS)
+                            + "초마다 " + format(InspiredAbilitySpec.INFECTION_ROTATION_CHANCE)
+                            + "%§7 확률로 시야 교란.",
+                    "§7디버프: §f구속 I " + seconds(InspiredAbilitySpec.SUMMON_SLOWNESS_TICKS) + "초§7.");
+            case GLASS_CANNON -> List.of(
+                    "§7수치: 내가 주는 근접/투사체 피해 §f+25%§7.",
+                    "§7대가: 내가 받는 모든 피해 §f+15%§7.",
+                    "§7철괴 우클릭은 쿨타임 없이 패시브 안내만 출력합니다.");
+        };
+    }
+
+    private static int balancedCooldown(InspiredAbilitySpec.Style style,
+            InspiredAbilitySpec.CrowdControlType control, int requestedCooldown) {
+        if (style == GLASS_CANNON || requestedCooldown <= 0) {
+            return 0;
+        }
+        int baseline = switch (style) {
+            case SINGLE -> 20;
+            case BLAST -> 30;
+            case NOVA -> 28;
+            case DASH -> 22;
+            case PULL -> 24;
+            case GUARD -> 30;
+            case ALLY -> 32;
+            case ASSASSIN -> 28;
+            case BLACK_HOLE -> 42;
+            case CURSE -> 26;
+            case SWAP -> 30;
+            case FROST -> 36;
+            case SOUL -> 28;
+            case EXECUTE -> 30;
+            case GAMBLE -> 20;
+            case PORTAL -> 22;
+            case MARK -> 24;
+            case DEFLECT -> 26;
+            case SUMMON -> 34;
+            case GLASS_CANNON -> 0;
+        };
+        int controlTax = switch (control) {
+            case NONE -> 0;
+            case DISARM -> 1;
+            case STUN, BIND -> 2;
+            case FREEZE -> 3;
+        };
+        return Math.min(requestedCooldown, baseline + controlTax);
+    }
+
+    private static String seconds(int ticks) {
+        return format(ticks / 20.0);
+    }
+
+    private static String format(double value) {
+        String text = String.format(Locale.ROOT, "%.2f", value);
+        while (text.contains(".") && text.endsWith("0")) {
+            text = text.substring(0, text.length() - 1);
+        }
+        if (text.endsWith(".")) {
+            text = text.substring(0, text.length() - 1);
+        }
+        return text;
     }
 
     private static double damageFor(InspiredAbilitySpec.Style style) {

@@ -8,13 +8,17 @@ import com.abilitycombat.game.Participant;
 import com.abilitycombat.utils.LocationUtil;
 import com.abilitycombat.utils.ParticleUtil;
 import org.bukkit.Location;
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 @AbilityManifest(name = "제우스 (Zeus)", species = AbilityManifest.Species.GOD, explain = {
@@ -22,21 +26,21 @@ import org.bukkit.util.Vector;
         "§7낙하 피해를 받지 않습니다.",
         "",
         "§e§l[철괴 우클릭 - 번개 질주]§f §8(돌진만 사용: 5초 / 재사용: 15초)",
-        "§7바라보는 방향으로 §f6초§7간 빠르게 돌진합니다.",
-        "§7돌진 중 다시 사용하면 그동안 돌진한 거리만큼 같은 방향으로 순간이동하고",
-        "§7도착 지점에 번개를 떨어뜨립니다.",
+        "§7바라보는 방향으로 §f2.5초§7간 돌진합니다. §8(속도: 1.5)",
+        "§7돌진 중 다시 사용하면 그동안 돌진한 거리 안의 구조물 위로 순간이동하고",
+        "§7도착 지점에 번개를 떨어뜨립니다. 허공에는 순간이동할 수 없습니다.",
         "§7번개에 맞은 적은 §c1.5초§7간 §e기절§7합니다."
 }, summarize = {
-        "§7철괴 우클릭§f: 바라보는 방향으로 6초 돌진",
-        "§7돌진 중 우클릭§f: 돌진 거리만큼 추가 순간이동 + 번개 낙하",
+        "§7철괴 우클릭§f: 바라보는 방향으로 2.5초 돌진",
+        "§7돌진 중 우클릭§f: 구조물 위로만 순간이동 + 번개 낙하",
         "§7쿨타임§f: 돌진만 5초 / 재사용 15초"
 })
 public class Zeus extends AbilityBase implements ActiveHandler {
 
     private static final int DASH_ONLY_COOLDOWN_SECONDS = 5;
     private static final int DASH_REUSE_COOLDOWN_SECONDS = 15;
-    private static final int DASH_DURATION_TICKS = 6 * 20;
-    private static final double DASH_SPEED = 3.0;
+    private static final int DASH_DURATION_TICKS = 50;
+    private static final double DASH_SPEED = 1.5;
     private static final int DASH_PARTICLE_INTERVAL_TICKS = 2;
     private static final double LIGHTNING_HIT_RADIUS = 2.5;
     private static final int LIGHTNING_STUN_TICKS = 30;
@@ -153,9 +157,14 @@ public class Zeus extends AbilityBase implements ActiveHandler {
         Location from = player.getLocation().clone();
         Vector direction = dashDirection == null ? player.getLocation().getDirection().normalize() : dashDirection.clone();
         double distance = Math.max(0.0, dashDistance);
-        stopDash(player, true);
 
-        Location destination = from.clone().add(direction.multiply(distance));
+        Location destination = findReuseDestination(player, from, direction, distance);
+        if (destination == null) {
+            player.sendMessage("§c바라보는 방향의 돌진 거리 안에 순간이동 가능한 구조물이 없습니다.");
+            return;
+        }
+
+        stopDash(player, true);
         player.teleport(destination);
         spawnLightningTrail(from, destination);
         strikeDashLightning(player, destination);
@@ -185,6 +194,81 @@ public class Zeus extends AbilityBase implements ActiveHandler {
             }
         }
         dashLastLocation = current.clone();
+    }
+
+    private Location findReuseDestination(Player player, Location from, Vector direction, double distance) {
+        if (player == null || from == null || direction == null || distance < 0.5 || from.getWorld() == null) {
+            return null;
+        }
+        Vector normalized = direction.clone();
+        if (normalized.lengthSquared() <= 0.0) {
+            return null;
+        }
+        normalized.normalize();
+
+        Location rayStart = from.clone().add(0, 1.0, 0);
+        RayTraceResult trace = from.getWorld().rayTraceBlocks(rayStart, normalized, distance,
+                FluidCollisionMode.NEVER, true);
+        if (trace == null || trace.getHitBlock() == null) {
+            return null;
+        }
+
+        Block hitBlock = trace.getHitBlock();
+        BlockFace hitFace = trace.getHitBlockFace();
+        Location destination = findSafeLocationOnStructure(hitBlock, hitFace, player);
+        if (destination == null) {
+            return null;
+        }
+        destination.setYaw(player.getLocation().getYaw());
+        destination.setPitch(player.getLocation().getPitch());
+        return destination;
+    }
+
+    private Location findSafeLocationOnStructure(Block hitBlock, BlockFace hitFace, Player player) {
+        if (hitBlock == null || player == null) {
+            return null;
+        }
+        Location onHitBlock = toPlayerLocation(hitBlock.getRelative(BlockFace.UP));
+        if (isSupportedSafeLocation(onHitBlock)) {
+            return onHitBlock;
+        }
+        if (hitFace != null) {
+            Block adjacent = hitBlock.getRelative(hitFace);
+            Location adjacentLocation = toPlayerLocation(adjacent);
+            if (isSupportedSafeLocation(adjacentLocation)) {
+                return adjacentLocation;
+            }
+            Location onAdjacent = toPlayerLocation(adjacent.getRelative(BlockFace.UP));
+            if (isSupportedSafeLocation(onAdjacent)) {
+                return onAdjacent;
+            }
+        }
+        return null;
+    }
+
+    private Location toPlayerLocation(Block feetBlock) {
+        if (feetBlock == null || feetBlock.getWorld() == null) {
+            return null;
+        }
+        return feetBlock.getLocation().add(0.5, 0.0, 0.5);
+    }
+
+    private boolean isSupportedSafeLocation(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return false;
+        }
+        Block feet = location.getBlock();
+        Block head = feet.getRelative(BlockFace.UP);
+        Block ground = feet.getRelative(BlockFace.DOWN);
+        return isPassableSpace(feet) && isPassableSpace(head) && isStructureBlock(ground);
+    }
+
+    private boolean isPassableSpace(Block block) {
+        return block != null && !block.isLiquid() && (block.isPassable() || block.getType().isAir());
+    }
+
+    private boolean isStructureBlock(Block block) {
+        return block != null && !block.isLiquid() && !block.getType().isAir() && block.getType().isSolid();
     }
 
     private void startCooldown(int seconds) {

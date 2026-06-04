@@ -15,6 +15,10 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public final class Infection {
 
+    public static final double INCOMING_DAMAGE_INCREASE_PERCENT = 25.0;
+    public static final long ROTATION_PERIOD_TICKS = 4L;
+    public static final double ROTATION_CHANCE = 0.65;
+
     private static final Map<UUID, InfectionEntry> INFECTED = new HashMap<>();
     private static final String DAMAGE_SOURCE_KEY = "infection";
     private static BukkitTask task;
@@ -24,7 +28,8 @@ public final class Infection {
 
     public static void start(AbilityCombat plugin) {
         if (plugin != null && task == null) {
-            task = Bukkit.getScheduler().runTaskTimer(plugin, Infection::tick, 4L, 4L);
+            task = Bukkit.getScheduler().runTaskTimer(plugin, Infection::tick, ROTATION_PERIOD_TICKS,
+                    ROTATION_PERIOD_TICKS);
         }
     }
 
@@ -55,7 +60,7 @@ public final class Infection {
             INFECTED.put(uuid, entry);
         }
         entry.until = Math.max(entry.until, until);
-        DamageModifier.applyIncoming(target, ticks, DAMAGE_SOURCE_KEY, -25.0);
+        DamageModifier.applyIncoming(target, ticks, DAMAGE_SOURCE_KEY, INCOMING_DAMAGE_INCREASE_PERCENT);
     }
 
     public static boolean isInfected(LivingEntity target) {
@@ -100,7 +105,7 @@ public final class Infection {
                 iterator.remove();
                 continue;
             }
-            if (target instanceof Player player && ThreadLocalRandom.current().nextDouble() <= 0.65) {
+            if (target instanceof Player player && ThreadLocalRandom.current().nextDouble() <= ROTATION_CHANCE) {
                 Location location = player.getLocation();
                 float yaw = location.getYaw() + ThreadLocalRandom.current().nextInt(130) - 65;
                 if (yaw > 180f) {
