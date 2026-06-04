@@ -1,11 +1,13 @@
 package com.abilitycombat.ability.list;
 
+import com.abilitycombat.ability.AbilityTickManager;
 import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.ability.handler.ActiveHandler;
 import com.abilitycombat.game.Participant;
 import com.abilitycombat.utils.LocationUtil;
 import com.abilitycombat.utils.ParticleUtil;
+import io.papermc.paper.event.entity.EntityKnockbackEvent;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -14,10 +16,13 @@ import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -29,7 +34,7 @@ import java.util.UUID;
 @AbilityManifest(name = "악마의 부츠 (DevilBoots)", species = AbilityManifest.Species.OTHERS, explain = {
         "§e§l[패시브 - 지옥불 자취]",
         "§7이동 경로에 §f4초§7간 유지되는 §c화염 자취§7를 남깁니다.",
-        "§7자취에 닿은 적은 매초 §c화상 1스택§7을 얻고 §c2초§7간 불탑니다.",
+        "§7자취에 닿은 적은 매초 §c화상 1스택§7을 얻고 §c4초§7간 불탑니다.",
         "§7화상은 제한 없이 중첩되며 스택당 초당 §c0.5 피해§7를 줍니다.",
         "§7대상이 물에 닿거나 불이 꺼지면 화상 스택이 초기화됩니다.",
         "",
@@ -48,7 +53,7 @@ public class DevilBoots extends AbilityBase implements ActiveHandler {
     private static final int TRAIL_SPAWN_INTERVAL_TICKS = 4;
     private static final int TRAIL_VFX_INTERVAL_TICKS = 4;
     private static final int BURN_TICK_INTERVAL = 20;
-    private static final int FIRE_TICKS = 40;
+    private static final int FIRE_TICKS = 80;
     private static final double TRAIL_RADIUS = 1.35;
     private static final double TRAIL_Y_RANGE = 1.6;
     private static final double TRAIL_MIN_DISTANCE_SQUARED = 0.16;
@@ -66,6 +71,7 @@ public class DevilBoots extends AbilityBase implements ActiveHandler {
     };
     private final Deque<TrailNode> trailNodes = new ArrayDeque<>();
     private final Map<UUID, BurnState> burnStates = new HashMap<>();
+    private final Map<UUID, SuppressedKnockback> suppressedBurnKnockbacks = new HashMap<>();
     private Location lastTrailLocation;
 
     public DevilBoots(Participant participant) {
@@ -85,6 +91,7 @@ public class DevilBoots extends AbilityBase implements ActiveHandler {
         speedDuration.stop(true);
         clearTrail();
         burnStates.clear();
+        suppressedBurnKnockbacks.clear();
     }
 
     @Override
@@ -92,6 +99,7 @@ public class DevilBoots extends AbilityBase implements ActiveHandler {
         speedDuration.stop(true);
         clearTrail();
         burnStates.clear();
+        suppressedBurnKnockbacks.clear();
     }
 
     @Override
@@ -145,6 +153,7 @@ public class DevilBoots extends AbilityBase implements ActiveHandler {
         if (tick % BURN_TICK_INTERVAL == 0) {
             applyBurnStacks();
         }
+        suppressedBurnKnockbacks.entrySet().removeIf(entry -> entry.getValue().expireTick < tick);
     }
 
     private void addTrailNode(int tick) {
@@ -217,11 +226,30 @@ public class DevilBoots extends AbilityBase implements ActiveHandler {
                 continue;
             }
             double damage = entry.getValue().stacks * DAMAGE_PER_STACK;
-            target.setNoDamageTicks(0);
-            target.damage(damage, owner);
+            applyBurnDamageWithArmorNoKnockback(target, owner, damage);
             ParticleUtil.spawnParticle(target.getWorld(), Particle.FLAME, target.getLocation().clone().add(0, 1.0, 0),
                     Math.min(24, 4 + entry.getValue().stacks), 0.35, 0.45, 0.35, 0.03, 2, 64);
         }
+    }
+
+    private void applyBurnDamageWithArmorNoKnockback(LivingEntity target, Player owner, double damage) {
+        if (target == null || owner == null || target.isDead() || damage <= 0.0) {
+            return;
+        }
+        suppressedBurnKnockbacks.put(target.getUniqueId(),
+                new SuppressedKnockback(target.getVelocity().clone(), AbilityTickManager.getGlobalTick() + 2));
+        target.setNoDamageTicks(0);
+        target.damage(damage, owner);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onEntityKnockback(EntityKnockbackEvent event) {
+        SuppressedKnockback suppressed = suppressedBurnKnockbacks.remove(event.getEntity().getUniqueId());
+        if (suppressed == null || AbilityTickManager.getGlobalTick() > suppressed.expireTick) {
+            return;
+        }
+        event.setCancelled(true);
+        event.getEntity().setVelocity(suppressed.velocity);
     }
 
     private boolean isTouchingTrail(LivingEntity target) {
@@ -260,5 +288,8 @@ public class DevilBoots extends AbilityBase implements ActiveHandler {
         private int stacks;
         @SuppressWarnings("unused")
         private String lastSeenName;
+    }
+
+    private record SuppressedKnockback(Vector velocity, int expireTick) {
     }
 }

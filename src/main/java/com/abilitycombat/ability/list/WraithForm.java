@@ -31,13 +31,11 @@ import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 
-import java.util.Locale;
-
 @AbilityManifest(name = "망령화 (WraithForm)", species = AbilityManifest.Species.UNDEAD, explain = {
         "§e§l[패시브 - 망령화]",
         "§7인간 상태에서는 입히는 피해가 §c50% 감소§7합니다.",
         "§7피해를 입힐 때마다 §b망령화 4스택§7을 얻습니다. (최대 100)",
-        "§7망령화 §f50스택§7 이상이면 검은 연기와 함께 말뚝과 §f18칸§7 필드를 생성합니다.",
+        "§7망령화 §f50스택§7 이상이면 §f18칸§7 필드가 활성화됩니다.",
         "§7필드 밖으로 벗어나면 현재 망령화의 §c80%§7를 잃습니다.",
         "§7망령 상태가 풀리면 §f15초§7간 재진입할 수 없습니다.",
         "",
@@ -50,7 +48,7 @@ import java.util.Locale;
         "§7망령 상태에서 바라본 적을 §f3 + 스택의 5%초§7간 속박합니다."
 }, summarize = {
         "§7패시브§f: 피해 시 망령화 +4, 인간 상태 피해 -50%",
-        "§750스택 이상§f: 검은 연기 진입, 말뚝/18칸 필드, 피해 +20%, 사거리 +10%, 흡혈 15%",
+        "§750스택 이상§f: 18칸 필드, 피해 +20%, 사거리 +10%, 흡혈 15%",
         "§7철괴 우클릭§f: 망령 상태에서 대상 속박 (60초)"
 })
 public class WraithForm extends AbilityBase implements ActiveHandler {
@@ -74,7 +72,6 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
     private static final double FIELD_RADIUS_SQUARED = FIELD_RADIUS * FIELD_RADIUS;
     private static final int FIELD_PARTICLE_POINTS = 72;
 
-    private static final String STATUS_KEY = "wraith:status";
     private static final int HUD_PRIORITY = 4;
     private static final Particle.DustOptions FIELD_DUST = new Particle.DustOptions(Color.fromRGB(93, 52, 168), 1.2f);
     private static final Particle.DustOptions WRAITH_ENTRY_DUST =
@@ -130,7 +127,6 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
             return false;
         }
         if (!isWraith()) {
-            showStatus("망령화 50스택 이상에서만 사용할 수 있습니다.", NamedTextColor.RED);
             return false;
         }
         if (cooldown.isCooldown()) {
@@ -141,7 +137,6 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
         LivingEntity target = LocationUtil.getEntityLookingAt(LivingEntity.class, owner, range,
                 entity -> isCombatTarget(owner, entity));
         if (target == null) {
-            showStatus("바라보는 대상이 없습니다.", NamedTextColor.RED);
             return false;
         }
 
@@ -154,7 +149,6 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
         owner.getWorld().playSound(owner.getLocation(), Sound.ENTITY_EVOKER_CAST_SPELL, 0.9f, 0.55f);
         target.getWorld().playSound(target.getLocation(), Sound.ENTITY_WITHER_AMBIENT, 0.7f, 1.45f);
         spawnBindEffect(target.getLocation());
-        showStatus("혼령 속박 " + formatSeconds(bindTicks) + "초", NamedTextColor.AQUA);
         updateHud();
         return true;
     }
@@ -236,7 +230,6 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
                 || owner.getLocation().distanceSquared(center) > FIELD_RADIUS_SQUARED) {
             int loss = Math.max(1, (int) Math.ceil(stacks * FIELD_EXIT_STACK_LOSS_RATIO));
             addStacks(-loss);
-            showStatus("망령 필드 이탈: -" + loss, NamedTextColor.RED);
             owner = getPlayer();
             if (owner != null) {
                 owner.playSound(owner.getLocation(), Sound.ENTITY_WITHER_HURT, 0.75f, 1.6f);
@@ -254,7 +247,6 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
         }
         lastDrainAt = now;
         addStacks(-NON_COMBAT_STACK_LOSS);
-        showStatus("비전투 망령화 -" + NON_COMBAT_STACK_LOSS, NamedTextColor.GRAY);
     }
 
     private void addStacks(int amount) {
@@ -264,9 +256,6 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
         boolean wasWraith = isWraith();
         int before = stacks;
         stacks = Math.max(0, Math.min(MAX_STACKS, stacks + amount));
-        if (amount > 0 && hasWraithStacks() && isReentryBlocked()) {
-            showStatus("망령화 재진입 대기 " + getReentryRemainingSeconds() + "초", NamedTextColor.RED);
-        }
         if (before == stacks) {
             return;
         }
@@ -585,34 +574,8 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
         return isWraith() ? NamedTextColor.AQUA : NamedTextColor.WHITE;
     }
 
-    private void showStatus(String message, NamedTextColor color) {
-        Player owner = getPlayer();
-        if (owner == null) {
-            return;
-        }
-        Component component = Component.text(message, color);
-        if (getActionbarChannel() != null) {
-            getActionbarChannel().updateForTicks(owner, STATUS_KEY, HUD_PRIORITY + 1, component, 40);
-        } else {
-            owner.sendActionBar(component);
-        }
-    }
-
     private void clearHud() {
-        Player owner = getPlayer();
-        if (owner == null) {
-            return;
-        }
-        if (getActionbarChannel() != null) {
-            getActionbarChannel().clear(owner, STATUS_KEY);
-        } else {
-            owner.sendActionBar(Component.empty());
-        }
         stackGauge.clear();
-    }
-
-    private String formatSeconds(int ticks) {
-        return String.format(Locale.US, "%.1f", ticks / 20.0);
     }
 
     private static final class WraithStake {

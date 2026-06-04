@@ -18,6 +18,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -29,11 +30,12 @@ import java.util.UUID;
 @AbilityManifest(name = "대지의 각성 (EarthAwakening)", species = AbilityManifest.Species.SPECIAL, explain = {
         "§e§l[패시브 - 대지의 흔적]",
         "§7스프린트 게이지 대시가 끝나면 이동 경로의 지면이 순차적으로 폭발합니다.",
-        "§7균열은 §f0.15초§7 간격으로 터지며 반경 §f2칸§7 내 적에게 §c3 피해§7를 줍니다.",
+        "§7폭발 전 균열이 표시되고, §f0.15초§7 간격으로 터집니다.",
+        "§7반경 §f2칸§7 내 적에게 균열당 §c10 피해§7를 줍니다.",
         "§7적중한 적은 §e30% 슬로우 2초§7를 받고, 같은 대시에서는 한 번만 맞습니다."
 }, summarize = {
         "§7패시브§f: 스프린트 대시 경로가 0.15초 간격으로 순차 폭발",
-        "§7균열§f: 반경 2칸, 피해 3 + 30% 슬로우 2초"
+        "§7균열§f: 예고 표시, 반경 2칸, 피해 10 + 30% 슬로우 2초"
 })
 public class EarthAwakening extends AbilityBase implements SprintHudService.DashListener {
 
@@ -43,7 +45,7 @@ public class EarthAwakening extends AbilityBase implements SprintHudService.Dash
     private static final int CRACK_STEP_DELAY_TICKS = 3;
     private static final int MAX_PATH_SAMPLES = 18;
     private static final double CRACK_RADIUS = 2.0;
-    private static final double DAMAGE = 3.0;
+    private static final double DAMAGE = 10.0;
     private static final int SLOW_TICKS = 40;
     private static final double SLOW_PERCENT = 30.0;
 
@@ -152,8 +154,10 @@ public class EarthAwakening extends AbilityBase implements SprintHudService.Dash
             if (ground == null) {
                 continue;
             }
-            pendingCracks.add(new PendingCrack(ground, tick + CRACK_START_DELAY_TICKS
-                    + (index * CRACK_STEP_DELAY_TICKS), hitTargets));
+            PendingCrack crack = new PendingCrack(ground, tick + CRACK_START_DELAY_TICKS
+                    + (index * CRACK_STEP_DELAY_TICKS), hitTargets);
+            pendingCracks.add(crack);
+            markCrack(crack);
             index++;
         }
     }
@@ -170,6 +174,24 @@ public class EarthAwakening extends AbilityBase implements SprintHudService.Dash
             return null;
         }
         return new Location(world, x + 0.5, floorY, z + 0.5);
+    }
+
+    private void markCrack(PendingCrack crack) {
+        World world = crack.location.getWorld();
+        if (world == null) {
+            return;
+        }
+        BlockData blockData = getFloorBlockData(world, crack.location);
+        for (int i = 0; i < 6; i++) {
+            double angle = (Math.PI * 2.0 * i) / 6.0;
+            Vector direction = new Vector(Math.cos(angle), 0.0, Math.sin(angle));
+            Location start = crack.location.clone().add(0, 0.08, 0);
+            for (double distance = 0.35; distance <= CRACK_RADIUS; distance += 0.35) {
+                Location point = start.clone().add(direction.clone().multiply(distance));
+                ParticleUtil.spawnParticle(world, Particle.BLOCK_CRUMBLE, point,
+                        2, 0.05, 0.02, 0.05, 0.01, blockData, 1, 64);
+            }
+        }
     }
 
     private void processCracks(int tick) {
@@ -192,9 +214,7 @@ public class EarthAwakening extends AbilityBase implements SprintHudService.Dash
         if (player == null || world == null) {
             return;
         }
-        Block floor = world.getBlockAt(crack.location.getBlockX(), crack.location.getBlockY() - 1,
-                crack.location.getBlockZ());
-        BlockData blockData = floor.getType().isSolid() ? floor.getBlockData().clone() : Material.DIRT.createBlockData();
+        BlockData blockData = getFloorBlockData(world, crack.location);
         ParticleUtil.spawnParticle(world, Particle.BLOCK_CRUMBLE, crack.location.clone().add(0, 0.08, 0),
                 32, 0.8, 0.1, 0.8, 0.08, blockData, 1, 64);
         world.playSound(crack.location, Sound.ENTITY_GENERIC_EXPLODE, 0.35f, 1.55f);
@@ -207,6 +227,11 @@ public class EarthAwakening extends AbilityBase implements SprintHudService.Dash
                 applySlow(target, SLOW_TICKS, SLOW_PERCENT);
             }
         }
+    }
+
+    private BlockData getFloorBlockData(World world, Location location) {
+        Block floor = world.getBlockAt(location.getBlockX(), location.getBlockY() - 1, location.getBlockZ());
+        return floor.getType().isSolid() ? floor.getBlockData().clone() : Material.DIRT.createBlockData();
     }
 
     private boolean isOwner(Player player) {

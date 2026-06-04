@@ -25,22 +25,23 @@ import org.bukkit.util.Vector;
 
 @AbilityManifest(name = "궤도형 레이저 (OrbitalLaser)", species = AbilityManifest.Species.SPECIAL, explain = {
         "§e§l[철괴 우클릭 - 궤도 폭격]§f §8(쿨타임: 20초)",
-        "§7바라보는 지점 최대 §f20칸§7에 §c붉은 경고 원§7을 §f2.5초§7 표시합니다.",
+        "§7바라보는 지점 최대 §f20칸§7에 §c붉은 경고 원§7을 §f6초§7 표시합니다.",
         "§7이후 높이 §f15칸§7 수직 레이저가 내려오며 반경 §f12.5칸§7을 타격합니다.",
-        "§7적중한 적은 §c10 피해§7와 §f실명 2초§7를 받습니다."
+        "§7적중한 적은 §c40 피해§7와 §f실명 2초§7를 받습니다."
 }, summarize = {
-        "§7철괴 우클릭§f: 20칸 지점 지정 → 2.5초 후 레이저",
-        "§7적중§f: 반경 12.5칸, 피해 10 + 실명 2초"
+        "§7철괴 우클릭§f: 20칸 지점 지정 → 6초 후 레이저",
+        "§7적중§f: 반경 12.5칸, 피해 40 + 실명 2초"
 })
 public class OrbitalLaser extends AbilityBase implements ActiveHandler {
 
     private static final int COOLDOWN_SECONDS = 20;
     private static final double MAX_RANGE = 20.0;
     private static final double BLAST_RADIUS = 12.5;
-    private static final double DAMAGE = 10.0;
+    private static final double DAMAGE = 40.0;
     private static final int BLIND_TICKS = 40;
-    private static final int WARNING_TICKS = 50;
+    private static final int WARNING_TICKS = 120;
     private static final int LASER_HEIGHT = 15;
+    private static final double RISING_EXPLOSION_HEIGHT = 8.0;
     private static final Particle.DustOptions WARNING_DUST =
             new Particle.DustOptions(Color.fromRGB(255, 30, 30), 1.15f);
 
@@ -162,13 +163,26 @@ public class OrbitalLaser extends AbilityBase implements ActiveHandler {
             }
         }
         ParticleUtil.spawnParticle(world, Particle.EXPLOSION, targetLocation, 1, 0.0, 0.0, 0.0, 0.0, 1, 64);
+        spawnRisingExplosionEffect(world, targetLocation);
         world.playSound(targetLocation, Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 0.9f, 0.55f);
+        world.playSound(targetLocation, Sound.ENTITY_GENERIC_EXPLODE, 0.7f, 0.75f);
 
         for (LivingEntity target : LocationUtil.getNearbyLivingEntities(targetLocation, BLAST_RADIUS, player,
                 entity -> !(entity instanceof ArmorStand))) {
             target.setNoDamageTicks(0);
             target.damage(DAMAGE, player);
             target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, BLIND_TICKS, 0, true, true));
+        }
+    }
+
+    private void spawnRisingExplosionEffect(World world, Location base) {
+        for (double y = 0.0; y <= RISING_EXPLOSION_HEIGHT; y += 0.65) {
+            Location point = base.clone().add(0, y, 0);
+            ParticleUtil.spawnParticle(world, Particle.EXPLOSION, point, 1, 0.15, 0.08, 0.15, 0.0, 1, 64);
+            ParticleUtil.spawnParticle(world, Particle.LARGE_SMOKE, point, 8, 0.5, 0.2, 0.5, 0.04, 1, 64);
+            if (((int) (y * 100)) % 130 == 0) {
+                ParticleUtil.spawnParticle(world, Particle.FLAME, point, 10, 0.35, 0.12, 0.35, 0.03, 1, 64);
+            }
         }
     }
 
