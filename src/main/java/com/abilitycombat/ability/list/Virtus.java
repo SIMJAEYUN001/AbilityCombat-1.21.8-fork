@@ -50,7 +50,6 @@ public class Virtus extends AbilityBase implements ActiveHandler {
     private boolean guarding;
     private int guardEndTick = -1;
     private final Map<UUID, Double> accumulatedDamageByAttacker = new HashMap<>();
-    private final Map<UUID, Double> pendingReflectDamage = new HashMap<>();
 
     public Virtus(Participant participant) {
         super(participant);
@@ -68,7 +67,6 @@ public class Virtus extends AbilityBase implements ActiveHandler {
         guarding = false;
         guardEndTick = -1;
         accumulatedDamageByAttacker.clear();
-        pendingReflectDamage.clear();
         removeGlowEffect();
     }
 
@@ -100,13 +98,6 @@ public class Virtus extends AbilityBase implements ActiveHandler {
         if (event.isCancelled()) {
             return;
         }
-        if (event.getEntity() instanceof Player damagedPlayer) {
-            Double reflectedDamage = pendingReflectDamage.remove(damagedPlayer.getUniqueId());
-            if (reflectedDamage != null && reflectedDamage > 0.0) {
-                addIncomingDamage(event, reflectedDamage);
-                return;
-            }
-        }
         if (!(event.getEntity() instanceof Player player) || !player.equals(getPlayer())) {
             return;
         }
@@ -135,7 +126,6 @@ public class Virtus extends AbilityBase implements ActiveHandler {
         guarding = true;
         guardEndTick = AbilityTickManager.getGlobalTick() + DURATION_TICKS;
         accumulatedDamageByAttacker.clear();
-        pendingReflectDamage.clear();
 
         Player player = getPlayer();
         player.playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1.0f, 1.2f);
@@ -154,7 +144,6 @@ public class Virtus extends AbilityBase implements ActiveHandler {
         guarding = false;
         guardEndTick = -1;
         accumulatedDamageByAttacker.clear();
-        pendingReflectDamage.clear();
         removeGlowEffect();
     }
 
@@ -166,9 +155,7 @@ public class Virtus extends AbilityBase implements ActiveHandler {
             if (attacker == null || !attacker.isOnline() || attacker.isDead() || reflectedDamage <= 0.0) {
                 continue;
             }
-            pendingReflectDamage.merge(attacker.getUniqueId(), reflectedDamage, Double::sum);
-            attacker.setNoDamageTicks(0);
-            attacker.damage(0.01, player);
+            applyArmorIgnoringDamage(attacker, player, reflectedDamage);
             attacker.playSound(attacker.getLocation(), Sound.ENCHANT_THORNS_HIT, 1.0f, 0.8f);
             reflected = true;
         }
@@ -176,6 +163,20 @@ public class Virtus extends AbilityBase implements ActiveHandler {
             player.playSound(player.getLocation(), Sound.ENCHANT_THORNS_HIT, 1.0f, 0.8f);
         }
         return reflected;
+    }
+
+    private void applyArmorIgnoringDamage(Player target, Player source, double amount) {
+        if (target == null || source == null || amount <= 0.0 || target.isDead()) {
+            return;
+        }
+        double currentHealth = target.getHealth();
+        if (amount >= currentHealth) {
+            target.setNoDamageTicks(0);
+            target.setHealth(0.01);
+            target.damage(0.01, source);
+            return;
+        }
+        target.setHealth(Math.max(0.01, currentHealth - amount));
     }
 
     private Player resolvePlayerAttacker(EntityDamageByEntityEvent event) {
