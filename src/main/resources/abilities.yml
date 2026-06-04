@@ -169,6 +169,12 @@ abilities:
       - "피해 감소 중 받은 플레이어 피해 누적"
       - "종료 시 공격자별 누적 피해 40% 반사"
       - "쿨타임: 기본 40초 / 반사 성공 4초 / 반사 없음 25초"
+  - name: "망령화 (WraithForm)"
+    icon: SOUL_LANTERN
+    summary:
+      - "피해 시 망령화 +10, 인간 상태 피해 -50%"
+      - "50스택 이상: 말뚝/18칸 필드, 피해 +20%, 사거리 +10%, 흡혈 15%"
+      - "철괴 우클릭: 망령 상태에서 대상 속박 (60초)"
   - name: "전략적 공생 (StrategicSymbiosis)"
     icon: AMETHYST_SHARD
     summary:

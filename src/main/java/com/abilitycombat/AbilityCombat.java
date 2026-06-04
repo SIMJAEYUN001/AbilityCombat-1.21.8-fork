@@ -79,6 +79,7 @@ import com.abilitycombat.ability.list.Vampire;
 import com.abilitycombat.ability.list.Virus;
 import com.abilitycombat.ability.list.Void;
 import com.abilitycombat.ability.list.Virtus;
+import com.abilitycombat.ability.list.WraithForm;
 import com.abilitycombat.ability.list.Xenon;
 import com.abilitycombat.ability.list.Yeti;
 import com.abilitycombat.ability.list.Zeus;
@@ -371,6 +372,7 @@ public final class AbilityCombat extends JavaPlugin {
         AbilityFactory.register(Terrorist.class);
         AbilityFactory.register(Ira.class);
         AbilityFactory.register(Virtus.class);
+        AbilityFactory.register(WraithForm.class);
         AbilityFactory.register(StrategicSymbiosis.class);
         AbilityFactory.register(Liberator.class);
         AbilityFactory.register(Hermit.class);
