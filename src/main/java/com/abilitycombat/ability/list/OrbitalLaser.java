@@ -41,7 +41,8 @@ public class OrbitalLaser extends AbilityBase implements ActiveHandler {
     private static final int BLIND_TICKS = 40;
     private static final int WARNING_TICKS = 120;
     private static final int LASER_HEIGHT = 15;
-    private static final double RISING_EXPLOSION_HEIGHT = 8.0;
+    private static final double RISING_EXPLOSION_HEIGHT = 14.0;
+    private static final double RISING_EXPLOSION_STEP = 0.65;
     private static final Particle.DustOptions WARNING_DUST =
             new Particle.DustOptions(Color.fromRGB(255, 30, 30), 1.15f);
 
@@ -49,6 +50,9 @@ public class OrbitalLaser extends AbilityBase implements ActiveHandler {
     private Location targetLocation;
     private int warningStartTick;
     private boolean warningActive;
+    private Location explosionLocation;
+    private int explosionLayer;
+    private boolean explosionActive;
 
     public OrbitalLaser(Participant participant) {
         super(participant);
@@ -56,12 +60,12 @@ public class OrbitalLaser extends AbilityBase implements ActiveHandler {
 
     @Override
     protected void onDeactivate() {
-        clearWarning();
+        clearEffects();
     }
 
     @Override
     protected void onDestroy() {
-        clearWarning();
+        clearEffects();
     }
 
     @Override
@@ -90,17 +94,33 @@ public class OrbitalLaser extends AbilityBase implements ActiveHandler {
 
     @Override
     public void onTick(int tick) {
-        if (!warningActive || targetLocation == null) {
+        if (warningActive && targetLocation != null) {
+            tickWarning(tick);
+        } else {
+            warningActive = false;
+        }
+
+        if (explosionActive && explosionLocation != null) {
+            tickRisingExplosion();
+        } else {
+            explosionActive = false;
+        }
+
+        if (!warningActive && !explosionActive) {
             unregisterTick();
-            return;
         }
+    }
+
+    private void tickWarning(int tick) {
         int elapsed = tick - warningStartTick;
-        if (elapsed >= WARNING_TICKS) {
-            fireLaser();
-            clearWarning();
+        if (elapsed <= WARNING_TICKS) {
+            spawnWarningCircle(elapsed);
             return;
         }
-        spawnWarningCircle(elapsed);
+
+        Location fireLocation = targetLocation.clone();
+        clearWarningState();
+        fireLaser(fireLocation);
     }
 
     private Location resolveTargetLocation(Player player) {
@@ -137,7 +157,12 @@ public class OrbitalLaser extends AbilityBase implements ActiveHandler {
             return;
         }
         double progress = elapsed / (double) WARNING_TICKS;
-        double radius = Math.max(0.45, BLAST_RADIUS * (1.0 - progress * 0.65));
+        double radius = BLAST_RADIUS * (1.0 - Math.min(1.0, Math.max(0.0, progress)));
+        if (radius <= 0.05) {
+            ParticleUtil.spawnParticle(world, Particle.DUST, targetLocation, 18, 0.18, 0.03, 0.18, 0.0,
+                    WARNING_DUST, 1, 64);
+            return;
+        }
         for (Vector vector : Circle.of(radius, 96)) {
             Location point = targetLocation.clone().add(vector);
             ParticleUtil.spawnParticle(world, Particle.DUST, point, 1, 0.0, 0.0, 0.0, 0.0,
@@ -148,26 +173,25 @@ public class OrbitalLaser extends AbilityBase implements ActiveHandler {
         }
     }
 
-    private void fireLaser() {
+    private void fireLaser(Location impactLocation) {
         Player player = getPlayer();
-        World world = targetLocation.getWorld();
+        World world = impactLocation.getWorld();
         if (player == null || world == null) {
             return;
         }
         for (double y = 0.0; y <= LASER_HEIGHT; y += 0.35) {
-            Location point = targetLocation.clone().add(0, y, 0);
+            Location point = impactLocation.clone().add(0, y, 0);
             ParticleUtil.spawnParticle(world, Particle.END_ROD, point, 2, 0.03, 0.03, 0.03, 0.0, 1, 64);
             if (((int) (y * 10)) % 7 == 0) {
                 ParticleUtil.spawnParticle(world, Particle.DUST, point, 1, 0.04, 0.04, 0.04, 0.0,
                         WARNING_DUST, 1, 64);
             }
         }
-        ParticleUtil.spawnParticle(world, Particle.EXPLOSION, targetLocation, 1, 0.0, 0.0, 0.0, 0.0, 1, 64);
-        spawnRisingExplosionEffect(world, targetLocation);
-        world.playSound(targetLocation, Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 0.9f, 0.55f);
-        world.playSound(targetLocation, Sound.ENTITY_GENERIC_EXPLODE, 0.7f, 0.75f);
+        startRisingExplosionEffect(impactLocation);
+        world.playSound(impactLocation, Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 0.9f, 0.55f);
+        world.playSound(impactLocation, Sound.ENTITY_GENERIC_EXPLODE, 0.7f, 0.75f);
 
-        for (LivingEntity target : LocationUtil.getNearbyLivingEntities(targetLocation, BLAST_RADIUS, player,
+        for (LivingEntity target : LocationUtil.getNearbyLivingEntities(impactLocation, BLAST_RADIUS, player,
                 entity -> !(entity instanceof ArmorStand))) {
             target.setNoDamageTicks(0);
             target.damage(DAMAGE, player);
@@ -175,21 +199,58 @@ public class OrbitalLaser extends AbilityBase implements ActiveHandler {
         }
     }
 
-    private void spawnRisingExplosionEffect(World world, Location base) {
-        for (double y = 0.0; y <= RISING_EXPLOSION_HEIGHT; y += 0.65) {
-            Location point = base.clone().add(0, y, 0);
-            ParticleUtil.spawnParticle(world, Particle.EXPLOSION, point, 1, 0.15, 0.08, 0.15, 0.0, 1, 64);
-            ParticleUtil.spawnParticle(world, Particle.LARGE_SMOKE, point, 8, 0.5, 0.2, 0.5, 0.04, 1, 64);
-            if (((int) (y * 100)) % 130 == 0) {
-                ParticleUtil.spawnParticle(world, Particle.FLAME, point, 10, 0.35, 0.12, 0.35, 0.03, 1, 64);
-            }
+    private void startRisingExplosionEffect(Location base) {
+        explosionLocation = base.clone();
+        explosionLayer = 0;
+        explosionActive = true;
+        registerTick();
+    }
+
+    private void tickRisingExplosion() {
+        World world = explosionLocation.getWorld();
+        if (world == null) {
+            clearExplosionState();
+            return;
+        }
+        double y = explosionLayer * RISING_EXPLOSION_STEP;
+        if (y > RISING_EXPLOSION_HEIGHT) {
+            clearExplosionState();
+            return;
+        }
+        spawnExplosionLayer(world, explosionLocation, y);
+        explosionLayer++;
+    }
+
+    private void spawnExplosionLayer(World world, Location base, double y) {
+        Location center = base.clone().add(0, y, 0);
+        ParticleUtil.spawnParticle(world, Particle.EXPLOSION, center, 14, BLAST_RADIUS * 0.55, 0.18,
+                BLAST_RADIUS * 0.55, 0.0, 1, 64);
+        ParticleUtil.spawnParticle(world, Particle.LARGE_SMOKE, center, 42, BLAST_RADIUS * 0.7, 0.35,
+                BLAST_RADIUS * 0.7, 0.05, 1, 64);
+        for (Vector vector : Circle.of(BLAST_RADIUS, 96)) {
+            Location edge = center.clone().add(vector);
+            ParticleUtil.spawnParticle(world, Particle.FLAME, edge, 2, 0.08, 0.08, 0.08, 0.0, 1, 64);
+        }
+        if (explosionLayer % 2 == 0) {
+            world.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 0.35f, 1.0f + explosionLayer * 0.04f);
         }
     }
 
-    private void clearWarning() {
+    private void clearWarningState() {
         warningActive = false;
         targetLocation = null;
         warningStartTick = 0;
+    }
+
+    private void clearExplosionState() {
+        explosionActive = false;
+        explosionLocation = null;
+        explosionLayer = 0;
+    }
+
+    private void clearEffects() {
+        clearWarningState();
+        clearExplosionState();
         unregisterTick();
     }
 }
