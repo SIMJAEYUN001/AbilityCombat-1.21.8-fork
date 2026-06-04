@@ -174,6 +174,31 @@ abilities:
       - "피해 시 망령화 +10, 인간 상태 피해 -50%"
       - "50스택 이상: 말뚝/18칸 필드, 피해 +20%, 사거리 +10%, 흡혈 15%"
       - "철괴 우클릭: 망령 상태에서 대상 속박 (60초)"
+  - name: "검무 (SwordDance)"
+    icon: IRON_SWORD
+    summary:
+      - "철괴 우클릭: 5칸 내 최대 4명 순차 이동 타격"
+      - "시전 중: 1.2초 무적, 타격당 피해 4"
+  - name: "대지의 각성 (EarthAwakening)"
+    icon: GRASS_BLOCK
+    summary:
+      - "웅크리기+철괴 우클릭: 8칸 대시 후 경로 균열"
+      - "균열: 0.7초 지연, 반경 2칸, 피해 3 + 30% 슬로우 2초"
+  - name: "연쇄 번개 (ChainLightning)"
+    icon: LIGHTNING_ROD
+    summary:
+      - "패시브: 근접 적중 시 주변 3명에게 35% 전이 피해"
+      - "전이 대상: 대상별 2초 쿨타임"
+  - name: "궤도형 레이저 (OrbitalLaser)"
+    icon: BEACON
+    summary:
+      - "철괴 우클릭: 20칸 지점 지정 후 1초 뒤 레이저"
+      - "적중: 반경 2.5칸, 피해 10 + 실명 2초"
+  - name: "탭 댄서 (TapDancer)"
+    icon: GOLDEN_BOOTS
+    summary:
+      - "패시브: 근접 공격 시 이동 속도 +0.012 x 스택"
+      - "최대: 8스택, 4초 미전투마다 -1"
   - name: "전략적 공생 (StrategicSymbiosis)"
     icon: AMETHYST_SHARD
     summary:
