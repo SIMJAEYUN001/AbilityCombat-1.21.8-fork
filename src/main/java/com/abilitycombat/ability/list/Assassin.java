@@ -14,7 +14,7 @@ import org.bukkit.event.Event;
 import java.util.ArrayList;
 import java.util.List;
 
-@AbilityManifest(name = "암살자 (Assassin)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "암살자 (Assassin)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 암살]§f §8(쿨타임: 35초)",
         "§f8칸§7 이내에 있는 모든 생명체에게 연속으로 이동하며",
         "§7각각 §c8의 피해§7를 입힙니다.",

@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-@AbilityManifest(name = "급조모루 (MakeshiftAnvil)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "급조모루 (MakeshiftAnvil)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 급조 강화]",
         "§7페이즈가 넘어가거나 적을 처치할 때마다",
         "§7착용 중인 갑옷/들고 있는 검 중 무작위 1개를 강화합니다.",

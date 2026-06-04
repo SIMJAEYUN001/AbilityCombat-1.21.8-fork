@@ -11,7 +11,7 @@ import org.bukkit.potion.PotionEffectType;
 
 import java.util.concurrent.ThreadLocalRandom;
 
-@AbilityManifest(name = "데미갓 (Demigod)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.DEMIGOD, explain = {
+@AbilityManifest(name = "데미갓 (Demigod)", species = AbilityManifest.Species.DEMIGOD, explain = {
         "§e§l[패시브 - 신성의 가호]",
         "§7공격을 받으면 §f40%§7 확률로 §f5초§7간",
         "§7다음 효과 중 하나가 적용됩니다:",

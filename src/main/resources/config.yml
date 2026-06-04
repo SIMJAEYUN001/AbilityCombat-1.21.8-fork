@@ -6,7 +6,6 @@ game:
 ability:
   selection-seconds: 50
   reroll-count: 1
-  show-rank-in-lore: true
 world-border:
   initial-radius: 200
   shrink-seconds: 3

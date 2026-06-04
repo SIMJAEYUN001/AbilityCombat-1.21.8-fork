@@ -9,7 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
-@AbilityManifest(name = "이라 (Ira)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "이라 (Ira)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 분노]",
         "§f3번§7 공격당할 때마다 §c자신의 위치§7에",
         "§c폭발§7을 일으킵니다. (폭발력: §f2.5§7)",

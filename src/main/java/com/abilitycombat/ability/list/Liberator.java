@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-@AbilityManifest(name = "리버레이터 (Liberator)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "리버레이터 (Liberator)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 해방]§f §8(쿨타임: 50초)",
         "§7영혼을 분리하여 §b무적§7 및 §b타게팅 불가§7 상태로 돌진합니다.",
         "§7지속시간: §f10초§7, 받는 피해: §f25% 감소§7, §b신속 II§7 부여",

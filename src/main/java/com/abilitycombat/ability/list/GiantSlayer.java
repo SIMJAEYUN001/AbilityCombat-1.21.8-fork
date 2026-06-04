@@ -15,7 +15,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-@AbilityManifest(name = "거인 학살자 (GiantSlayer)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "거인 학살자 (GiantSlayer)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 거인 사냥꾼]",
         "§7플레이어 크기가 §f20%§7 감소하며,",
         "§b신속 I§7 효과를 무제한으로 얻습니다.",

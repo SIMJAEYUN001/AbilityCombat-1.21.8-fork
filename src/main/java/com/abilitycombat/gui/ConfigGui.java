@@ -23,7 +23,6 @@ public class ConfigGui implements InventoryHolder {
 
     public enum Type {
         ATTACK_COOLDOWN,
-        ABILITY_LORE_RANK,
         LOBBY_BLOCK_BREAK,
         LOBBY_BLOCK_PLACE,
         LOBBY_INVINCIBILITY,
@@ -102,7 +101,6 @@ public class ConfigGui implements InventoryHolder {
 
     private void build() {
         addEntry(0, Type.ATTACK_COOLDOWN, -1);
-        addEntry(5, Type.ABILITY_LORE_RANK, -1);
         addEntry(1, Type.LOBBY_BLOCK_BREAK, -1);
         addEntry(2, Type.LOBBY_BLOCK_PLACE, -1);
         addEntry(3, Type.LOBBY_INVINCIBILITY, -1);
@@ -144,13 +142,6 @@ public class ConfigGui implements InventoryHolder {
                         "§f" + (enabled ? "ON" : "OFF"),
                         "§7클릭: 토글",
                         "§8OFF: 바닐라 공격속도 제한 제거"));
-            }
-            case ABILITY_LORE_RANK -> {
-                boolean enabled = config.getBoolean("ability.show-rank-in-lore", true);
-                yield createItem(Material.NAME_TAG, "§b능력 로어 등급 표시", List.of(
-                        "§f" + (enabled ? "활성화" : "비활성화"),
-                        "§7클릭: 토글",
-                        "§8능력 아이템 설명 첫 줄의 등급 표기"));
             }
             case LOBBY_BLOCK_BREAK -> {
                 boolean allow = config.getBoolean("lobby.allow-block-break", true);

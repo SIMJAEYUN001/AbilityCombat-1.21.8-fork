@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Predicate;
 
-@AbilityManifest(name = "영혼 잠식 (SoulEncroach)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.GOD, explain = {
+@AbilityManifest(name = "영혼 잠식 (SoulEncroach)", species = AbilityManifest.Species.GOD, explain = {
                 "§e§l[철괴 우클릭 - 잠식]§f §8(쿨타임: 60초)",
                 "§f7칸§7 이내, 마지막으로 타격한 대상에게 잠식합니다.",
                 "§f3초§7간 §b무적§7, §b비가시§7, §b비행§7 상태로 대상을 따라다닙니다.",

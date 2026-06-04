@@ -29,6 +29,7 @@ import com.abilitycombat.ability.list.Giant;
 import com.abilitycombat.ability.list.GiantSlayer;
 import com.abilitycombat.ability.list.Ghost;
 import com.abilitycombat.ability.list.Gardener;
+import com.abilitycombat.ability.list.GeneratedAbilityPack;
 import com.abilitycombat.ability.list.GravityField;
 import com.abilitycombat.ability.list.GrapplingHook;
 import com.abilitycombat.ability.list.Hacker;
@@ -126,8 +127,8 @@ public final class AbilityCombat extends JavaPlugin {
         ensureConfigDefaults();
         saveResource("abilities.yml", false);
         abilityRegistry = new AbilityRegistry(this);
-        abilityRegistry.load();
         registerAbilities();
+        abilityRegistry.load();
         mapManager = new MapManager(getDataFolder(), getLogger());
         mapManager.load();
         gameManager = new GameManager(this, abilityRegistry);
@@ -167,7 +168,6 @@ public final class AbilityCombat extends JavaPlugin {
         boolean updated = false;
 
         updated |= ensureConfigDefault(config, "game.fixed-daytime", true);
-        updated |= ensureConfigDefault(config, "ability.show-rank-in-lore", true);
         updated |= ensureConfigDefault(config, "hud.sprint.external-url", "");
         updated |= ensureConfigDefault(config, "hud.sprint.bind-host", "");
         updated |= ensureConfigDefault(config, "hud.sprint.public-host", "");
@@ -412,5 +412,6 @@ public final class AbilityCombat extends JavaPlugin {
         AbilityFactory.register(ODMGear.class);
         AbilityFactory.register(Hunter.class);
         AbilityFactory.register(Doppelganger.class);
+        GeneratedAbilityPack.registerAll();
     }
 }

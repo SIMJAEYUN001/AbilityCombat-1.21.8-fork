@@ -23,7 +23,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
-@AbilityManifest(name = "중력장 (GravityField)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "중력장 (GravityField)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 중력장]§f §8(쿨타임: 25초)",
         "§7주변 §f8칸§7 이내의 플레이어를 모두 §b높게 띄웁니다§7.",
         "§7띄워진 대상은 §f2초§7 뒤부터 §c10배 중력§7의 영향을 받습니다.",

@@ -11,7 +11,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.PlayerDeathEvent;
 
-@AbilityManifest(name = "바이러스 (Virus)", rank = AbilityManifest.Rank.C, species = AbilityManifest.Species.OTHERS, explain = {
+@AbilityManifest(name = "바이러스 (Virus)", species = AbilityManifest.Species.OTHERS, explain = {
         "§e§l[패시브]",
         "§7이 능력은 당신을 처치한 사람에게 감염됩니다."
 }, summarize = {

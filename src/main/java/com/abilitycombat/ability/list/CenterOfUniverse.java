@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@AbilityManifest(name = "우주의 중심 (CenterOfUniverse)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.GOD, explain = {
+@AbilityManifest(name = "우주의 중심 (CenterOfUniverse)", species = AbilityManifest.Species.GOD, explain = {
         "§e§l[패시브 - 공전하는 핵]",
         "§7사용자 주변을 회전하며 따라다니는 §53개의 구체§7를 소환합니다.",
         "§7구체에 닿은 적은 §c5의 피해§7를 받고 §82초간 구속§7됩니다.",

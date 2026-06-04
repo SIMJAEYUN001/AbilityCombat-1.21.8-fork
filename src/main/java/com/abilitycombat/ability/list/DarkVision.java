@@ -9,7 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-@AbilityManifest(name = "심안 (DarkVision)", rank = AbilityManifest.Rank.B, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "심안 (DarkVision)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 심안]",
         "§7영구적으로 §8실명§7 상태가 되지만,",
         "§7§b신속 IV§7 효과를 항상 받습니다.",

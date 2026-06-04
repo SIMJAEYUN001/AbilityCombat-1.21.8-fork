@@ -20,7 +20,7 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 
 import java.util.UUID;
 
-@AbilityManifest(name = "전략적 공생 (StrategicSymbiosis)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "전략적 공생 (StrategicSymbiosis)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 타격 - 전략적 공생]§f §8(쿨타임: 9000초)",
         "§7철괴로 타격한 적 플레이어를 §d전략적 공생 관계§7로 지정합니다.",
         "",

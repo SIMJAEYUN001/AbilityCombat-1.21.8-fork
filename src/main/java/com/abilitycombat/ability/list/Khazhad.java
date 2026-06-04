@@ -35,7 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-@AbilityManifest(name = "카쟈드 (Khazhad)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.GOD, explain = {
+@AbilityManifest(name = "카쟈드 (Khazhad)", species = AbilityManifest.Species.GOD, explain = {
         "§e§l[패시브 - 삼지창 충전]",
         "§7약 §f4초§7마다 §b삼지창§7이 충전됩니다.",
         "§7충전된 삼지창은 플레이어 주변에 §b떠다니며§7,",

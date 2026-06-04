@@ -31,7 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
-@AbilityManifest(name = "허수아비 (Scarecrow)", rank = AbilityManifest.Rank.B, species = AbilityManifest.Species.OTHERS, explain = {
+@AbilityManifest(name = "허수아비 (Scarecrow)", species = AbilityManifest.Species.OTHERS, explain = {
         "§e§l[철괴 우클릭 - 허수아비]§f §8(쿨타임: 25초)",
         "§7§f3초§7간 은신(갑옷 비노출)이 됩니다.",
         "§7현재 위치에 허수아비를 소환합니다.",

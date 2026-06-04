@@ -29,7 +29,7 @@ import org.bukkit.util.Vector;
 import java.util.ArrayList;
 import java.util.List;
 
-@AbilityManifest(name = "황제 (Emperor)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "황제 (Emperor)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 근위병 소환]§f §8(쿨타임: 60초)",
         "§7폭발과 함께 주변 적을 §6밀쳐내고§7",
         "§f2명§7의 §e근위병(스켈레톤)§7을 소환합니다.",

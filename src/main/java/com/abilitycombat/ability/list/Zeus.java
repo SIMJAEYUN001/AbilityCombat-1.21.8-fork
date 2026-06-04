@@ -17,7 +17,7 @@ import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.util.Vector;
 
-@AbilityManifest(name = "제우스 (Zeus)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.GOD, explain = {
+@AbilityManifest(name = "제우스 (Zeus)", species = AbilityManifest.Species.GOD, explain = {
         "§e§l[패시브 - 하늘의 지배자]",
         "§7낙하 피해를 받지 않습니다.",
         "",

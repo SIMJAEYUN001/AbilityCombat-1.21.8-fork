@@ -27,7 +27,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
 
-@AbilityManifest(name = "신지드 (Singed)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "신지드 (Singed)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 맹독의 자취]",
         "§7이동 경로에 §f4초§7 동안 유지되는 독성 자취를 남깁니다.",
         "§7자취를 밟은 다른 플레이어는 §f4초§7간 §2독I§7에 걸립니다.",

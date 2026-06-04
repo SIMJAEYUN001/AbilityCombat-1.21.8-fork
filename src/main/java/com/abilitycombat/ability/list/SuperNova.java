@@ -9,7 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.PlayerDeathEvent;
 
-@AbilityManifest(name = "초신성 (SuperNova)", rank = AbilityManifest.Rank.B, species = AbilityManifest.Species.OTHERS, explain = {
+@AbilityManifest(name = "초신성 (SuperNova)", species = AbilityManifest.Species.OTHERS, explain = {
         "§e§l[패시브 - 최후의 섬광]",
         "§7사망 시 강력한 §c대폭발§7을 일으킵니다.",
         "",

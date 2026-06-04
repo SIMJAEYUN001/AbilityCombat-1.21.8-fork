@@ -18,7 +18,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
-@AbilityManifest(name = "흡혈마 (BloodFiend)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.UNDEAD, explain = {
+@AbilityManifest(name = "흡혈마 (BloodFiend)", species = AbilityManifest.Species.UNDEAD, explain = {
         "§e§l[패시브 - 흡혈마]",
         "§7공격 게이지가 가득 찬 상태로 §f플레이어§7를 타격하면",
         "§c흡혈 스택§7을 §f1§7 얻습니다. (최대 §f4§7스택, §f10초§7 유지)",

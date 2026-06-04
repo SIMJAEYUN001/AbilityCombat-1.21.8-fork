@@ -23,7 +23,7 @@ import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.util.Vector;
 
-@AbilityManifest(name = "넥스 (Nex)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.GOD, explain = {
+@AbilityManifest(name = "넥스 (Nex)", species = AbilityManifest.Species.GOD, explain = {
         "§e§l[철괴 우클릭 - 죽음의 강림]§f §8(쿨타임: 30초)",
         "§7공중으로 §f높이 솟아오른 뒤§7,",
         "§7바라보는 방향으로 §c빠르게 돌진§7하며 §4내려찍습니다§7.",

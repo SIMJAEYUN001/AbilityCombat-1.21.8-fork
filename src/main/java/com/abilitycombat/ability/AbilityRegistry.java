@@ -44,7 +44,21 @@ public class AbilityRegistry {
             AbilityDefinition definition = new AbilityDefinition(name, rank, summary, icon);
             definitions.put(name, definition);
         }
+        mergeRegisteredDescriptors();
         loadPickRates();
+    }
+
+    private void mergeRegisteredDescriptors() {
+        for (AbilityDescriptor descriptor : AbilityFactory.getRegisteredDescriptors()) {
+            if (descriptor == null || descriptor.name() == null || descriptor.name().isBlank()) {
+                continue;
+            }
+            definitions.putIfAbsent(descriptor.name(), new AbilityDefinition(
+                    descriptor.name(),
+                    AbilityRank.A,
+                    descriptor.summarize(),
+                    descriptor.icon()));
+        }
     }
 
     private void loadPickRates() {

@@ -18,7 +18,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
 import java.util.List;
 
-@AbilityManifest(name = "뱀파이어 (Vampire)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.UNDEAD, explain = {
+@AbilityManifest(name = "뱀파이어 (Vampire)", species = AbilityManifest.Species.UNDEAD, explain = {
         "§e§l[철괴 우클릭 - 피의 제전]§f §8(쿨타임: 60초)",
         "§7주변 §f8칸§7 내의 모든 플레이어에게 §c3의 고정 피해§7를 입히고",
         "§7'피의 힘'을 §f1스택§7 획득합니다.",

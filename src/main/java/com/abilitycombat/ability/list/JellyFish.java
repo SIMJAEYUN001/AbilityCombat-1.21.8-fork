@@ -9,7 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
-@AbilityManifest(name = "해파리 (JellyFish)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.ANIMAL, explain = {
+@AbilityManifest(name = "해파리 (JellyFish)", species = AbilityManifest.Species.ANIMAL, explain = {
         "§e§l[패시브 - 신경독]§f §8(쿨타임: 8초)",
         "§7플레이어를 §f근접 공격§7하면 대상을",
         "§f3초§7간 §e기절§7시켜 움직이지 못하게 합니다.",

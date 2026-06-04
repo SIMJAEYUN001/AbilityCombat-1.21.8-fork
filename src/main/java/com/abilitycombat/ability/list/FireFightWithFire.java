@@ -12,7 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageEvent;
 
-@AbilityManifest(name = "이열치열 (FireFightWithFire)", rank = AbilityManifest.Rank.B, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "이열치열 (FireFightWithFire)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 화염 흡수]",
         "§7모든 화염 피해를 받지 않고,",
         "§7대신 해당 피해만큼 §a체력을 회복§7합니다.",

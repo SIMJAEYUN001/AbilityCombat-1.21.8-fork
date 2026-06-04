@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-@AbilityManifest(name = "광대 (Clown)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "광대 (Clown)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 환상]§f §8(쿨타임: 35초)",
         "§7바라보는 방향으로 순간이동하고 §f3초§7간 §b은신§7합니다.",
         "§7이후 §f4초§7 안에 재사용하면 이동 전 위치로 돌아가며",

@@ -18,7 +18,7 @@ import org.bukkit.Particle.DustOptions;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 
-@AbilityManifest(name = "해커 (Hacker)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "해커 (Hacker)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 해킹]§f §8(쿨타임: 90초)",
         "§7주변 §f25칸§7 내 가장 가까운 플레이어를 해킹합니다.",
         "",

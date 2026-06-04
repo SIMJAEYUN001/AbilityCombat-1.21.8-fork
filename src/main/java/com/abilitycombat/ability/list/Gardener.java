@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
 
-@AbilityManifest(name = "정원사 (Gardener)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "정원사 (Gardener)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 좌클릭 - 개화]§f §8(쿨타임: 25초)",
         "§7주변 §f10칸§7 지면을 §a잔디 블록§7으로 바꾸고,",
         "§7범위 내 자신과 팀원에게 §e흡수 III§7를 §f6초§7간 부여합니다.",

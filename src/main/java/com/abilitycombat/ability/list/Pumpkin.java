@@ -16,7 +16,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import java.util.HashMap;
 import java.util.Map;
 
-@AbilityManifest(name = "호박 (Pumpkin)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.OTHERS, explain = {
+@AbilityManifest(name = "호박 (Pumpkin)", species = AbilityManifest.Species.OTHERS, explain = {
         "§e§l[철괴 우클릭 - 호박 씬우기]§f §8(쿨타임: 40초)",
         "§7주변 §f30칸§7 이내의 모든 플레이어에게",
         "§6조각된 호박§7을 §f15초§7간 강제 착용시킵니다.",

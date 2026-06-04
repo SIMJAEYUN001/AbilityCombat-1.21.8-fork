@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-@AbilityManifest(name = "마술사 (Magician)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "마술사 (Magician)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 트릭]§f §8(쿨타임: 8초)",
         "§7활을 쏘면 적중 위치 반경 §f5칸§7 내의",
         "§7모든 생명체에게 §c최대 체력의 30%§7 피해를 입히고,",

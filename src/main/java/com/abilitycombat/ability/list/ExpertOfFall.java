@@ -9,7 +9,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import net.kyori.adventure.text.Component;
 
-@AbilityManifest(name = "낙법의 달인 (ExpertOfFall)", rank = AbilityManifest.Rank.B, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "낙법의 달인 (ExpertOfFall)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 낙법]",
         "§7낙하 피해를 받지 않으며,",
         "§7받았어야 할 피해를 §e저장§7합니다.",

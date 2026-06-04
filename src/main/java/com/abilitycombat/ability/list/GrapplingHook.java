@@ -24,7 +24,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.EulerAngle;
 import org.bukkit.util.Vector;
 
-@AbilityManifest(name = "그래플링 훅 (GrapplingHook)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "그래플링 훅 (GrapplingHook)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 후크 발사]§f",
         "§7바라보는 방향으로 §3후크§7를 발사해 적중 위치로 이동합니다.",
         "§7후크는 §f4개§7까지 보유하며 모두 소모 시 §f25초§7 후 전부 충전됩니다.",

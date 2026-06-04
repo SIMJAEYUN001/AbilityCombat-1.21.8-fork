@@ -61,7 +61,11 @@ public class MapSelectGui implements InventoryHolder {
     }
 
     public void toggleMode() {
-        selectedMode = selectedMode == MatchMode.SOLO ? MatchMode.TEAM : MatchMode.SOLO;
+        selectedMode = switch (selectedMode) {
+            case SOLO -> MatchMode.DUO;
+            case DUO -> MatchMode.TEAM;
+            case TEAM -> MatchMode.SOLO;
+        };
         inventory.setItem(MODE_TOGGLE_SLOT, createModeItem());
     }
 
@@ -116,11 +120,20 @@ public class MapSelectGui implements InventoryHolder {
     }
 
     private ItemStack createModeItem() {
-        boolean teamMode = selectedMode == MatchMode.TEAM;
-        return createItem(teamMode ? Material.RED_BANNER : Material.IRON_SWORD, "§b게임 모드", List.of(
-                "§f현재: " + (teamMode ? "§c팀전" : "§f개인전"),
+        Material icon = switch (selectedMode) {
+            case SOLO -> Material.IRON_SWORD;
+            case DUO -> Material.CYAN_BANNER;
+            case TEAM -> Material.RED_BANNER;
+        };
+        String color = switch (selectedMode) {
+            case SOLO -> "§f";
+            case DUO -> "§b";
+            case TEAM -> "§c";
+        };
+        return createItem(icon, "§b게임 모드", List.of(
+                "§f현재: " + color + selectedMode.getDisplayName(),
                 "",
-                "§7클릭: 팀전 / 개인전 전환"));
+                "§7클릭: 개인전 / 2인전 / 팀전 전환"));
     }
 
     private ItemStack createMapItem(MapData map) {

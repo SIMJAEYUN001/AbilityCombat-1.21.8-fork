@@ -2,10 +2,9 @@ package com.abilitycombat.game;
 
 import com.abilitycombat.AbilityCombat;
 import com.abilitycombat.ability.AbilityBase;
+import com.abilitycombat.ability.AbilityDescriptor;
 import com.abilitycombat.ability.AbilityDefinition;
 import com.abilitycombat.ability.AbilityFactory;
-import com.abilitycombat.ability.AbilityManifest;
-import com.abilitycombat.ability.AbilityRank;
 import com.abilitycombat.ability.AbilityRegistry;
 import com.abilitycombat.ability.handler.ActiveHandler;
 import com.abilitycombat.ability.handler.TargetHandler;
@@ -262,7 +261,7 @@ public class GameManager implements Listener {
     }
 
     public boolean isTeamMode() {
-        return selectedMatchMode == MatchMode.TEAM;
+        return selectedMatchMode.isTeamBased();
     }
 
     public boolean areTeammates(Player first, Player second) {
@@ -276,7 +275,7 @@ public class GameManager implements Listener {
         }
         CombatTeam firstTeam = firstParticipant.getTeam();
         CombatTeam secondTeam = secondParticipant.getTeam();
-        return firstTeam != null && firstTeam == secondTeam;
+        return firstTeam != null && firstTeam.equals(secondTeam);
     }
 
     public boolean canApplyNegativeEffect(LivingEntity source, LivingEntity target) {
@@ -454,7 +453,7 @@ public class GameManager implements Listener {
         Set<UUID> winners = new HashSet<>();
         for (UUID uuid : alivePlayers) {
             Participant participant = participants.get(uuid);
-            if (participant != null && winningTeam == participant.getTeam()) {
+            if (participant != null && winningTeam.equals(participant.getTeam())) {
                 winners.add(uuid);
             }
         }
@@ -477,15 +476,14 @@ public class GameManager implements Listener {
         if (!isTeamMode()) {
             return null;
         }
-        int redAlive = countAlivePlayers(CombatTeam.RED);
-        int blueAlive = countAlivePlayers(CombatTeam.BLUE);
-        if (redAlive > 0 && blueAlive <= 0) {
-            return CombatTeam.RED;
+        Set<CombatTeam> aliveTeams = new HashSet<>();
+        for (UUID uuid : alivePlayers) {
+            Participant participant = participants.get(uuid);
+            if (participant != null && participant.getTeam() != null) {
+                aliveTeams.add(participant.getTeam());
+            }
         }
-        if (blueAlive > 0 && redAlive <= 0) {
-            return CombatTeam.BLUE;
-        }
-        return null;
+        return aliveTeams.size() == 1 ? aliveTeams.iterator().next() : null;
     }
 
     private void announceResult(CombatTeam winningTeam, Set<UUID> winners) {
@@ -607,13 +605,10 @@ public class GameManager implements Listener {
             // 도플갱어는 /aw info 출력만 '도플갱어'로 표기하고, 본문은 복제한 능력 설명을 보여줍니다.
             if (ability instanceof com.abilitycombat.ability.list.Doppelganger doppelganger
                     && doppelganger.getCopiedAbility() != null) {
-                var manifest = ability.getManifest();
                 player.sendMessage("§6[능력정보] §f" + ability.getDisplayName());
-                player.sendMessage("§7등급: " + manifest.rank().getDisplay());
-
-                var copiedManifest = doppelganger.getCopiedAbility().getManifest();
-                if (copiedManifest.explain().length > 0) {
-                    for (String line : copiedManifest.explain()) {
+                List<String> copiedExplain = doppelganger.getCopiedAbility().getExplain();
+                if (!copiedExplain.isEmpty()) {
+                    for (String line : copiedExplain) {
                         player.sendMessage("§f- " + line);
                     }
                 } else {
@@ -622,11 +617,9 @@ public class GameManager implements Listener {
                 return;
             }
 
-            var manifest = ability.getManifest();
-            player.sendMessage("§6[능력 정보] §f" + manifest.name());
-            player.sendMessage("§7등급: " + manifest.rank().getDisplay());
-            if (manifest.explain().length > 0) {
-                for (String line : manifest.explain()) {
+            player.sendMessage("§6[능력 정보] §f" + ability.getName());
+            if (!ability.getExplain().isEmpty()) {
+                for (String line : ability.getExplain()) {
                     player.sendMessage("§f- " + line);
                 }
                 return;
@@ -1051,9 +1044,16 @@ public class GameManager implements Listener {
             player.setCollidable(true);
             applyHungerLock(player);
             giveToolkit(player);
-            player.teleport(getRandomStartLocation(player));
         }
         assignTeamsIfNeeded();
+        Map<CombatTeam, Location> teamSpawnBases = new HashMap<>();
+        for (UUID uuid : alivePlayers) {
+            Participant participant = participants.get(uuid);
+            Player player = Bukkit.getPlayer(uuid);
+            if (participant != null && player != null) {
+                player.teleport(getStartLocation(player, participant, teamSpawnBases));
+            }
+        }
         updateVisibility();
     }
 
@@ -1066,19 +1066,63 @@ public class GameManager implements Listener {
         }
         List<UUID> shuffled = new ArrayList<>(alivePlayers);
         Collections.shuffle(shuffled, random);
+        List<CombatTeam> teams;
         int splitIndex = (shuffled.size() + 1) / 2;
+        if (selectedMatchMode == MatchMode.DUO) {
+            int teamCount = Math.min(CombatTeam.MAX_TEAMS, Math.max(1, (shuffled.size() + 1) / 2));
+            teams = CombatTeam.createTeams(teamCount);
+        } else {
+            teams = CombatTeam.createTeams(2);
+        }
         for (int i = 0; i < shuffled.size(); i++) {
             Participant participant = participants.get(shuffled.get(i));
             if (participant == null) {
                 continue;
             }
-            CombatTeam team = i < splitIndex ? CombatTeam.RED : CombatTeam.BLUE;
+            CombatTeam team = selectedMatchMode == MatchMode.DUO
+                    ? teams.get((i / 2) % teams.size())
+                    : teams.get(i < splitIndex ? 0 : 1);
             participant.setTeam(team);
             Player player = participant.getPlayer();
             if (player != null) {
-                player.sendMessage("§e당신의 팀: " + (team == CombatTeam.RED ? "§c레드팀" : "§9블루팀"));
+                player.sendMessage(Component.text("당신의 팀: ", NamedTextColor.YELLOW)
+                        .append(Component.text(team.getDisplayName(), team.getColor())));
             }
         }
+    }
+
+    private Location getStartLocation(Player player, Participant participant, Map<CombatTeam, Location> teamSpawnBases) {
+        if (!isTeamMode() || participant == null || participant.getTeam() == null) {
+            return getRandomStartLocation(player);
+        }
+        CombatTeam team = participant.getTeam();
+        Location base = teamSpawnBases.get(team);
+        if (base == null) {
+            Location selected = getRandomStartLocation(player);
+            teamSpawnBases.put(team, selected);
+            return selected;
+        }
+        return getNearbyTeamStartLocation(player, base);
+    }
+
+    private Location getNearbyTeamStartLocation(Player player, Location teamBase) {
+        World world = teamBase.getWorld();
+        if (world == null) {
+            return getRandomStartLocation(player);
+        }
+        for (int attempt = 0; attempt < START_SPAWN_ATTEMPTS; attempt++) {
+            double radius = 1.5 + random.nextDouble() * 3.5;
+            double angle = random.nextDouble() * Math.PI * 2.0;
+            double x = teamBase.getX() + Math.cos(angle) * radius;
+            double z = teamBase.getZ() + Math.sin(angle) * radius;
+            int floorY = com.abilitycombat.utils.LocationUtil.getFloorY(world,
+                    (int) Math.floor(x), (int) Math.floor(z), teamBase.getBlockY());
+            Location candidate = new Location(world, x + 0.5, floorY, z + 0.5, teamBase.getYaw(), teamBase.getPitch());
+            if (isSpawnPassable(candidate)) {
+                return candidate;
+            }
+        }
+        return teamBase;
     }
 
     private Location getRandomStartLocation(Player player) {
@@ -1143,17 +1187,15 @@ public class GameManager implements Listener {
                 merged.put(definition.getName(), definition);
             }
         }
-        for (Class<? extends AbilityBase> abilityClass : AbilityFactory.getRegisteredClasses()) {
-            AbilityManifest manifest = AbilityFactory.getManifest(abilityClass);
-            if (manifest == null) {
+        for (AbilityDescriptor descriptor : AbilityFactory.getRegisteredDescriptors()) {
+            if (descriptor == null) {
                 continue;
             }
-            String name = manifest.name();
+            String name = descriptor.name();
             if (merged.containsKey(name)) {
                 continue;
             }
-            AbilityRank rank = AbilityRank.fromString(manifest.rank().name());
-            AbilityDefinition definition = new AbilityDefinition(name, rank, List.of(manifest.summarize()), null);
+            AbilityDefinition definition = new AbilityDefinition(name, null, descriptor.summarize(), descriptor.icon());
             merged.put(name, definition);
         }
         return new ArrayList<>(merged.values());
@@ -2272,9 +2314,9 @@ public class GameManager implements Listener {
                 CombatTeam team = getPlayerTeam(viewer);
                 if (team != null) {
                     lines.add(" ");
-                    lines.add(team == CombatTeam.RED ? "§c내 팀" : "§9내 팀");
+                    lines.add(team.getLegacyColor() + "내 팀");
                     for (String teammate : getAliveTeamMemberNames(team)) {
-                        lines.add((team == CombatTeam.RED ? "§c" : "§9") + teammate);
+                        lines.add(team.getLegacyColor() + teammate);
                     }
                 }
             }
@@ -2323,31 +2365,52 @@ public class GameManager implements Listener {
     }
 
     private void configureTeams(Scoreboard scoreboard) {
-        Team redTeam = scoreboard.getTeam("aw_red");
-        if (redTeam == null) {
-            redTeam = scoreboard.registerNewTeam("aw_red");
-            redTeam.color(NamedTextColor.RED);
-            redTeam.setAllowFriendlyFire(false);
+        Set<CombatTeam> activeTeams = getActiveTeams();
+        Set<String> activeTeamNames = new HashSet<>();
+        for (CombatTeam team : activeTeams) {
+            activeTeamNames.add(team.getScoreboardName());
         }
-        Team blueTeam = scoreboard.getTeam("aw_blue");
-        if (blueTeam == null) {
-            blueTeam = scoreboard.registerNewTeam("aw_blue");
-            blueTeam.color(NamedTextColor.BLUE);
-            blueTeam.setAllowFriendlyFire(false);
+        for (Team team : new ArrayList<>(scoreboard.getTeams())) {
+            if (team.getName().startsWith("aw_team_") && !activeTeamNames.contains(team.getName())) {
+                team.unregister();
+            }
         }
         for (Participant participant : participants.values()) {
             Player player = participant.getPlayer();
             if (player == null) {
                 continue;
             }
-            redTeam.removeEntry(player.getName());
-            blueTeam.removeEntry(player.getName());
-            if (participant.getTeam() == CombatTeam.RED) {
-                redTeam.addEntry(player.getName());
-            } else if (participant.getTeam() == CombatTeam.BLUE) {
-                blueTeam.addEntry(player.getName());
+            for (Team team : scoreboard.getTeams()) {
+                if (team.getName().startsWith("aw_team_")) {
+                    team.removeEntry(player.getName());
+                }
+            }
+            CombatTeam combatTeam = participant.getTeam();
+            if (combatTeam != null) {
+                Team scoreboardTeam = getOrCreateScoreboardTeam(scoreboard, combatTeam);
+                scoreboardTeam.addEntry(player.getName());
             }
         }
+    }
+
+    private Team getOrCreateScoreboardTeam(Scoreboard scoreboard, CombatTeam combatTeam) {
+        Team team = scoreboard.getTeam(combatTeam.getScoreboardName());
+        if (team == null) {
+            team = scoreboard.registerNewTeam(combatTeam.getScoreboardName());
+        }
+        team.color(combatTeam.getNamedColor());
+        team.setAllowFriendlyFire(false);
+        return team;
+    }
+
+    private Set<CombatTeam> getActiveTeams() {
+        Set<CombatTeam> teams = new HashSet<>();
+        for (Participant participant : participants.values()) {
+            if (participant.getTeam() != null) {
+                teams.add(participant.getTeam());
+            }
+        }
+        return teams;
     }
 
     private CombatTeam getPlayerTeam(Player player) {
@@ -2360,7 +2423,7 @@ public class GameManager implements Listener {
         for (UUID uuid : alivePlayers) {
             Participant participant = participants.get(uuid);
             Player player = Bukkit.getPlayer(uuid);
-            if (participant != null && player != null && team == participant.getTeam()) {
+            if (participant != null && player != null && team.equals(participant.getTeam())) {
                 names.add(player.getName());
             }
         }
@@ -2372,7 +2435,7 @@ public class GameManager implements Listener {
         int count = 0;
         for (UUID uuid : alivePlayers) {
             Participant participant = participants.get(uuid);
-            if (participant != null && team == participant.getTeam()) {
+            if (participant != null && team.equals(participant.getTeam())) {
                 count++;
             }
         }
@@ -2796,12 +2859,6 @@ public class GameManager implements Listener {
                 plugin.saveConfig();
                 attackCooldownEnabled = next;
                 applyAttackCooldownSettingToOnlinePlayers();
-                gui.refresh(entry);
-            }
-            case ABILITY_LORE_RANK -> {
-                boolean enabled = plugin.getConfig().getBoolean("ability.show-rank-in-lore", true);
-                plugin.getConfig().set("ability.show-rank-in-lore", !enabled);
-                plugin.saveConfig();
                 gui.refresh(entry);
             }
             case LOBBY_BLOCK_BREAK -> {

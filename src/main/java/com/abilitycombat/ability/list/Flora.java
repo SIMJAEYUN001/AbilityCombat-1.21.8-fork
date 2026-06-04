@@ -10,7 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-@AbilityManifest(name = "플로라 (Flora)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.GOD, explain = {
+@AbilityManifest(name = "플로라 (Flora)", species = AbilityManifest.Species.GOD, explain = {
         "§e§l[패시브 - 자연의 축복]",
         "§7자신과 팀원에게 지속적으로 버프를 부여합니다.",
         "§7버프 범위는 주변 §f8칸§7으로 고정됩니다.",

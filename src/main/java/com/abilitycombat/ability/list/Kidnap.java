@@ -14,7 +14,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
-@AbilityManifest(name = "납치 (Kidnap)", rank = AbilityManifest.Rank.B, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "납치 (Kidnap)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 납치]§f §8(쿨타임: 30초)",
         "§f6칸§7 이내의 대상(플레이어/몬스터)을 납치하여 업습니다.",
         "§7업힌 대상은 §8실명§7 상태가 되며",

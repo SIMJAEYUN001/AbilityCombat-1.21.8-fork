@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-@AbilityManifest(name = "소울 (Soul)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "소울 (Soul)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 어둑서니]",
         "§7두려움을 최대 §f6§7까지 모을 수 있습니다.",
         "§7두려움을 획득한 후 §f15초§7가 지나면 초당 §f1§7씩 감소합니다.",

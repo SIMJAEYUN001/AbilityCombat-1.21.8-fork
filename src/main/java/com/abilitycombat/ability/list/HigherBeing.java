@@ -15,7 +15,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
-@AbilityManifest(name = "상위존재 (HigherBeing)", rank = AbilityManifest.Rank.B, species = AbilityManifest.Species.OTHERS, explain = {
+@AbilityManifest(name = "상위존재 (HigherBeing)", species = AbilityManifest.Species.OTHERS, explain = {
         "§e§l[철괴 우클릭 - 무릎 꿇어라]§f §8(쿨타임: 45초)",
         "§7주변 §f9칸§7 이내 플레이어들의 시선을",
         "§e4초§7간 강제로 §c아래로 고정§7합니다.",

@@ -20,7 +20,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.util.Vector;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
-@AbilityManifest(name = "리바이 병장 (LeviAckerman)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "리바이 병장 (LeviAckerman)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[입체기동장치]",
         "§7게임 시작 시 §f입체기동장치§7(낚시대)를 지급받습니다.",
         "",

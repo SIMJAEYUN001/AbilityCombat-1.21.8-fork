@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
-@AbilityManifest(name = "스왑 (Swap)", rank = AbilityManifest.Rank.B, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "스왑 (Swap)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 스왑]§f §8(쿨타임: 35초)",
         "§f2초§7간 주변 §f8칸§7 이내 플레이어들의",
         "§7핫바 슬롯을 마구잡이로 변경합니다.",

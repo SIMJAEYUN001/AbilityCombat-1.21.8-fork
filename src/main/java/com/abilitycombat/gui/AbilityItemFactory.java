@@ -1,12 +1,12 @@
 package com.abilitycombat.gui;
 
-import com.abilitycombat.AbilityCombat;
 import com.abilitycombat.ability.AbilityBase;
+import com.abilitycombat.ability.AbilityDescriptor;
 import com.abilitycombat.ability.AbilityDefinition;
 import com.abilitycombat.ability.AbilityFactory;
-import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.ability.AbilityRegistry;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.inventory.ItemStack;
@@ -15,7 +15,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -47,12 +46,9 @@ public final class AbilityItemFactory {
         ItemStack item = new ItemStack(definition.getIcon());
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.displayName(Component.text(definition.getDisplayName(), definition.getRank().getColor())
+            meta.displayName(Component.text(definition.getDisplayName(), NamedTextColor.WHITE)
                     .decoration(TextDecoration.ITALIC, false));
             List<String> lore = new ArrayList<>();
-            if (shouldShowRankLine()) {
-                lore.add(buildRankLine(definition));
-            }
             lore.add(buildCooldownLine(definition.getName()));
             if (extraLore != null && !extraLore.isEmpty()) {
                 lore.addAll(extraLore);
@@ -73,42 +69,26 @@ public final class AbilityItemFactory {
     }
 
     private static List<String> resolveExplain(AbilityDefinition definition) {
-        AbilityManifest manifest = getManifest(definition.getName());
-        if (manifest != null && manifest.explain().length > 0) {
-            return Arrays.asList(manifest.explain());
+        AbilityDescriptor descriptor = AbilityFactory.getDescriptor(definition.getName());
+        if (descriptor != null && !descriptor.explain().isEmpty()) {
+            return descriptor.explain();
         }
         return definition.getSummary();
     }
 
-    private static String buildRankLine(AbilityDefinition definition) {
-        if (definition == null || definition.getRank() == null) {
-            return "§6등급: §fA";
-        }
-        return "§6등급: " + LEGACY_SERIALIZER
-                .serialize(Component.text(definition.getRank().name(), definition.getRank().getColor()));
-    }
-
-    private static boolean shouldShowRankLine() {
-        AbilityCombat plugin = AbilityCombat.getPlugin();
-        if (plugin == null) {
-            return true;
-        }
-        return plugin.getConfig().getBoolean("ability.show-rank-in-lore", true);
-    }
-
-    private static AbilityManifest getManifest(String name) {
-        Class<? extends AbilityBase> abilityClass = AbilityFactory.getAbilityClass(name);
-        if (abilityClass == null) {
-            return null;
-        }
-        return AbilityFactory.getManifest(abilityClass);
-    }
-
     private static String buildCooldownLine(String name) {
+        AbilityDescriptor descriptor = AbilityFactory.getDescriptor(name);
+        if (descriptor != null && !descriptor.cooldowns().isEmpty()) {
+            return formatCooldowns(descriptor.cooldowns());
+        }
         List<Integer> cooldowns = extractCooldowns(AbilityFactory.getAbilityClass(name));
         if (cooldowns.isEmpty()) {
             return "§6쿨타임: §e없음";
         }
+        return formatCooldowns(cooldowns);
+    }
+
+    private static String formatCooldowns(List<Integer> cooldowns) {
         StringBuilder text = new StringBuilder();
         for (int i = 0; i < cooldowns.size(); i++) {
             if (i > 0) {

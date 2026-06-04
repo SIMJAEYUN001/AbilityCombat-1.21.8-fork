@@ -22,7 +22,7 @@ import org.bukkit.util.Vector;
 import java.util.ArrayList;
 import java.util.List;
 
-@AbilityManifest(name = "지금의 일은 나중의 나에게 (Lazyness)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "지금의 일은 나중의 나에게 (Lazyness)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 나태]",
         "§7피해와 회복을 §f3초§7 뒤로 미룹니다.",
         "§7받는 피해가 항상 §c10% 감소§7합니다.",

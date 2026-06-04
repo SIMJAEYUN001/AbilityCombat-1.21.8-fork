@@ -11,7 +11,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-@AbilityManifest(name = "쇼맨쉽 (ShowmanShip)", rank = AbilityManifest.Rank.B, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "쇼맨쉽 (ShowmanShip)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 관중]",
         "§7주변 §f10칸§7 이내의 생명체 수에 따라 강화됩니다.",
         "§7(플레이어: §f1§7점, 기타: §f0.2§7점)",

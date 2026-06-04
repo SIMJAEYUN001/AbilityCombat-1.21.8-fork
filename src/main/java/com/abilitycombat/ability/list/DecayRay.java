@@ -24,7 +24,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
-@AbilityManifest(name = "감쇠광선 (DecayRay)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "감쇠광선 (DecayRay)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 약화]",
         "§7최대 공격 쿨다운으로 플레이어를 타격하면",
         "§f8초§7간 §c약화 스택§7을 §f1§7 부여합니다. (최대 §f3§7스택)",

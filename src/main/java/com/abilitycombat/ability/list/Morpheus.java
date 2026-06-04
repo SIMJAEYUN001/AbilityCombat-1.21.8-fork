@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-@AbilityManifest(name = "모르페우스 (Morpheus)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.GOD, explain = {
+@AbilityManifest(name = "모르페우스 (Morpheus)", species = AbilityManifest.Species.GOD, explain = {
         "§e§l[검 우클릭 - 꿈의 연주]§f §8(쿨타임: 30초)",
         "§7주변 §f8칸§7 이내의 모든 플레이어를",
         "§f6초§7간 §e수면§7 상태로 만듭니다.",

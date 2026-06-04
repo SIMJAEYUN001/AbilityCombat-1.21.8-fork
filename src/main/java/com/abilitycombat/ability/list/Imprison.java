@@ -21,7 +21,7 @@ import java.util.Set;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-@AbilityManifest(name = "구속 (Imprison)", rank = AbilityManifest.Rank.B, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "구속 (Imprison)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 강도]",
         "§f15초§7마다 유리구의 강도가 §f1§7씩 증가합니다. (최대 §f4§7)",
         "§7사용 후 강도가 초기화됩니다.",

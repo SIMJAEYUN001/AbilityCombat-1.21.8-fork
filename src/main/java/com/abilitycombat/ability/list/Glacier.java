@@ -17,7 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-@AbilityManifest(name = "글래시어 (Glacier)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "글래시어 (Glacier)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[공격 - 결빙]",
         "§7빙결 상태가 아닌 적을 §f4회§7 공격하면",
         "§f3초§7간 §b빙결§7시킵니다.",

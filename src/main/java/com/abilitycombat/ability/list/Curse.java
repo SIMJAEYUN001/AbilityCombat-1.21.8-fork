@@ -30,7 +30,7 @@ import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
-@AbilityManifest(name = "컬스 (Curse)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.OTHERS, explain = {
+@AbilityManifest(name = "컬스 (Curse)", species = AbilityManifest.Species.OTHERS, explain = {
         "§e§l[철괴 우클릭 - 저주 인형]§f §8(쿨타임: 40초)",
         "§e바라보는 플레이어§7를 타겟으로 (최대 §f12칸§7)",
         "§7§5저주 인형§7을 생성합니다. (지속시간: §f10초§7)",

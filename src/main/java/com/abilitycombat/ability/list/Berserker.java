@@ -27,7 +27,7 @@ import org.bukkit.util.Vector;
 import java.util.List;
 import java.util.Set;
 
-@AbilityManifest(name = "버서커 (Berserker)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "버서커 (Berserker)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 불굴의 의지]§f §8(쿨타임: 45초)",
         "§f8초§7간 이동 방해 상태이상을 해제하고",
         "§b이동 속도 증가§7 및 §c근접 공격력 증가§7 효과를 얻습니다.",

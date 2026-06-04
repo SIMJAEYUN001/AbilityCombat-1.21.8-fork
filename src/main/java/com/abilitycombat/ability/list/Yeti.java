@@ -14,7 +14,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.event.Event;
 
-@AbilityManifest(name = "예티 (Yeti)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "예티 (Yeti)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 설원의 지배자]",
         "§7모든 종류의 눈/얼음 블록 위에 있으면 다음 버프를 획득합니다:",
         "§7- §b신속 I§7, §c힘 I§7, §3저항 I§7",

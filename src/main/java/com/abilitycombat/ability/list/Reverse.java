@@ -23,7 +23,7 @@ import java.util.List;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-@AbilityManifest(name = "리버스 (Reverse)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.OTHERS, explain = {
+@AbilityManifest(name = "리버스 (Reverse)", species = AbilityManifest.Species.OTHERS, explain = {
         "§e§l[패시브 - 리버스 지대]",
         "§7자신 주변 §f8칸§7 이내의 모든 적에게",
         "§7넉백 및 끌어당김 효과를 §a반전§7시킵니다.",

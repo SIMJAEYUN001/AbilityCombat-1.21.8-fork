@@ -25,7 +25,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
-@AbilityManifest(name = "보이드 (Void)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.OTHERS, explain = {
+@AbilityManifest(name = "보이드 (Void)", species = AbilityManifest.Species.OTHERS, explain = {
         "§e§l[패시브 - 공허 차원문]",
         "§7순간이동 시 그 자리에 §5차원문§7을 남깁니다. (지속: §f20초§7)",
         "§7차원문에 §b닿으면§7 도착 위치로 이동할 수 있습니다.",

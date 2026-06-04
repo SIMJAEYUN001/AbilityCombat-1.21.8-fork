@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-@AbilityManifest(name = "베르투스 (Virtus)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "베르투스 (Virtus)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 응보]§f §8(쿨타임: 40초)",
         "§f3초§7간 받는 모든 피해가 §b90% 감소§7합니다.",
         "§7능력 사용 시 §8회색 발광§7 효과가 적용됩니다.",

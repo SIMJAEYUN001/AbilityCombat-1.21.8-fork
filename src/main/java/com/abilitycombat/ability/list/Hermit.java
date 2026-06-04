@@ -9,7 +9,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-@AbilityManifest(name = "헤르밋 (Hermit)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "헤르밋 (Hermit)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 은둔]",
         "§7비전투 상태로 §f20초§7간 있으면 §e은신§7합니다.",
         "§7(피해를 주거나 받으면 해제/초기화)",

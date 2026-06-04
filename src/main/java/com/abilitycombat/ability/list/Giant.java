@@ -10,7 +10,7 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Player;
 
-@AbilityManifest(name = "거인 (Giant)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "거인 (Giant)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 거인의 힘]",
         "§7플레이어 크기가 §f50%§7 증가합니다.",
         "§7최대 체력이 §c50%§7 증가합니다. (30 HP)",

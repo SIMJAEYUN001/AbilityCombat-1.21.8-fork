@@ -18,7 +18,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
-    @AbilityManifest(name = "대기만성 (LateBloom)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+    @AbilityManifest(name = "대기만성 (LateBloom)", species = AbilityManifest.Species.HUMAN, explain = {
             "§e§l[패시브 - 수행]",
             "§7받는 피해가 §c+10%§7 증가합니다.",
             "§7주는 피해가 §c-10%§7 감소합니다. (기본)",

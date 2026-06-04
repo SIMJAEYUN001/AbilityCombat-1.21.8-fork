@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-@AbilityManifest(name = "탄환세례 (BulletBarrage)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "탄환세례 (BulletBarrage)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 탄환세례]§f §8(쿨타임: 15초)",
         "§7활을 쏴서 적중 시 대상을 공격하는",
         "§c유도 탄환 4개§7를 추가로 발사합니다.",

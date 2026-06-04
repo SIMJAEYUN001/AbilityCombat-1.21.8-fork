@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-@AbilityManifest(name = "로키 (Loki)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.GOD, explain = {
+@AbilityManifest(name = "로키 (Loki)", species = AbilityManifest.Species.GOD, explain = {
         "§e§l[패시브 - 기만]",
         "§7같은 적을 근접 공격할 때마다 스택이 쌓이며,",
         "§7적의 최근 이동 방향으로 짧게 순간이동합니다.",

@@ -16,7 +16,7 @@ import org.bukkit.util.Vector;
 
 import java.util.UUID;
 
-@AbilityManifest(name = "스토커 (Stalker)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "스토커 (Stalker)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 집착]",
         "§7같은 대상을 공격할 때마다 §6집착 스택§7이 쌓입니다. (최대 §f5§7, §f10초§7 유지)",
         "§7스택당 §c+3% 추가 피해§7 + 적에게 §8실명§7 부여",

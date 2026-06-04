@@ -15,7 +15,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
-@AbilityManifest(name = "유령 (Ghost)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.OTHERS, explain = {
+@AbilityManifest(name = "유령 (Ghost)", species = AbilityManifest.Species.OTHERS, explain = {
         "§e§l[철괴 우클릭 - 유령화]§f §8(기본 쿨타임: 8초)",
         "§7§f2초§7간 §b무적§7, §b투명§7, §b벽 통과§7 상태로",
         "§7바라보는 방향으로 §f8칸§7 이동합니다.",

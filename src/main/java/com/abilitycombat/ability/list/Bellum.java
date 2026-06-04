@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-@AbilityManifest(name = "벨리움 (Bellum)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "벨리움 (Bellum)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 기력]",
         "§7모든 능력이 쿨타임 대신 §6기력§7을 소모합니다.",
         "§7기력은 최대 §f6§7까지 차오르며,",

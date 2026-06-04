@@ -12,7 +12,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-@AbilityManifest(name = "악마의 부츠 (DevilBoots)", rank = AbilityManifest.Rank.B, species = AbilityManifest.Species.OTHERS, explain = {
+@AbilityManifest(name = "악마의 부츠 (DevilBoots)", species = AbilityManifest.Species.OTHERS, explain = {
         "§e§l[패시브 - 화염 걸음]",
         "§7이동하는 곳마다 §c불길§7이 생겨납니다.",
         "§7화염 피해에 면역이며, §b신속§7 효과를 받습니다.",

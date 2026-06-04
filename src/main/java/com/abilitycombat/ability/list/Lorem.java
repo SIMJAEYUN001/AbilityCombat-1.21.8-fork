@@ -19,7 +19,7 @@ import org.bukkit.util.Vector;
 import java.util.Set;
 import java.util.UUID;
 
-@AbilityManifest(name = "로렘 (Lorem)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "로렘 (Lorem)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 검의 길]",
         "§7검으로 공격 시 §c+1의 추가 피해§7를 입힙니다.",
         "",

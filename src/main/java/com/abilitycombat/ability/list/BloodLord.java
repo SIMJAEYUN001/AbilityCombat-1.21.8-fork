@@ -26,7 +26,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-@AbilityManifest(name = "피의 군주 (BloodLord)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.UNDEAD, explain = {
+@AbilityManifest(name = "피의 군주 (BloodLord)", species = AbilityManifest.Species.UNDEAD, explain = {
         "§e§l[패시브 - 핏빛 탐식]",
         "§7주변 §f15칸§7 이내의 §f플레이어§7가 체력을 잃을 때마다",
         "§7잃은 체력 §f1§7당 §4피 중첩 1§7을 얻습니다.",

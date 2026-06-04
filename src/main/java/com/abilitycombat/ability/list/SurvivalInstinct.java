@@ -14,7 +14,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
-@AbilityManifest(name = "생존 본능 (SurvivalInstinct)", rank = AbilityManifest.Rank.B, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "생존 본능 (SurvivalInstinct)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 위기 탈출]",
         "§7단 한 번, 죽음에 이르는 피해를 받을 때",
         "§7체력을 §c3칸(6HP)§7으로 고정하고 살아납니다.",

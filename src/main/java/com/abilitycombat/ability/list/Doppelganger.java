@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
-@AbilityManifest(name = "도플갱어 (Doppelganger)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "도플갱어 (Doppelganger)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 복제]",
         "§7능력 선택이 모두 끝나면 생존자 중 랜덤한 한 명의",
         "§7능력을 복제합니다. (복제 대상은 본인에게만 공개)",
@@ -232,11 +232,9 @@ public class Doppelganger extends AbilityBase implements ActiveHandler, TargetHa
         if (player == null || copiedAbility == null) {
             return;
         }
-        AbilityManifest manifest = copiedAbility.getManifest();
-        player.sendMessage("§6[능력 정보] §f" + manifest.name());
-        player.sendMessage("§7등급: " + manifest.rank().getDisplay());
-        if (manifest.explain().length > 0) {
-            for (String line : manifest.explain()) {
+        player.sendMessage("§6[능력 정보] §f" + copiedAbility.getName());
+        if (!copiedAbility.getExplain().isEmpty()) {
+            for (String line : copiedAbility.getExplain()) {
                 player.sendMessage("§f- " + line);
             }
         } else {

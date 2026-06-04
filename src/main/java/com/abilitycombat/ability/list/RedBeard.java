@@ -13,7 +13,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
-@AbilityManifest(name = "레드비어드 (RedBeard)", rank = AbilityManifest.Rank.B, species = AbilityManifest.Species.OTHERS, explain = {
+@AbilityManifest(name = "레드비어드 (RedBeard)", species = AbilityManifest.Species.OTHERS, explain = {
         "§e§l[철괴 우클릭 - 전투의 포효]§f §8(쿨타임: 25초)",
         "§7주변 §f5칸§7 내 적을 밀쳐내고 §f6의 피해§7를 줍니다.",
         "§7사용자는 §f10초간§7 §c힘§7 효과를 얻습니다."

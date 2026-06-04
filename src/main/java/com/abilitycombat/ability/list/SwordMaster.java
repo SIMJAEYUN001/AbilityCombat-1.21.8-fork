@@ -33,7 +33,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-@AbilityManifest(name = "소드 마스터 (SwordMaster)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "소드 마스터 (SwordMaster)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 검기 충전]",
         "§7검을 들고 있으면 약 §f0.75초§7마다 §6검기§7가 충전됩니다.",
         "§7충전된 검기는 플레이어 주변에 §b떠다니며§7,",

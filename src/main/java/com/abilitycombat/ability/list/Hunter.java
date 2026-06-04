@@ -34,7 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-@AbilityManifest(name = "사냥꾼 (Hunter)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "사냥꾼 (Hunter)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 사냥꾼의 본능]",
         "§7근접 공격(칼, 도끼) 피해가 §f40%§7 감소합니다.",
         "§7석궁 사용 시 §e자동 장전§7됩니다.",

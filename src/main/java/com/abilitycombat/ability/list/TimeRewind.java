@@ -25,7 +25,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 
-@AbilityManifest(name = "시간 역행 (TimeRewind)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "시간 역행 (TimeRewind)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 시간 역행]§f §8(쿨타임: 50초)",
         "§f5초§7 전의 상태(위치, 체력, 상태효과)로",
         "§7즉시 되돌아갑니다.",

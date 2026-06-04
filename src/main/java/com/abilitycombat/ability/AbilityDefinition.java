@@ -14,9 +14,9 @@ public class AbilityDefinition {
 
     public AbilityDefinition(String name, AbilityRank rank, List<String> summary, Material icon) {
         this.name = name;
-        this.rank = rank;
+        this.rank = rank == null ? AbilityRank.A : rank;
         this.summary = summary == null ? Collections.emptyList() : List.copyOf(summary);
-        this.icon = icon == null ? rank.getDefaultIcon() : icon;
+        this.icon = icon == null ? this.rank.getDefaultIcon() : icon;
     }
 
     public String getName() {

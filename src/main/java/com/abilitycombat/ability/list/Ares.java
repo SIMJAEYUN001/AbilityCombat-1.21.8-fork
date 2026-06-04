@@ -21,7 +21,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-@AbilityManifest(name = "아레스 (Ares)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.GOD, explain = {
+@AbilityManifest(name = "아레스 (Ares)", species = AbilityManifest.Species.GOD, explain = {
         "§e§l[철괴 우클릭 - 전쟁의 도약]§f §8(쿨타임: 30초)",
         "§7전방으로 강하게 도약합니다.",
         "",

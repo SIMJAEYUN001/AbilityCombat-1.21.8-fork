@@ -21,7 +21,7 @@ import org.bukkit.util.Vector;
 
 import java.util.Collection;
 
-@AbilityManifest(name = "마그넷 (Magnet)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "마그넷 (Magnet)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 마그네틱 코어]§f §8(쿨타임: 30초)",
         "§7전방에 §6마그네틱 코어§7를 생성합니다. (지속: §f8초§7)",
         "",

@@ -23,7 +23,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
-@AbilityManifest(name = "기계팔 (MachineArm)", rank = AbilityManifest.Rank.B, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "기계팔 (MachineArm)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 기계팔]§f §8(쿨타임: 12초)",
         "§7전방으로 기계팔을 발사해 적중한 대상을 끌어온 후 1.5초간 스턴을 적용합니다.",
         "§7적중 시 데미지 §c10§7을 입힙니다.",

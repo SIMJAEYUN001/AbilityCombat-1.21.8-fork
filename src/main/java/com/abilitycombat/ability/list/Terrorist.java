@@ -14,7 +14,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 
 import java.util.concurrent.ThreadLocalRandom;
 
-@AbilityManifest(name = "테러리스트 (Terrorist)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "테러리스트 (Terrorist)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 폭파]§f §8(쿨타임: 50초)",
         "§7자신의 주변에 §f20개§7의 TNT를 소환합니다.",
         "§7- §f10개§7: 반경 §f10칸§7 원형 테두리 배치",

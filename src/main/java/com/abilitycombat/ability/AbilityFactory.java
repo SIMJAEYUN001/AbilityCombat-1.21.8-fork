@@ -6,15 +6,17 @@ import java.lang.reflect.Constructor;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * 능력 등록 및 생성 팩토리
  */
 public final class AbilityFactory {
 
-    private static final Map<String, Class<? extends AbilityBase>> registeredAbilities = new HashMap<>();
+    private static final Map<String, AbilityRegistration> registeredAbilities = new LinkedHashMap<>();
     private static final Map<Class<? extends AbilityBase>, AbilityManifest> manifestCache = new HashMap<>();
 
     private AbilityFactory() {
@@ -28,8 +30,24 @@ public final class AbilityFactory {
         if (manifest == null) {
             throw new IllegalArgumentException("AbilityManifest annotation is required: " + abilityClass.getName());
         }
-        registeredAbilities.put(manifest.name(), abilityClass);
+        AbilityDescriptor descriptor = AbilityDescriptor.fromManifest(manifest);
+        registeredAbilities.put(manifest.name(), new AbilityRegistration(abilityClass, descriptor,
+                participant -> create(abilityClass, participant)));
         manifestCache.put(abilityClass, manifest);
+    }
+
+    public static void register(AbilityDescriptor descriptor, Class<? extends AbilityBase> abilityClass,
+            Function<Participant, AbilityBase> creator) {
+        if (descriptor == null || descriptor.name() == null || descriptor.name().isBlank()) {
+            throw new IllegalArgumentException("AbilityDescriptor name is required");
+        }
+        if (abilityClass == null) {
+            throw new IllegalArgumentException("Ability class is required: " + descriptor.name());
+        }
+        if (creator == null) {
+            throw new IllegalArgumentException("Ability creator is required: " + descriptor.name());
+        }
+        registeredAbilities.put(descriptor.name(), new AbilityRegistration(abilityClass, descriptor, creator));
     }
 
     /**
@@ -40,6 +58,7 @@ public final class AbilityFactory {
         if (manifest != null) {
             registeredAbilities.remove(manifest.name());
         }
+        registeredAbilities.entrySet().removeIf(entry -> entry.getValue().abilityClass().equals(abilityClass));
     }
 
     /**
@@ -58,18 +77,19 @@ public final class AbilityFactory {
      * 이름으로 능력 생성
      */
     public static AbilityBase create(String name, Participant participant) {
-        Class<? extends AbilityBase> abilityClass = registeredAbilities.get(name);
-        if (abilityClass == null) {
+        AbilityRegistration registration = registeredAbilities.get(name);
+        if (registration == null) {
             throw new IllegalArgumentException("Unknown ability: " + name);
         }
-        return create(abilityClass, participant);
+        return registration.creator().apply(participant);
     }
 
     /**
      * 이름으로 능력 클래스 조회
      */
     public static Class<? extends AbilityBase> getAbilityClass(String name) {
-        return registeredAbilities.get(name);
+        AbilityRegistration registration = registeredAbilities.get(name);
+        return registration != null ? registration.abilityClass() : null;
     }
 
     /**
@@ -83,7 +103,12 @@ public final class AbilityFactory {
      * 등록된 능력 클래스 목록
      */
     public static Collection<Class<? extends AbilityBase>> getRegisteredClasses() {
-        return Collections.unmodifiableCollection(manifestCache.keySet());
+        java.util.LinkedHashSet<Class<? extends AbilityBase>> classes = new java.util.LinkedHashSet<>();
+        classes.addAll(manifestCache.keySet());
+        for (AbilityRegistration registration : registeredAbilities.values()) {
+            classes.add(registration.abilityClass());
+        }
+        return Collections.unmodifiableCollection(classes);
     }
 
     /**
@@ -107,6 +132,19 @@ public final class AbilityFactory {
         return manifestCache.get(abilityClass);
     }
 
+    public static AbilityDescriptor getDescriptor(String name) {
+        AbilityRegistration registration = registeredAbilities.get(name);
+        return registration != null ? registration.descriptor() : null;
+    }
+
+    public static Collection<AbilityDescriptor> getRegisteredDescriptors() {
+        java.util.List<AbilityDescriptor> descriptors = new java.util.ArrayList<>();
+        for (AbilityRegistration registration : registeredAbilities.values()) {
+            descriptors.add(registration.descriptor());
+        }
+        return Collections.unmodifiableCollection(descriptors);
+    }
+
     /**
      * 등록된 능력 수
      */
@@ -120,5 +158,11 @@ public final class AbilityFactory {
     public static void clear() {
         registeredAbilities.clear();
         manifestCache.clear();
+    }
+
+    private record AbilityRegistration(
+            Class<? extends AbilityBase> abilityClass,
+            AbilityDescriptor descriptor,
+            Function<Participant, AbilityBase> creator) {
     }
 }

@@ -18,7 +18,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-@AbilityManifest(name = "정조준 일격 (AimedStrike)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "정조준 일격 (AimedStrike)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 정조준 일격]",
         "§f10칸§7 이상 떨어진 대상에게 활을 적중시키면",
         "§7대상을 향해 §6정조준 일격§7을 추가로 발사합니다.",

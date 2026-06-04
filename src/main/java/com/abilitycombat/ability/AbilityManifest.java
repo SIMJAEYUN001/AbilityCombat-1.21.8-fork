@@ -67,7 +67,7 @@ public @interface AbilityManifest {
     /**
      * 능력 등급
      */
-    Rank rank();
+    Rank rank() default Rank.A;
 
     /**
      * 능력 종족

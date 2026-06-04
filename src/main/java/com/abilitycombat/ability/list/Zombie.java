@@ -23,7 +23,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-@AbilityManifest(name = "좀비 (Zombie)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.UNDEAD, explain = {
+@AbilityManifest(name = "좀비 (Zombie)", species = AbilityManifest.Species.UNDEAD, explain = {
         "§e§l[패시브 - 동족]",
         "§7좀비 몬스터가 자신을 공격하지 않습니다.",
         "",

@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-@AbilityManifest(name = "지진강타 (EarthquakeStrike)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "지진강타 (EarthquakeStrike)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 지진강타]§f §8(쿨타임: 30초)",
         "§7바라보는 방향으로 §f지진파§7가 전진합니다.",
         "§7지진파는 바닥 블럭을 §f순차적으로 솟구치게§7 합니다.",

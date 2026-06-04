@@ -22,7 +22,7 @@ import org.bukkit.util.Vector;
 
 import java.util.Set;
 
-@AbilityManifest(name = "스나이퍼 (Sniper)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "스나이퍼 (Sniper)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[활 발사 - 저격]§f",
         "§7활을 발사하면 §f3배§7 속도의 특수 화살을 발사합니다.",
         "§7적중 시 §c12의 피해§7를 입힙니다.",

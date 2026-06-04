@@ -29,7 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-@AbilityManifest(name = "글래디에이터 (Gladiator)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "글래디에이터 (Gladiator)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 결투장]§f §8(쿨타임: 60초)",
         "§7대상을 우클릭하여 §e1:1 결투장§7을 생성합니다.",
         "§7결투장은 §f20초§7간 지속됩니다.",

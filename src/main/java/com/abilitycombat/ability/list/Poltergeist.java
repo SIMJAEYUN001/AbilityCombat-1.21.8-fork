@@ -25,7 +25,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-@AbilityManifest(name = "폴터가이스트 (Poltergeist)", rank = AbilityManifest.Rank.A, species = AbilityManifest.Species.SPECIAL, explain = {
+@AbilityManifest(name = "폴터가이스트 (Poltergeist)", species = AbilityManifest.Species.SPECIAL, explain = {
         "§e§l[철괴 우클릭 - 악령의 손아귀]§f §8(쿨타임: 45초)",
         "§7§o느린 투사체§7를 던집니다.",
         "",

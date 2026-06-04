@@ -32,6 +32,7 @@ public abstract class AbilityBase implements Listener, AbilityTickManager.Tickab
 
     private final Participant participant;
     private final AbilityManifest manifest;
+    private final AbilityDescriptor descriptor;
     private boolean destroyed = false;
     private final Set<AbilityTimer> timers = new HashSet<>();
     private boolean tickRegistered = false;
@@ -43,6 +44,16 @@ public abstract class AbilityBase implements Listener, AbilityTickManager.Tickab
             throw new IllegalStateException(
                     "AbilityManifest annotation is required for ability: " + getClass().getName());
         }
+        this.descriptor = AbilityDescriptor.fromManifest(this.manifest);
+    }
+
+    protected AbilityBase(Participant participant, AbilityDescriptor descriptor) {
+        this.participant = participant;
+        this.manifest = null;
+        if (descriptor == null || descriptor.name() == null || descriptor.name().isBlank()) {
+            throw new IllegalStateException("AbilityDescriptor name is required for ability: " + getClass().getName());
+        }
+        this.descriptor = descriptor;
     }
 
     /**
@@ -66,11 +77,15 @@ public abstract class AbilityBase implements Listener, AbilityTickManager.Tickab
         return manifest;
     }
 
+    public AbilityDescriptor getDescriptor() {
+        return descriptor;
+    }
+
     /**
      * 능력 이름 반환 (영문명 포함 전체 이름)
      */
     public String getName() {
-        return manifest.name();
+        return descriptor.name();
     }
 
     /**
@@ -276,14 +291,22 @@ public abstract class AbilityBase implements Listener, AbilityTickManager.Tickab
      * 능력 등급 반환
      */
     public AbilityManifest.Rank getRank() {
-        return manifest.rank();
+        return descriptor.rank();
     }
 
     /**
      * 능력 종족 반환
      */
     public AbilityManifest.Species getSpecies() {
-        return manifest.species();
+        return descriptor.species();
+    }
+
+    public java.util.List<String> getExplain() {
+        return descriptor.explain();
+    }
+
+    public java.util.List<String> getSummarize() {
+        return descriptor.summarize();
     }
 
     /**

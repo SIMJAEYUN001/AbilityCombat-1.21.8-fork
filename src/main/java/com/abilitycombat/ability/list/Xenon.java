@@ -16,7 +16,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.util.Vector;
 
-@AbilityManifest(name = "제논 (Xenon)", rank = AbilityManifest.Rank.S, species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "제논 (Xenon)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 방어 시스템]",
         "§f12초§7마다 §e보호막 +10§7을 획득합니다.",
         "§7보호막은 최대 §f20§7까지 중첩됩니다.",
