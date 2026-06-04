@@ -151,7 +151,8 @@ public class SwordDance extends AbilityBase implements ActiveHandler {
         Player player = getPlayer();
         if (player != null) {
             playStartEffect(player);
-            player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.9f, 1.35f);
+            player.getWorld().playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 0.75f, 1.55f);
+            player.getWorld().playSound(player.getLocation(), Sound.BLOCK_ANVIL_PLACE, 0.25f, 1.85f);
         }
         strikeNextTarget();
         nextStepTick = now + STEP_DELAY_TICKS;
@@ -229,7 +230,8 @@ public class SwordDance extends AbilityBase implements ActiveHandler {
         }
         ParticleUtil.spawnParticle(world, Particle.SWEEP_ATTACK, center, 3, 0.35, 0.35, 0.35, 0.0, 1, 64);
         ParticleUtil.spawnParticle(world, Particle.CRIT, center, 16, 0.45, 0.45, 0.45, 0.08, 1, 64);
-        world.playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.85f, 1.55f);
+        world.playSound(target.getLocation(), Sound.ITEM_SHIELD_BLOCK, 0.85f, 1.75f);
+        world.playSound(target.getLocation(), Sound.BLOCK_ANVIL_PLACE, 0.28f, 2.0f);
         world.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.35f, 1.8f);
     }
 
