@@ -34,12 +34,12 @@ import java.util.UUID;
         "",
         "§e§l[철괴 우클릭 - 번개 질주]§f §8(돌진만 사용: 12초 / 재사용: 25초)",
         "§7바라보는 방향으로 §f2초§7간 돌진합니다. §8(속도: 1.5)",
-        "§7돌진 중 다시 사용하면 매우 빠른 번개창을 §f30칸§7까지 던집니다.",
+        "§7돌진 중 다시 사용하면 매우 빠른 번개창을 던집니다.",
         "§7번개창이 적중한 구조물 위로만 순간이동하고, 경로마다 번개를 떨어뜨립니다.",
         "§7번개마다 거리 감쇠 없이 §c12 피해§7와 §e기절 1.5초§7를 적용합니다."
 }, summarize = {
         "§7철괴 우클릭§f: 바라보는 방향으로 2초 돌진",
-        "§7돌진 중 우클릭§f: 30칸 번개창 적중 지점 텔레포트 + 경로 번개",
+        "§7돌진 중 우클릭§f: 번개창 적중 지점 텔레포트 + 경로 번개",
         "§7쿨타임§f: 돌진만 12초 / 재사용 25초"
 })
 public class Zeus extends AbilityBase implements ActiveHandler {
@@ -49,9 +49,8 @@ public class Zeus extends AbilityBase implements ActiveHandler {
     private static final int DASH_DURATION_TICKS = 40;
     private static final double DASH_SPEED = 1.5;
     private static final int DASH_PARTICLE_INTERVAL_TICKS = 2;
-    private static final double TELEPORT_TRIDENT_RANGE = 30.0;
     private static final double TELEPORT_TRIDENT_SPEED = 6.0;
-    private static final int TELEPORT_TRIDENT_MAX_TICKS = 20;
+    private static final int TELEPORT_TRIDENT_MAX_TICKS = 60;
     private static final double TRIDENT_PATH_LIGHTNING_STEP = 2.0;
     private static final double LIGHTNING_HIT_RADIUS = 2.5;
     private static final double LIGHTNING_DAMAGE = 12.0;
@@ -63,7 +62,6 @@ public class Zeus extends AbilityBase implements ActiveHandler {
     private int dashTicks;
     private Vector dashDirection;
     private UUID teleportTridentId;
-    private Location teleportTridentStartLocation;
     private Location teleportTridentLastLocation;
     private int teleportTridentExpireTick;
 
@@ -257,7 +255,6 @@ public class Zeus extends AbilityBase implements ActiveHandler {
             spawned.setVelocity(direction.clone().multiply(TELEPORT_TRIDENT_SPEED));
         });
         teleportTridentId = trident.getUniqueId();
-        teleportTridentStartLocation = spawnLocation.clone();
         teleportTridentLastLocation = spawnLocation.clone();
         teleportTridentExpireTick = AbilityTickManager.getGlobalTick() + TELEPORT_TRIDENT_MAX_TICKS;
         return true;
@@ -276,16 +273,10 @@ public class Zeus extends AbilityBase implements ActiveHandler {
         Location current = trident.getLocation().clone();
         strikeAlongTridentPath(player, teleportTridentLastLocation, current);
         teleportTridentLastLocation = current;
-        if (tick > teleportTridentExpireTick || isTridentOutOfRange(current)) {
+        if (tick > teleportTridentExpireTick) {
             clearTeleportTrident(true);
             player.sendMessage("§c번개창이 구조물에 적중하지 못했습니다.");
         }
-    }
-
-    private boolean isTridentOutOfRange(Location current) {
-        return teleportTridentStartLocation == null || current == null
-                || current.getWorld() != teleportTridentStartLocation.getWorld()
-                || current.distanceSquared(teleportTridentStartLocation) > TELEPORT_TRIDENT_RANGE * TELEPORT_TRIDENT_RANGE;
     }
 
     private void clearTeleportTrident(boolean removeProjectile) {
@@ -296,7 +287,6 @@ public class Zeus extends AbilityBase implements ActiveHandler {
             }
         }
         teleportTridentId = null;
-        teleportTridentStartLocation = null;
         teleportTridentLastLocation = null;
         teleportTridentExpireTick = 0;
     }
