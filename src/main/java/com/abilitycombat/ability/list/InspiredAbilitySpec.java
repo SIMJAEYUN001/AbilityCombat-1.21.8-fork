@@ -25,7 +25,6 @@ public record InspiredAbilitySpec(
         ASSASSIN,
         BLACK_HOLE,
         CURSE,
-        REWIND,
         SWAP,
         FROST,
         SOUL,
@@ -34,7 +33,8 @@ public record InspiredAbilitySpec(
         PORTAL,
         MARK,
         DEFLECT,
-        SUMMON
+        SUMMON,
+        GLASS_CANNON
     }
 
     public enum CrowdControlType {

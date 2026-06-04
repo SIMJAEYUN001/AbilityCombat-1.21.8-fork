@@ -25,12 +25,12 @@ import static com.abilitycombat.ability.list.InspiredAbilitySpec.Style.DEFLECT;
 import static com.abilitycombat.ability.list.InspiredAbilitySpec.Style.EXECUTE;
 import static com.abilitycombat.ability.list.InspiredAbilitySpec.Style.FROST;
 import static com.abilitycombat.ability.list.InspiredAbilitySpec.Style.GAMBLE;
+import static com.abilitycombat.ability.list.InspiredAbilitySpec.Style.GLASS_CANNON;
 import static com.abilitycombat.ability.list.InspiredAbilitySpec.Style.GUARD;
 import static com.abilitycombat.ability.list.InspiredAbilitySpec.Style.MARK;
 import static com.abilitycombat.ability.list.InspiredAbilitySpec.Style.NOVA;
 import static com.abilitycombat.ability.list.InspiredAbilitySpec.Style.PORTAL;
 import static com.abilitycombat.ability.list.InspiredAbilitySpec.Style.PULL;
-import static com.abilitycombat.ability.list.InspiredAbilitySpec.Style.REWIND;
 import static com.abilitycombat.ability.list.InspiredAbilitySpec.Style.SINGLE;
 import static com.abilitycombat.ability.list.InspiredAbilitySpec.Style.SOUL;
 import static com.abilitycombat.ability.list.InspiredAbilitySpec.Style.SUMMON;
@@ -51,8 +51,8 @@ public final class InspiredAbilityPack {
                     "주변 팀원을 회복시키고 저항을 부여합니다.", "자신도 같은 효과를 받습니다."),
             p("유성", Material.FIRE_CHARGE, BLAST, STUN, 44,
                     "바라본 지점에 유성 충격을 떨어뜨립니다.", "범위의 적에게 피해와 기절을 줍니다."),
-            p("타임 루프", Material.CLOCK, REWIND, NONE, 52,
-                    "최근 위치와 체력으로 되돌아갑니다.", "복귀 직후 짧은 저항을 얻습니다."),
+            p("검무", Material.IRON_SWORD, ASSASSIN, NONE, 36,
+                    "바라본 적 뒤로 파고들어 연속으로 베어냅니다.", "적중 대상에게 출혈을 남깁니다."),
             p("정신나갈거같아", Material.POISONOUS_POTATO, ASSASSIN, STUN, 32,
                     "바라본 적 뒤로 파고들어 베어냅니다.", "적중 대상에게 출혈과 기절을 줍니다."),
             p("흑기사", Material.NETHERITE_CHESTPLATE, GUARD, DISARM, 46,
@@ -127,8 +127,8 @@ public final class InspiredAbilityPack {
                     "검은 깃털을 타고 빠르게 이동합니다.", "대상이 있으면 뒤를 잡고 속박합니다."),
             p("모닝스타", Material.MACE, BLAST, STUN, 44,
                     "바라본 지점에 별빛 철퇴를 내리칩니다.", "범위 적에게 피해와 기절을 줍니다."),
-            p("리인카네이션", Material.TOTEM_OF_UNDYING, REWIND, NONE, 56,
-                    "최근 상태로 다시 되돌아갑니다.", "되돌아간 뒤 짧게 저항을 얻습니다."),
+            p("수호천사", Material.TOTEM_OF_UNDYING, GUARD, NONE, 46,
+                    "보호막을 두르고 전투를 다시 버팁니다.", "군중제어를 풀고 회복합니다."),
             p("인내심", Material.TURTLE_HELMET, GUARD, NONE, 30,
                     "군중제어를 풀고 버티는 태세를 취합니다.", "흡수와 저항을 얻습니다."),
             p("복수", Material.REDSTONE, EXECUTE, STUN, 34,
@@ -161,8 +161,8 @@ public final class InspiredAbilityPack {
                     "무작위 전투 효과를 강하게 굴립니다.", "공격 또는 방어 효과가 발동합니다."),
             p("왕", Material.GOLDEN_HELMET, ALLY, DISARM, 42,
                     "왕의 명령으로 주변을 장악합니다.", "팀원은 강화되고 적은 무장해제됩니다."),
-            p("유리 대포", Material.GLASS, SINGLE, NONE, 24,
-                    "바라본 적에게 강한 단일 피해를 줍니다.", "부가 효과 없이 피해에 집중합니다."),
+            p("유리 대포", Material.GLASS, GLASS_CANNON, NONE, 0,
+                    "주는 피해가 25% 증가합니다.", "받는 피해가 15% 증가합니다."),
             p("순간 가속", Material.SUGAR, DASH, STUN, 26,
                     "바라보는 방향으로 빠르게 파고듭니다.", "충돌 지점의 적은 기절합니다."),
             p("주인공", Material.NAME_TAG, GUARD, NONE, 40,
@@ -264,10 +264,10 @@ public final class InspiredAbilityPack {
                 new AbilityDescriptor(
                         name,
                         AbilityManifest.Species.OTHERS,
-                        explain(name, cooldown, action, effect),
+                        explain(name, style, cooldown, action, effect),
                         summarize(style, control, cooldown),
                         icon,
-                        List.of(cooldown)),
+                        cooldown > 0 ? List.of(cooldown) : List.of()),
                 style,
                 control,
                 cooldown,
@@ -279,9 +279,14 @@ public final class InspiredAbilityPack {
                 knockbackFor(style));
     }
 
-    private static List<String> explain(String name, int cooldown, String action, String effect) {
+    private static List<String> explain(String name, InspiredAbilitySpec.Style style, int cooldown, String action,
+            String effect) {
         List<String> lines = new ArrayList<>(3);
-        lines.add("§e§l[철괴 우클릭 - " + name + "]§f §8(쿨타임: " + cooldown + "초)");
+        if (style == GLASS_CANNON) {
+            lines.add("§e§l[패시브 - " + name + "]");
+        } else {
+            lines.add("§e§l[철괴 우클릭 - " + name + "]§f §8(쿨타임: " + cooldown + "초)");
+        }
         lines.add("§7" + action);
         if (effect != null && !effect.isBlank()) {
             lines.add("§7" + effect);
@@ -292,11 +297,13 @@ public final class InspiredAbilityPack {
     private static List<String> summarize(InspiredAbilitySpec.Style style,
             InspiredAbilitySpec.CrowdControlType control, int cooldown) {
         List<String> lines = new ArrayList<>(3);
-        lines.add("§7철괴 우클릭§f: " + styleName(style));
+        lines.add((style == GLASS_CANNON ? "§7패시브§f: " : "§7철괴 우클릭§f: ") + styleName(style));
         if (control != NONE) {
             lines.add("§7CC§f: " + controlName(control));
         }
-        lines.add("§7쿨타임§f: " + cooldown + "초");
+        if (cooldown > 0) {
+            lines.add("§7쿨타임§f: " + cooldown + "초");
+        }
         return List.copyOf(lines);
     }
 
@@ -312,7 +319,7 @@ public final class InspiredAbilityPack {
             case ASSASSIN -> 6.2;
             case BLACK_HOLE -> 3.8;
             case CURSE -> 4.0;
-            case REWIND -> 0.0;
+            case GLASS_CANNON -> 0.0;
             case SWAP -> 3.8;
             case FROST -> 3.6;
             case SOUL -> 5.2;
@@ -330,6 +337,7 @@ public final class InspiredAbilityPack {
             case SINGLE, ASSASSIN, CURSE, SOUL, EXECUTE, MARK, SWAP -> 13.0;
             case PORTAL -> 9.0;
             case BLAST, BLACK_HOLE, FROST, SUMMON -> 12.0;
+            case GLASS_CANNON -> 0.0;
             default -> 7.0;
         };
     }
@@ -342,6 +350,7 @@ public final class InspiredAbilityPack {
             case PULL, ALLY -> 6.0;
             case DASH -> 2.7;
             case GUARD -> 4.0;
+            case GLASS_CANNON -> 0.0;
             default -> 0.0;
         };
     }
@@ -361,7 +370,7 @@ public final class InspiredAbilityPack {
             case GUARD -> 4.0;
             case ALLY -> 2.4;
             case CURSE, SOUL -> 2.0;
-            case REWIND -> 0.0;
+            case GLASS_CANNON -> 0.0;
             default -> 0.0;
         };
     }
@@ -370,6 +379,7 @@ public final class InspiredAbilityPack {
         return switch (style) {
             case NOVA, DEFLECT, DASH -> 0.65;
             case PULL -> 0.75;
+            case GLASS_CANNON -> 0.0;
             default -> 0.45;
         };
     }
@@ -386,7 +396,6 @@ public final class InspiredAbilityPack {
             case ASSASSIN -> "기습";
             case BLACK_HOLE -> "중력장";
             case CURSE -> "저주";
-            case REWIND -> "시간 복귀";
             case SWAP -> "위치 교환";
             case FROST -> "빙결";
             case SOUL -> "흡혈";
@@ -396,6 +405,7 @@ public final class InspiredAbilityPack {
             case MARK -> "표식";
             case DEFLECT -> "반발";
             case SUMMON -> "전염 구역";
+            case GLASS_CANNON -> "피해 증폭";
         };
     }
 

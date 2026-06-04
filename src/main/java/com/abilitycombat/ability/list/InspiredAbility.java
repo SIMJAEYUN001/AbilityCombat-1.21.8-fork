@@ -22,20 +22,22 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+import org.bukkit.event.Cancellable;
+import org.bukkit.event.Event;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
-import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class InspiredAbility extends AbilityBase implements ActiveHandler {
 
     private final InspiredAbilitySpec spec;
     private final Cooldown cooldown;
-    private final Deque<Snapshot> rewindSnapshots = new ArrayDeque<>(8);
 
     public InspiredAbility(Participant participant, InspiredAbilitySpec spec) {
         super(participant, spec.descriptor());
@@ -45,24 +47,15 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
 
     @Override
     protected void onActivate() {
-        if (spec.style() == InspiredAbilitySpec.Style.REWIND) {
-            registerTick();
-            recordSnapshot();
+        if (spec.style() == InspiredAbilitySpec.Style.GLASS_CANNON) {
+            subscribeEvent(EntityDamageEvent.class);
         }
     }
 
     @Override
     protected void onDeactivate() {
-        if (spec.style() == InspiredAbilitySpec.Style.REWIND) {
-            unregisterTick();
-            rewindSnapshots.clear();
-        }
-    }
-
-    @Override
-    public void onTick(int tick) {
-        if (spec.style() == InspiredAbilitySpec.Style.REWIND && tick % 20 == 0) {
-            recordSnapshot();
+        if (spec.style() == InspiredAbilitySpec.Style.GLASS_CANNON) {
+            unsubscribeEvent(EntityDamageEvent.class);
         }
     }
 
@@ -70,6 +63,13 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
     public boolean activeSkill(Material material, ClickType clickType) {
         if (material != Material.IRON_INGOT || clickType != ClickType.RIGHT_CLICK) {
             return false;
+        }
+        if (spec.style() == InspiredAbilitySpec.Style.GLASS_CANNON) {
+            Player player = getPlayer();
+            if (player != null) {
+                player.sendMessage("§e" + getDisplayName() + "§7는 패시브 능력입니다.");
+            }
+            return true;
         }
         if (cooldown.isCooldown()) {
             notifyCooldown(cooldown);
@@ -90,7 +90,6 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
             case ASSASSIN -> castAssassin(player);
             case BLACK_HOLE -> castBlackHole(player);
             case CURSE -> castCurse(player);
-            case REWIND -> castRewind(player);
             case SWAP -> castSwap(player);
             case FROST -> castFrost(player);
             case SOUL -> castSoul(player);
@@ -100,6 +99,7 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
             case MARK -> castMark(player);
             case DEFLECT -> castDeflect(player);
             case SUMMON -> castSummon(player);
+            case GLASS_CANNON -> false;
         };
         if (!used) {
             player.sendMessage("§c대상이 없습니다.");
@@ -108,6 +108,25 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
         cooldown.start();
         applyIronCooldownIfEmpty(spec.cooldownSeconds());
         return true;
+    }
+
+    @Override
+    public void handleBridgeEvent(Event event) {
+        if (spec.style() != InspiredAbilitySpec.Style.GLASS_CANNON
+                || (event instanceof Cancellable cancellable && cancellable.isCancelled())) {
+            return;
+        }
+        Player player = getPlayer();
+        if (player == null) {
+            return;
+        }
+        if (event instanceof EntityDamageByEntityEvent damageByEntityEvent
+                && isDamageSource(player, damageByEntityEvent)) {
+            increaseOutgoingDamage(damageByEntityEvent, 25.0);
+        }
+        if (event instanceof EntityDamageEvent damageEvent && damageEvent.getEntity().equals(player)) {
+            increaseIncomingDamage(damageEvent, 15.0);
+        }
     }
 
     private boolean castSingle(Player player) {
@@ -217,22 +236,6 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
         Infection.apply(target, 80);
         heal(player, spec.heal());
         playImpact(target.getLocation());
-        return true;
-    }
-
-    private boolean castRewind(Player player) {
-        Snapshot snapshot = rewindSnapshots.peekLast();
-        if (snapshot == null) {
-            player.sendMessage("§c되돌릴 기록이 없습니다.");
-            return false;
-        }
-        player.teleport(snapshot.location());
-        AttributeInstance maxHealth = player.getAttribute(Attribute.MAX_HEALTH);
-        double max = maxHealth != null ? maxHealth.getValue() : 20.0;
-        player.setHealth(Math.min(max, Math.max(1.0, snapshot.health())));
-        cleanseCrowdControl(player);
-        player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 45, 0, true, false));
-        playImpact(player.getLocation());
         return true;
     }
 
@@ -480,22 +483,19 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
         return gameManager != null && gameManager.areTeammates(source, candidate);
     }
 
+    private boolean isDamageSource(Player player, EntityDamageByEntityEvent event) {
+        if (event.getDamager().equals(player)) {
+            return true;
+        }
+        return event.getDamager() instanceof Projectile projectile && projectile.getShooter() instanceof Player shooter
+                && shooter.equals(player);
+    }
+
     private void cleanseCrowdControl(LivingEntity target) {
         Stun.remove(target);
         Bind.remove(target);
         Disarm.remove(target);
         Freeze.remove(target);
-    }
-
-    private void recordSnapshot() {
-        Player player = getPlayer();
-        if (player == null || player.isDead()) {
-            return;
-        }
-        rewindSnapshots.addFirst(new Snapshot(player.getLocation().clone(), player.getHealth()));
-        while (rewindSnapshots.size() > 6) {
-            rewindSnapshots.removeLast();
-        }
     }
 
     private void heal(Player player, double amount) {
@@ -520,6 +520,7 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
             case CURSE, SUMMON -> Particle.SOUL_FIRE_FLAME;
             case FROST -> Particle.SNOWFLAKE;
             case GUARD, ALLY, DEFLECT -> Particle.ENCHANT;
+            case GLASS_CANNON -> Particle.DAMAGE_INDICATOR;
             case DASH, ASSASSIN -> Particle.SWEEP_ATTACK;
             default -> Particle.CRIT;
         };
@@ -530,14 +531,12 @@ public class InspiredAbility extends AbilityBase implements ActiveHandler {
 
     private Sound soundForStyle() {
         return switch (spec.style()) {
-            case BLACK_HOLE, PORTAL, REWIND -> Sound.ENTITY_ENDERMAN_TELEPORT;
+            case BLACK_HOLE, PORTAL -> Sound.ENTITY_ENDERMAN_TELEPORT;
             case FROST -> Sound.BLOCK_GLASS_BREAK;
             case GUARD, ALLY, DEFLECT -> Sound.ITEM_SHIELD_BLOCK;
+            case GLASS_CANNON -> Sound.ENTITY_PLAYER_ATTACK_CRIT;
             case CURSE, SOUL, SUMMON -> Sound.ENTITY_WITHER_HURT;
             default -> Sound.ENTITY_PLAYER_ATTACK_SWEEP;
         };
-    }
-
-    private record Snapshot(Location location, double health) {
     }
 }
