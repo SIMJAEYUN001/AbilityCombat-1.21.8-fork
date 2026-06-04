@@ -29,7 +29,6 @@ import com.abilitycombat.ability.list.Giant;
 import com.abilitycombat.ability.list.GiantSlayer;
 import com.abilitycombat.ability.list.Ghost;
 import com.abilitycombat.ability.list.Gardener;
-import com.abilitycombat.ability.list.GeneratedAbilityPack;
 import com.abilitycombat.ability.list.GravityField;
 import com.abilitycombat.ability.list.GrapplingHook;
 import com.abilitycombat.ability.list.Hacker;
@@ -38,6 +37,7 @@ import com.abilitycombat.ability.list.Hermit;
 import com.abilitycombat.ability.list.HigherBeing;
 import com.abilitycombat.ability.list.Hunter;
 import com.abilitycombat.ability.list.Imprison;
+import com.abilitycombat.ability.list.InspiredAbilityPack;
 import com.abilitycombat.ability.list.Ira;
 import com.abilitycombat.ability.list.JellyFish;
 import com.abilitycombat.ability.list.Khazhad;
@@ -412,6 +412,6 @@ public final class AbilityCombat extends JavaPlugin {
         AbilityFactory.register(ODMGear.class);
         AbilityFactory.register(Hunter.class);
         AbilityFactory.register(Doppelganger.class);
-        GeneratedAbilityPack.registerAll();
+        InspiredAbilityPack.registerAll();
     }
 }

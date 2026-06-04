@@ -2,10 +2,9 @@ package com.abilitycombat.ability.list;
 
 import com.abilitycombat.ability.AbilityDescriptor;
 
-public record GeneratedAbilitySpec(
+public record InspiredAbilitySpec(
         AbilityDescriptor descriptor,
-        Role role,
-        Pattern pattern,
+        Style style,
         CrowdControlType crowdControl,
         int cooldownSeconds,
         double damage,
@@ -15,19 +14,27 @@ public record GeneratedAbilitySpec(
         double heal,
         double knockback) {
 
-    public enum Role {
-        ATTACK,
-        DEFENSE,
-        SUPPORT
-    }
-
-    public enum Pattern {
-        STRIKE,
+    public enum Style {
+        SINGLE,
         BLAST,
         NOVA,
         DASH,
+        PULL,
         GUARD,
-        PULL
+        ALLY,
+        ASSASSIN,
+        BLACK_HOLE,
+        CURSE,
+        REWIND,
+        SWAP,
+        FROST,
+        SOUL,
+        EXECUTE,
+        GAMBLE,
+        PORTAL,
+        MARK,
+        DEFLECT,
+        SUMMON
     }
 
     public enum CrowdControlType {
