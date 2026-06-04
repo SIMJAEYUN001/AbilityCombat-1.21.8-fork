@@ -3,12 +3,14 @@ package com.abilitycombat.ability.list;
 import com.abilitycombat.AbilityCombat;
 import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
+import com.abilitycombat.ability.AbilityTickManager;
 import com.abilitycombat.ability.handler.ActiveHandler;
 import com.abilitycombat.game.Participant;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -28,12 +30,13 @@ import java.util.UUID;
         "",
         "§e§l[반격]",
         "§7피해 감소 시간 동안 다른 플레이어에게 받은 피해를 축적하고,",
-        "§7종료 시 축적 피해의 §c40%§7를 공격자에게 한 번에 반사합니다.",
+        "§7종료 시 축적 피해의 §c40%§7를 공격자에게 최종 반사 피해로 돌려줍니다.",
+        "§7반사 피해는 방어구로 다시 감소하지 않습니다.",
         "§7반사 성공 시 쿨타임이 §e4초§7로 감소합니다.",
         "§7반사하지 못하고 끝나면 쿨타임이 §e25초§7로 감소합니다."
-}, summarize = {
-        "§7철괴 우클릭§f: 3초간 피해 90% 감소 + 누적 반격"
-})
+    }, summarize = {
+        "§7철괴 우클릭§f: 3초간 피해 90% 감소 + 최종 피해 반격"
+    })
 public class Virtus extends AbilityBase implements ActiveHandler {
 
     private static final int COOLDOWN_SECONDS = 40;
@@ -47,6 +50,7 @@ public class Virtus extends AbilityBase implements ActiveHandler {
     private boolean guarding;
     private int guardEndTick = -1;
     private final Map<UUID, Double> accumulatedDamageByAttacker = new HashMap<>();
+    private final Map<UUID, Double> pendingReflectDamage = new HashMap<>();
 
     public Virtus(Participant participant) {
         super(participant);
@@ -64,6 +68,7 @@ public class Virtus extends AbilityBase implements ActiveHandler {
         guarding = false;
         guardEndTick = -1;
         accumulatedDamageByAttacker.clear();
+        pendingReflectDamage.clear();
         removeGlowEffect();
     }
 
@@ -92,6 +97,16 @@ public class Virtus extends AbilityBase implements ActiveHandler {
     }
 
     private void onDamage(EntityDamageEvent event) {
+        if (event.isCancelled()) {
+            return;
+        }
+        if (event.getEntity() instanceof Player damagedPlayer) {
+            Double reflectedDamage = pendingReflectDamage.remove(damagedPlayer.getUniqueId());
+            if (reflectedDamage != null && reflectedDamage > 0.0) {
+                addIncomingDamage(event, reflectedDamage);
+                return;
+            }
+        }
         if (!(event.getEntity() instanceof Player player) || !player.equals(getPlayer())) {
             return;
         }
@@ -107,13 +122,9 @@ public class Virtus extends AbilityBase implements ActiveHandler {
         scaleIncomingDamage(event, DAMAGE_MULTIPLIER);
 
         if (event instanceof EntityDamageByEntityEvent byEntity) {
-            Bukkit.getScheduler().runTaskLater(AbilityCombat.getPlugin(), () -> {
-                if (player.isOnline() && !player.isDead()) {
-                    player.setVelocity(player.getVelocity().setX(0).setZ(0));
-                }
-            }, 1L);
-
-            if (byEntity.getDamager() instanceof Player attacker && !attacker.equals(player)
+            player.setVelocity(player.getVelocity().setX(0).setZ(0));
+            Player attacker = resolvePlayerAttacker(byEntity);
+            if (attacker != null && !attacker.equals(player)
                     && AbilityCombat.getPlugin().getGameManager().canApplyNegativeEffect(player, attacker)) {
                 accumulatedDamageByAttacker.merge(attacker.getUniqueId(), originalFinalDamage, Double::sum);
             }
@@ -122,8 +133,9 @@ public class Virtus extends AbilityBase implements ActiveHandler {
 
     private void startGuard() {
         guarding = true;
-        guardEndTick = getCurrentTick() + DURATION_TICKS;
+        guardEndTick = AbilityTickManager.getGlobalTick() + DURATION_TICKS;
         accumulatedDamageByAttacker.clear();
+        pendingReflectDamage.clear();
 
         Player player = getPlayer();
         player.playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1.0f, 1.2f);
@@ -142,6 +154,7 @@ public class Virtus extends AbilityBase implements ActiveHandler {
         guarding = false;
         guardEndTick = -1;
         accumulatedDamageByAttacker.clear();
+        pendingReflectDamage.clear();
         removeGlowEffect();
     }
 
@@ -153,7 +166,9 @@ public class Virtus extends AbilityBase implements ActiveHandler {
             if (attacker == null || !attacker.isOnline() || attacker.isDead() || reflectedDamage <= 0.0) {
                 continue;
             }
-            attacker.damage(reflectedDamage, player);
+            pendingReflectDamage.merge(attacker.getUniqueId(), reflectedDamage, Double::sum);
+            attacker.setNoDamageTicks(0);
+            attacker.damage(0.01, player);
             attacker.playSound(attacker.getLocation(), Sound.ENCHANT_THORNS_HIT, 1.0f, 0.8f);
             reflected = true;
         }
@@ -161,6 +176,16 @@ public class Virtus extends AbilityBase implements ActiveHandler {
             player.playSound(player.getLocation(), Sound.ENCHANT_THORNS_HIT, 1.0f, 0.8f);
         }
         return reflected;
+    }
+
+    private Player resolvePlayerAttacker(EntityDamageByEntityEvent event) {
+        if (event.getDamager() instanceof Player player) {
+            return player;
+        }
+        if (event.getDamager() instanceof Projectile projectile && projectile.getShooter() instanceof Player player) {
+            return player;
+        }
+        return null;
     }
 
     private void startCooldown(int seconds) {
@@ -200,16 +225,8 @@ public class Virtus extends AbilityBase implements ActiveHandler {
         }
     }
 
-    private int currentTick = 0;
-
-    private int getCurrentTick() {
-        return currentTick;
-    }
-
     @Override
     public void onTick(int tick) {
-        currentTick = tick;
-
         // 가드 시간 체크
         if (guarding && guardEndTick > 0 && tick >= guardEndTick) {
             stopGuard(true);

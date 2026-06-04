@@ -32,7 +32,7 @@ public class LocationUtil {
         if (entity == null) {
             return false;
         }
-        if (PlayerReplicaManager.isReplicaEntity(entity)) {
+        if (PlayerReplicaManager.isReplicaEntity(entity) && !PlayerReplicaManager.isTrainingDummy(entity)) {
             return false;
         }
         if (entity instanceof Player player) {

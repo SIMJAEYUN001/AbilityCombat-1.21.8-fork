@@ -2,12 +2,12 @@ package com.abilitycombat.ability.list;
 
 import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
+import com.abilitycombat.ability.AbilityTickManager;
 import com.abilitycombat.ability.handler.ActiveHandler;
 import com.abilitycombat.game.Participant;
 import com.abilitycombat.utils.LocationUtil;
 import com.abilitycombat.utils.ParticleUtil;
 import com.abilitycombat.vfx.Circle;
-import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
@@ -78,6 +78,7 @@ public class OrbitalLaser extends AbilityBase implements ActiveHandler {
         }
         Location target = resolveTargetLocation(player);
         if (target == null) {
+            player.sendMessage("§c궤도형 레이저를 지정할 지면이 없습니다.");
             return false;
         }
         startWarning(target);
@@ -119,13 +120,14 @@ public class OrbitalLaser extends AbilityBase implements ActiveHandler {
 
     private void startWarning(Location target) {
         targetLocation = target.clone();
-        warningStartTick = Bukkit.getCurrentTick();
+        warningStartTick = AbilityTickManager.getGlobalTick();
         warningActive = true;
         registerTick();
         World world = target.getWorld();
         if (world != null) {
             world.playSound(target, Sound.BLOCK_BEACON_POWER_SELECT, 0.75f, 1.8f);
         }
+        spawnWarningCircle(0);
     }
 
     private void spawnWarningCircle(int elapsed) {

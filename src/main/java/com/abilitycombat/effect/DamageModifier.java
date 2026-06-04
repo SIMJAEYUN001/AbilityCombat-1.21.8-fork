@@ -95,6 +95,10 @@ public final class DamageModifier implements Listener {
     }
 
     public static double previewFinalDamage(EntityDamageEvent event) {
+        return previewFinalDamage(event, PENDING.get(event));
+    }
+
+    private static double previewFinalDamage(EntityDamageEvent event, PendingAdjustment pending) {
         if (event == null) {
             return 0.0;
         }
@@ -110,7 +114,6 @@ public final class DamageModifier implements Listener {
                 totalPercent += resolveTotal(OUTGOING, attacker.getUniqueId(), now);
             }
         }
-        PendingAdjustment pending = PENDING.get(event);
         double flatAmount = 0.0;
         if (pending != null) {
             totalPercent += pending.percentDelta;
@@ -128,7 +131,7 @@ public final class DamageModifier implements Listener {
         if (event.isCancelled()) {
             return;
         }
-        double previewFinalDamage = previewFinalDamage(event);
+        double previewFinalDamage = previewFinalDamage(event, pending);
         double currentFinalDamage = Math.max(0.0, event.getFinalDamage());
         if (pending == null && Math.abs(previewFinalDamage - currentFinalDamage) < 1.0E-6) {
             return;

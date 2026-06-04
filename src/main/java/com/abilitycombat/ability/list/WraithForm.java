@@ -8,6 +8,7 @@ import com.abilitycombat.effect.Bind;
 import com.abilitycombat.game.Participant;
 import com.abilitycombat.utils.LocationUtil;
 import com.abilitycombat.utils.ParticleUtil;
+import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Color;
@@ -20,6 +21,8 @@ import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -27,26 +30,26 @@ import org.bukkit.entity.Projectile;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.Locale;
 
 @AbilityManifest(name = "망령화 (WraithForm)", species = AbilityManifest.Species.UNDEAD, explain = {
         "§e§l[패시브 - 망령화]",
         "§7인간 상태에서는 입히는 피해가 §c50% 감소§7합니다.",
-        "§7피해를 입힐 때마다 §b망령화 10스택§7을 얻습니다. (최대 100)",
+        "§7피해를 입힐 때마다 §b망령화 6스택§7을 얻습니다. (최대 100)",
         "§7망령화 §f50스택§7 이상이면 검은 연기와 함께 말뚝과 §f18칸§7 필드를 생성합니다.",
-        "§7필드 밖으로 벗어나면 망령화 §c55스택§7을 잃습니다.",
+        "§7필드 밖으로 벗어나면 현재 망령화의 §c80%§7를 잃습니다.",
+        "§7망령 상태가 풀리면 §f15초§7간 재진입할 수 없습니다.",
         "",
         "§e§l[패시브 - 망령 상태]",
         "§750스택 이상에서는 피해 감소가 사라지고 입히는 피해가 §c20% 증가§7합니다.",
         "§7사거리가 §f10%§7 증가하고 입힌 피해의 §a15%§7만큼 회복합니다.",
-        "§7비전투 §f10초§7 이후 §f3초§7마다 망령화가 §c15스택§7 감소합니다.",
+        "§7비전투 §f7초§7 이후 §f3초§7마다 망령화가 §c15스택§7 감소합니다.",
         "",
         "§e§l[철괴 우클릭 - 혼령 속박]§f §8(쿨타임: 60초)",
         "§7망령 상태에서 바라본 적을 §f3 + 스택의 5%초§7간 속박합니다."
 }, summarize = {
-        "§7패시브§f: 피해 시 망령화 +10, 인간 상태 피해 -50%",
+        "§7패시브§f: 피해 시 망령화 +6, 인간 상태 피해 -50%",
         "§750스택 이상§f: 검은 연기 진입, 말뚝/18칸 필드, 피해 +20%, 사거리 +10%, 흡혈 15%",
         "§7철괴 우클릭§f: 망령 상태에서 대상 속박 (60초)"
 })
@@ -54,12 +57,13 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
 
     private static final int MAX_STACKS = 100;
     private static final int WRAITH_THRESHOLD = 50;
-    private static final int STACK_GAIN_ON_DAMAGE = 10;
-    private static final int FIELD_EXIT_STACK_LOSS = 55;
-    private static final int NON_COMBAT_DELAY_MILLIS = 10_000;
+    private static final int STACK_GAIN_ON_DAMAGE = 6;
+    private static final double FIELD_EXIT_STACK_LOSS_RATIO = 0.80;
+    private static final int NON_COMBAT_DELAY_MILLIS = 7_000;
     private static final int NON_COMBAT_DRAIN_MILLIS = 3_000;
     private static final int NON_COMBAT_STACK_LOSS = 15;
     private static final int ACTIVE_COOLDOWN_SECONDS = 60;
+    private static final int REENTRY_COOLDOWN_MILLIS = 15_000;
 
     private static final double HUMAN_DAMAGE_PENALTY_PERCENT = 50.0;
     private static final double WRAITH_DAMAGE_BONUS_PERCENT = 20.0;
@@ -70,7 +74,6 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
     private static final double FIELD_RADIUS_SQUARED = FIELD_RADIUS * FIELD_RADIUS;
     private static final int FIELD_PARTICLE_POINTS = 72;
 
-    private static final String HUD_KEY = "wraith:stacks";
     private static final String STATUS_KEY = "wraith:status";
     private static final int HUD_PRIORITY = 4;
     private static final Particle.DustOptions FIELD_DUST = new Particle.DustOptions(Color.fromRGB(93, 52, 168), 1.2f);
@@ -78,9 +81,12 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
             new Particle.DustOptions(Color.fromRGB(12, 9, 16), 1.7f);
 
     private final Cooldown cooldown = new Cooldown(ACTIVE_COOLDOWN_SECONDS);
+    private final BossBarGauge stackGauge = new BossBarGauge("wraith", HUD_PRIORITY, BossBar.Color.PURPLE,
+            BossBar.Overlay.NOTCHED_10);
     private int stacks;
     private long lastCombatAt;
     private long lastDrainAt;
+    private long reentryBlockedUntil;
     private boolean rangeBonusApplied;
     private WraithStake stake;
 
@@ -165,6 +171,7 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
         if (tick % 8 == 0) {
             tickField();
             spawnFieldBoundary();
+            spawnWraithAmbientEffect();
         }
         if (tick % 20 == 0) {
             tickNonCombatDrain();
@@ -218,7 +225,8 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
             removeStake();
             return;
         }
-        if (stake == null || stake.stand == null || stake.stand.isDead()) {
+        if (stake == null || !stake.isPresent()) {
+            removeStake();
             spawnStake();
             return;
         }
@@ -226,8 +234,9 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
         Location center = stake.center;
         if (owner == null || center == null || owner.getWorld() != center.getWorld()
                 || owner.getLocation().distanceSquared(center) > FIELD_RADIUS_SQUARED) {
-            addStacks(-FIELD_EXIT_STACK_LOSS);
-            showStatus("망령 필드 이탈: -" + FIELD_EXIT_STACK_LOSS, NamedTextColor.RED);
+            int loss = Math.max(1, (int) Math.ceil(stacks * FIELD_EXIT_STACK_LOSS_RATIO));
+            addStacks(-loss);
+            showStatus("망령 필드 이탈: -" + loss, NamedTextColor.RED);
             owner = getPlayer();
             if (owner != null) {
                 owner.playSound(owner.getLocation(), Sound.ENTITY_WITHER_HURT, 0.75f, 1.6f);
@@ -252,13 +261,16 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
         if (amount == 0) {
             return;
         }
+        boolean wasWraith = isWraith();
         int before = stacks;
         stacks = Math.max(0, Math.min(MAX_STACKS, stacks + amount));
+        if (amount > 0 && hasWraithStacks() && isReentryBlocked()) {
+            showStatus("망령화 재진입 대기 " + getReentryRemainingSeconds() + "초", NamedTextColor.RED);
+        }
         if (before == stacks) {
             return;
         }
-        boolean wasWraith = before >= WRAITH_THRESHOLD;
-        boolean nowWraith = stacks >= WRAITH_THRESHOLD;
+        boolean nowWraith = isWraith();
         if (nowWraith) {
             applyRangeBonus();
         } else {
@@ -272,14 +284,23 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
                 owner.playSound(owner.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.8f, 0.45f);
             }
         } else if (wasWraith && !nowWraith) {
+            if (!hasWraithStacks()) {
+                reentryBlockedUntil = System.currentTimeMillis() + REENTRY_COOLDOWN_MILLIS;
+            }
             removeStake();
         } else if (nowWraith && stake == null) {
             spawnStake();
         }
+        updateHud();
     }
 
     private void syncWraithState() {
         if (isWraith()) {
+            Player owner = getPlayer();
+            if (!rangeBonusApplied && owner != null) {
+                spawnWraithEntryEffect(owner);
+                owner.playSound(owner.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.8f, 0.45f);
+            }
             applyRangeBonus();
             if (stake == null) {
                 spawnStake();
@@ -291,7 +312,20 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
     }
 
     private boolean isWraith() {
+        return hasWraithStacks() && !isReentryBlocked();
+    }
+
+    private boolean hasWraithStacks() {
         return stacks >= WRAITH_THRESHOLD;
+    }
+
+    private boolean isReentryBlocked() {
+        return System.currentTimeMillis() < reentryBlockedUntil;
+    }
+
+    private int getReentryRemainingSeconds() {
+        long remaining = Math.max(0L, reentryBlockedUntil - System.currentTimeMillis());
+        return (int) Math.ceil(remaining / 1000.0);
     }
 
     private void touchCombat() {
@@ -313,31 +347,66 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
         }
         spawn.setX(spawn.getBlockX() + 0.5);
         spawn.setZ(spawn.getBlockZ() + 0.5);
-        ArmorStand stand = world.spawn(spawn, ArmorStand.class, entity -> {
-            entity.setVisible(false);
-            entity.setGravity(false);
-            entity.setMarker(true);
-            entity.setBasePlate(false);
-            entity.setArms(false);
-            entity.setSmall(false);
-            entity.setInvulnerable(true);
-            entity.setCollidable(false);
-            entity.customName(Component.text("§5망령의 말뚝"));
-            entity.setCustomNameVisible(true);
-            entity.getEquipment().setHelmet(new ItemStack(Material.NETHER_BRICK_FENCE));
-        });
-        AbilityCombat.markAbilityArmorStand(stand);
-        stake = new WraithStake(stand, stand.getLocation().clone());
+        Block block = findStakeBlock(spawn);
+        if (block == null) {
+            return;
+        }
+        BlockData originalData = block.getBlockData().clone();
+        block.setBlockData(Material.COBBLESTONE_WALL.createBlockData(), false);
+        Location center = block.getLocation().add(0.5, 0.0, 0.5);
+        stake = new WraithStake(block, originalData, center);
         world.playSound(spawn, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 0.8f, 0.55f);
-        ParticleUtil.spawnParticle(world, Particle.SOUL_FIRE_FLAME, spawn.clone().add(0, 1.0, 0),
+        ParticleUtil.spawnParticle(world, Particle.SOUL_FIRE_FLAME, center.clone().add(0, 1.0, 0),
                 34, 0.35, 0.65, 0.35, 0.03, 1, 64);
     }
 
     private void removeStake() {
-        if (stake != null && stake.stand != null && !stake.stand.isDead()) {
-            stake.stand.remove();
+        if (stake != null && stake.block != null) {
+            World world = stake.center.getWorld();
+            stake.block.setBlockData(stake.originalData, false);
+            if (world != null) {
+                world.playSound(stake.center, Sound.BLOCK_STONE_BREAK, 0.65f, 0.7f);
+                ParticleUtil.spawnParticle(world, Particle.BLOCK, stake.center.clone().add(0, 0.7, 0),
+                        18, 0.35, 0.45, 0.35, 0.0, Material.COBBLESTONE_WALL.createBlockData(), 1, 64);
+            }
         }
         stake = null;
+    }
+
+    private Block findStakeBlock(Location center) {
+        World world = center.getWorld();
+        if (world == null) {
+            return null;
+        }
+        int baseX = center.getBlockX();
+        int baseY = center.getBlockY();
+        int baseZ = center.getBlockZ();
+        int[][] offsets = {
+                {0, 0},
+                {1, 0},
+                {-1, 0},
+                {0, 1},
+                {0, -1},
+                {1, 1},
+                {1, -1},
+                {-1, 1},
+                {-1, -1}
+        };
+        for (int[] offset : offsets) {
+            Block block = world.getBlockAt(baseX + offset[0], baseY, baseZ + offset[1]);
+            if (canPlaceStakeBlock(block)) {
+                return block;
+            }
+        }
+        return null;
+    }
+
+    private boolean canPlaceStakeBlock(Block block) {
+        if (block == null) {
+            return false;
+        }
+        Material type = block.getType();
+        return type.isAir() || (block.isPassable() && !block.isLiquid());
     }
 
     private void spawnFieldBoundary() {
@@ -375,6 +444,24 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
                 20, 0.35, 0.45, 0.35, 0.02, 1, 64);
         ParticleUtil.spawnParticle(world, Particle.REVERSE_PORTAL, center,
                 16, 0.25, 0.35, 0.25, 0.04, 1, 64);
+    }
+
+    private void spawnWraithAmbientEffect() {
+        if (!isWraith()) {
+            return;
+        }
+        Player owner = getPlayer();
+        if (owner == null) {
+            return;
+        }
+        World world = owner.getWorld();
+        Location center = owner.getLocation().clone().add(0, 1.0, 0);
+        ParticleUtil.spawnParticle(world, Particle.LARGE_SMOKE, center,
+                10, 0.55, 0.65, 0.55, 0.02, 2, 64);
+        ParticleUtil.spawnParticle(world, Particle.SMOKE, center,
+                8, 0.75, 0.45, 0.75, 0.02, 2, 64);
+        ParticleUtil.spawnParticle(world, Particle.DUST, center,
+                5, 0.45, 0.5, 0.45, 0.0, WRAITH_ENTRY_DUST, 2, 64);
     }
 
     private void spawnWraithEntryEffect(Player owner) {
@@ -480,13 +567,22 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
         NamedTextColor stackColor = isWraith() ? NamedTextColor.AQUA : NamedTextColor.GRAY;
         Component message = Component.text("망령화 ", NamedTextColor.DARK_PURPLE)
                 .append(Component.text(stacks + "/" + MAX_STACKS, stackColor))
-                .append(Component.text(isWraith() ? "  망령" : "  인간", isWraith() ? NamedTextColor.AQUA
-                        : NamedTextColor.WHITE));
-        if (getActionbarChannel() != null) {
-            getActionbarChannel().update(owner, HUD_KEY, HUD_PRIORITY, message);
-        } else {
-            owner.sendActionBar(message);
+                .append(Component.text(resolveHudStateText(), resolveHudStateColor()));
+        stackGauge.update(message, stacks / (double) MAX_STACKS);
+    }
+
+    private String resolveHudStateText() {
+        if (hasWraithStacks() && isReentryBlocked()) {
+            return "  대기 " + getReentryRemainingSeconds() + "초";
         }
+        return isWraith() ? "  망령" : "  인간";
+    }
+
+    private NamedTextColor resolveHudStateColor() {
+        if (hasWraithStacks() && isReentryBlocked()) {
+            return NamedTextColor.RED;
+        }
+        return isWraith() ? NamedTextColor.AQUA : NamedTextColor.WHITE;
     }
 
     private void showStatus(String message, NamedTextColor color) {
@@ -508,11 +604,11 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
             return;
         }
         if (getActionbarChannel() != null) {
-            getActionbarChannel().clear(owner, HUD_KEY);
             getActionbarChannel().clear(owner, STATUS_KEY);
         } else {
             owner.sendActionBar(Component.empty());
         }
+        stackGauge.clear();
     }
 
     private String formatSeconds(int ticks) {
@@ -520,12 +616,18 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
     }
 
     private static final class WraithStake {
-        private final ArmorStand stand;
+        private final Block block;
+        private final BlockData originalData;
         private final Location center;
 
-        private WraithStake(ArmorStand stand, Location center) {
-            this.stand = stand;
+        private WraithStake(Block block, BlockData originalData, Location center) {
+            this.block = block;
+            this.originalData = originalData;
             this.center = center;
+        }
+
+        private boolean isPresent() {
+            return block != null && block.getType() == Material.COBBLESTONE_WALL;
         }
     }
 }

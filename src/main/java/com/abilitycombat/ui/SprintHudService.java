@@ -77,6 +77,14 @@ import javax.imageio.ImageIO;
 
 public final class SprintHudService implements Listener {
 
+    public interface DashListener {
+        void onDashStart(Player player);
+
+        void onDashTick(Player player, org.bukkit.Location location);
+
+        void onDashEnd(Player player);
+    }
+
     private static final String RESOURCE_PACK_FILE_NAME = "abilitycombat-sprint-hud.zip";
     private static final String DEFAULT_DROPBOX_APP_KEY = "5jcck7diasz0rqy";
     private static final String DEFAULT_DROPBOX_APP_SECRET = "1n9m04y2zx7bf26";
@@ -162,6 +170,7 @@ public final class SprintHudService implements Listener {
     private final Map<UUID, BossBar> bars = new HashMap<>();
     private final Set<UUID> loadedPackPlayers = new HashSet<>();
     private final Map<UUID, DashState> dashStates = new HashMap<>();
+    private final Set<DashListener> dashListeners = new HashSet<>();
     private final Map<String, DropboxAuthSession> dropboxAuthSessions = new ConcurrentHashMap<>();
 
     private BukkitTask chargeTask;
@@ -725,6 +734,8 @@ public final class SprintHudService implements Listener {
         if (!preserveViewerHide) {
             state.mannequin = spawnMannequin(player, dashVelocity);
         }
+        notifyDashStart(player);
+        notifyDashTick(player);
         return true;
     }
 
@@ -736,6 +747,7 @@ public final class SprintHudService implements Listener {
         state.dashTicks++;
         player.setFallDistance(0f);
         syncMannequin(player, state);
+        notifyDashTick(player);
 
         boolean onGround = isOnGround(player);
         if (!onGround) {
@@ -761,6 +773,8 @@ public final class SprintHudService implements Listener {
         if (state == null) {
             return;
         }
+        notifyDashTick(player);
+        notifyDashEnd(player);
         exitDash(player, state);
     }
 
@@ -939,6 +953,38 @@ public final class SprintHudService implements Listener {
 
     public void cancelDashForAbilityUse(Player player) {
         cancelDashState(player);
+    }
+
+    public void addDashListener(DashListener listener) {
+        if (listener != null) {
+            dashListeners.add(listener);
+        }
+    }
+
+    public void removeDashListener(DashListener listener) {
+        dashListeners.remove(listener);
+    }
+
+    private void notifyDashStart(Player player) {
+        for (DashListener listener : Set.copyOf(dashListeners)) {
+            listener.onDashStart(player);
+        }
+    }
+
+    private void notifyDashTick(Player player) {
+        if (player == null) {
+            return;
+        }
+        org.bukkit.Location location = player.getLocation().clone();
+        for (DashListener listener : Set.copyOf(dashListeners)) {
+            listener.onDashTick(player, location);
+        }
+    }
+
+    private void notifyDashEnd(Player player) {
+        for (DashListener listener : Set.copyOf(dashListeners)) {
+            listener.onDashEnd(player);
+        }
     }
 
     public void resetAllBossBars() {

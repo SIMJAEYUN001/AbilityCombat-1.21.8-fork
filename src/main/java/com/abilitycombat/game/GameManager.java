@@ -13,6 +13,7 @@ import com.abilitycombat.gui.AbilityDebugGui;
 import com.abilitycombat.gui.AbilitySelectGui;
 import com.abilitycombat.gui.ConfigGui;
 import com.abilitycombat.gui.ToolkitGui;
+import com.abilitycombat.npc.PlayerReplicaManager;
 import io.papermc.paper.event.entity.EntityKnockbackEvent;
 import io.papermc.paper.scoreboard.numbers.NumberFormat;
 import net.kyori.adventure.text.Component;
@@ -1580,7 +1581,7 @@ public class GameManager implements Listener {
         borderDamageIntervalRemaining = BORDER_DAMAGE_INTERVAL_SECONDS;
         int phase = Math.max(1, currentPhaseIndex);
         double damagePerTick = phase;
-        for (UUID uuid : alivePlayers) {
+        for (UUID uuid : new ArrayList<>(alivePlayers)) {
             Player player = Bukkit.getPlayer(uuid);
             if (player == null || !player.isOnline() || player.isDead()) {
                 continue;
@@ -3295,6 +3296,11 @@ public class GameManager implements Listener {
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
+        if (PlayerReplicaManager.isTrainingDummy(event.getEntity())) {
+            event.getDrops().clear();
+            event.setDroppedExp(0);
+            return;
+        }
         if (state == GameState.IDLE) {
             handleLobbyVoidDeath(event);
             return;
@@ -3530,6 +3536,9 @@ public class GameManager implements Listener {
     @EventHandler
     public void onEntityDamage(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof Player player)) {
+            return;
+        }
+        if (PlayerReplicaManager.isTrainingDummy(player)) {
             return;
         }
         if (isSpectator(player)) {

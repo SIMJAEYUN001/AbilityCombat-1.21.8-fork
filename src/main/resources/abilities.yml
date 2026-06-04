@@ -166,13 +166,14 @@ abilities:
     summary:
       - "철괴 우클릭: 3초간 피해 90% 감소"
       - "피해 감소 중 받은 플레이어 피해 누적"
-      - "종료 시 공격자별 누적 피해 40% 반사"
+      - "종료 시 공격자별 누적 피해 40%를 최종 피해로 반사"
       - "쿨타임: 기본 40초 / 반사 성공 4초 / 반사 없음 25초"
   - name: "망령화 (WraithForm)"
     icon: SOUL_LANTERN
     summary:
-      - "피해 시 망령화 +10, 인간 상태 피해 -50%"
+      - "피해 시 망령화 +6, 인간 상태 피해 -50%"
       - "50스택 이상: 말뚝/18칸 필드, 피해 +20%, 사거리 +10%, 흡혈 15%"
+      - "필드 이탈: 현재 스택 80% 손실, 해제 후 재진입 대기 15초"
       - "철괴 우클릭: 망령 상태에서 대상 속박 (60초)"
   - name: "검무 (SwordDance)"
     icon: IRON_SWORD
@@ -182,8 +183,8 @@ abilities:
   - name: "대지의 각성 (EarthAwakening)"
     icon: GRASS_BLOCK
     summary:
-      - "웅크리기+철괴 우클릭: 8칸 대시 후 경로 균열"
-      - "균열: 0.7초 지연, 반경 2칸, 피해 3 + 30% 슬로우 2초"
+      - "패시브: 스프린트 대시 경로가 0.15초 간격으로 순차 폭발"
+      - "균열: 반경 2칸, 피해 3 + 30% 슬로우 2초"
   - name: "연쇄 번개 (ChainLightning)"
     icon: LIGHTNING_ROD
     summary:
@@ -198,7 +199,7 @@ abilities:
     icon: GOLDEN_BOOTS
     summary:
       - "패시브: 근접 공격 시 이동 속도 +0.012 x 스택"
-      - "최대: 8스택, 4초 미전투마다 -1"
+      - "제한 없음: 3초 미전투 시 전체 소멸"
   - name: "전략적 공생 (StrategicSymbiosis)"
     icon: AMETHYST_SHARD
     summary:
@@ -365,7 +366,9 @@ abilities:
   - name: "악마의 부츠 (DevilBoots)"
     icon: NETHERITE_BOOTS
     summary:
-      - "용암 위 이동"
+      - "패시브: 4초 화염 자취, 닿은 적 매초 화상 +1"
+      - "화상: 스택당 초당 0.5 피해, 물/소화 시 초기화"
+      - "철괴 우클릭: 신속 II 10초 (30초)"
   - name: "호박 (Pumpkin)"
     icon: CARVED_PUMPKIN
     summary:

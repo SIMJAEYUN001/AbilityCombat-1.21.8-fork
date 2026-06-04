@@ -2,11 +2,11 @@ package com.abilitycombat.ability.list;
 
 import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
+import com.abilitycombat.ability.AbilityTickManager;
 import com.abilitycombat.ability.handler.ActiveHandler;
 import com.abilitycombat.game.Participant;
 import com.abilitycombat.utils.LocationUtil;
 import com.abilitycombat.utils.ParticleUtil;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -113,7 +113,7 @@ public class SwordDance extends AbilityBase implements ActiveHandler {
         }
         Player player = getPlayer();
         if (player != null && damageEvent.getEntity().getUniqueId().equals(player.getUniqueId())
-                && Bukkit.getCurrentTick() <= invincibleUntilTick) {
+                && AbilityTickManager.getGlobalTick() <= invincibleUntilTick) {
             damageEvent.setCancelled(true);
         }
     }
@@ -138,15 +138,17 @@ public class SwordDance extends AbilityBase implements ActiveHandler {
         danceTargets.addAll(targets);
         hitTargets.clear();
         targetIndex = 0;
-        int now = Bukkit.getCurrentTick();
-        nextStepTick = now;
+        int now = AbilityTickManager.getGlobalTick();
         invincibleUntilTick = now + INVINCIBLE_TICKS;
         dancing = true;
         registerTick();
         Player player = getPlayer();
         if (player != null) {
+            playStartEffect(player);
             player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.9f, 1.35f);
         }
+        strikeNextTarget();
+        nextStepTick = now + STEP_DELAY_TICKS;
     }
 
     private void stopDance() {
@@ -218,5 +220,15 @@ public class SwordDance extends AbilityBase implements ActiveHandler {
         ParticleUtil.spawnParticle(world, Particle.CRIT, center, 16, 0.45, 0.45, 0.45, 0.08, 1, 64);
         world.playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.85f, 1.55f);
         world.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.35f, 1.8f);
+    }
+
+    private void playStartEffect(Player player) {
+        Location center = player.getLocation().clone().add(0, 1.0, 0);
+        World world = center.getWorld();
+        if (world == null) {
+            return;
+        }
+        ParticleUtil.spawnParticle(world, Particle.SWEEP_ATTACK, center, 5, 0.8, 0.35, 0.8, 0.0, 1, 64);
+        ParticleUtil.spawnParticle(world, Particle.ENCHANTED_HIT, center, 24, 0.7, 0.45, 0.7, 0.04, 1, 64);
     }
 }

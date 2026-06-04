@@ -8,4 +8,4 @@ description: A Minecraft ability battle plugin based on Ability War.
 commands:
   aw:
     description: AbilityCombat command
-    usage: /aw <start|stop|debug|info|abilities|config>
+    usage: /aw <start|stop|debug|info|abilities|config|dummy>

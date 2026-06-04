@@ -94,6 +94,10 @@ public final class PlayerReplica {
         return entity != null && visualEntity.getUniqueId().equals(entity.getUniqueId());
     }
 
+    public Player getEntity() {
+        return visualEntity;
+    }
+
     public boolean isDead() {
         return removed || visualEntity.isDead() || !visualEntity.isValid();
     }

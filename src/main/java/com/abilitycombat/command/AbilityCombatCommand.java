@@ -4,12 +4,19 @@ import com.abilitycombat.AbilityCombat;
 import com.abilitycombat.ability.AbilityDefinition;
 import com.abilitycombat.ability.AbilityRegistry;
 import com.abilitycombat.game.GameManager;
+import com.abilitycombat.npc.PlayerReplica;
 import com.abilitycombat.ui.SprintHudService;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Location;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -156,6 +163,18 @@ public class AbilityCombatCommand implements CommandExecutor, TabCompleter {
                 } else {
                     sender.sendMessage("플레이어만 사용할 수 있습니다.");
                 }
+                return true;
+            }
+            case "dummy" -> {
+                if (!hasAdminPermission(sender)) {
+                    sender.sendMessage("§c권한이 없습니다.");
+                    return true;
+                }
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage("플레이어만 사용할 수 있습니다.");
+                    return true;
+                }
+                spawnTrainingDummy(player);
                 return true;
             }
             case "visible" -> {
@@ -333,6 +352,7 @@ public class AbilityCombatCommand implements CommandExecutor, TabCompleter {
         // 관리자 전용 명령어
         if (isAdmin) {
             sender.sendMessage("§e/" + label + " toolkit §7- 기본 지급템 설정");
+            sender.sendMessage("§e/" + label + " dummy §7- 체력 20 훈련 더미 생성");
             sender.sendMessage("§e/" + label + " config §7- 게임 설정 GUI");
             sender.sendMessage("§e/" + label + " config reload §7- 설정 리로드");
             sender.sendMessage("§e/" + label + " config setspawn §7- 게임 시작 위치 지정");
@@ -359,6 +379,7 @@ public class AbilityCombatCommand implements CommandExecutor, TabCompleter {
                 completions.add("stop");
                 completions.add("debug");
                 completions.add("toolkit");
+                completions.add("dummy");
                 completions.add("config");
                 completions.add("visible");
                 completions.add("repack");
@@ -379,6 +400,33 @@ public class AbilityCombatCommand implements CommandExecutor, TabCompleter {
             return plugin.getServer().getOnlinePlayers().stream().map(Player::getName).toList();
         }
         return List.of();
+    }
+
+    private void spawnTrainingDummy(Player player) {
+        if (plugin.getReplicaManager() == null) {
+            player.sendMessage("§c더미 관리자가 비활성화되어 있습니다.");
+            return;
+        }
+        Location location = player.getLocation().clone();
+        Vector direction = player.getLocation().getDirection().setY(0);
+        if (direction.lengthSquared() < 1.0E-4) {
+            direction = new Vector(0, 0, 1);
+        }
+        location.add(direction.normalize().multiply(2.0));
+        PlayerReplica dummy = plugin.getReplicaManager().createTrainingDummy(location);
+        dummy.setInvulnerable(false);
+        dummy.setImmovable(true);
+        dummy.setGravity(true);
+        dummy.setAI(false);
+        dummy.customName(Component.text("훈련 더미", NamedTextColor.RED));
+        dummy.setCustomNameVisible(true);
+        AttributeInstance maxHealth = dummy.getAttribute(Attribute.MAX_HEALTH);
+        if (maxHealth != null) {
+            maxHealth.setBaseValue(20.0);
+        }
+        dummy.setHealth(20.0);
+        dummy.spawn();
+        player.sendMessage("§a체력 20 훈련 더미를 생성했습니다.");
     }
 
     private String rootMessage(Throwable throwable) {
