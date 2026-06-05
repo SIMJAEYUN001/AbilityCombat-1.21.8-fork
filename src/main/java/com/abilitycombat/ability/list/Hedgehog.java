@@ -11,7 +11,7 @@ import org.bukkit.event.Event;
 @AbilityManifest(name = "고슴도치 (Hedgehog)", species = AbilityManifest.Species.ANIMAL, explain = {
         "§e§l[패시브 - 가시]",
         "§7자신에게 §f3칸§7 이내로 근접한 적에게",
-        "§71.5초마다 §c1의 고정 피해§7를 지속적으로 입힙니다."
+        "§71.5초마다 §c1의 고정 피해§7를 지속적으로 입힙니다"
 }, summarize = {
         "§7패시브§f: 접촉 시 1.5초당 1 고정 피해"
 })

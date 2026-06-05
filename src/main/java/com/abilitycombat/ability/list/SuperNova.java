@@ -11,10 +11,10 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 
 @AbilityManifest(name = "초신성 (SuperNova)", species = AbilityManifest.Species.OTHERS, explain = {
         "§e§l[패시브 - 최후의 섬광]",
-        "§7사망 시 강력한 §c대폭발§7을 일으킵니다.",
+        "§7사망 시 강력한 §c대폭발§7을 일으킵니다",
         "",
         "§7폭발 범위 §f6칸§7 내의 적들에게",
-        "§c최대 체력의 50%§7에 해당하는 피해를 입힙니다."
+        "§c최대 체력의 50%§7에 해당하는 피해를 입힙니다"
 }, summarize = {
         "§7패시브§f: 사망 시 대폭발 (최대체력 50% 피해)"
 })

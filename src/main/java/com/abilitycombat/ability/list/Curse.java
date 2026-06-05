@@ -33,13 +33,13 @@ import org.bukkit.util.Vector;
 @AbilityManifest(name = "컬스 (Curse)", species = AbilityManifest.Species.OTHERS, explain = {
         "§e§l[철괴 우클릭 - 저주 인형]§f §8(쿨타임: 40초)",
         "§e바라보는 플레이어§7를 타겟으로 (최대 §f12칸§7)",
-        "§7§5저주 인형§7을 생성합니다. (지속시간: §f10초§7)",
+        "§7§5저주 인형§7을 생성합니다 (지속시간: §f10초§7)",
         "",
         "§7인형이 피해를 받으면 피해의 일부가",
-        "§7타겟에게 §c전이§7됩니다.",
+        "§7타겟에게 §c전이§7됩니다",
         "",
         "§7전이율: 기본 §c40%§7, 대상 체력이 낮을수록",
-        "§7최대 §c100%§7까지 증가합니다."
+        "§7최대 §c100%§7까지 증가합니다"
 }, summarize = {
         "§7철괴 우클릭§f: 바라보는 대상에게 저주 인형 (10초)",
         "§7인형 피해§f → 타겟에게 전이"
@@ -249,7 +249,7 @@ public class Curse extends AbilityBase implements ActiveHandler {
 
     private void notifyNoPlayer() {
         var channel = getActionbarChannel();
-        Component message = Component.text("바라보는 대상이 없습니다.", NamedTextColor.RED);
+        Component message = Component.text("바라보는 대상이 없습니다", NamedTextColor.RED);
         if (channel != null) {
             channel.update(getPlayer(), NO_PLAYER_KEY, 5, message);
             AbilityCombat.getPlugin().getServer().getScheduler().runTaskLater(AbilityCombat.getPlugin(),

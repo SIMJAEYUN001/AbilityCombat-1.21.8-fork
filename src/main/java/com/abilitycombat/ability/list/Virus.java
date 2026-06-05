@@ -13,7 +13,7 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 
 @AbilityManifest(name = "바이러스 (Virus)", species = AbilityManifest.Species.OTHERS, explain = {
         "§e§l[패시브]",
-        "§7이 능력은 당신을 처치한 사람에게 감염됩니다."
+        "§7이 능력은 당신을 처치한 사람에게 감염됩니다"
 }, summarize = {
         "§7사망 시 처치자에게 전염"
 })
@@ -61,6 +61,6 @@ public class Virus extends AbilityBase {
         }
         killerParticipant.setAbilityDefinition(definition);
         killerParticipant.setAbility(AbilityFactory.create(definition.getName(), killerParticipant));
-        killer.sendMessage("§c바이러스에 감염되었습니다.");
+        killer.sendMessage("§c바이러스에 감염되었습니다");
     }
 }

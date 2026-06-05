@@ -22,16 +22,16 @@ import java.util.UUID;
 
 @AbilityManifest(name = "전략적 공생 (StrategicSymbiosis)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 타격 - 전략적 공생]§f §8(쿨타임: 9000초)",
-        "§7철괴로 타격한 적 플레이어를 §d전략적 공생 관계§7로 지정합니다.",
+        "§7철괴로 타격한 적 플레이어를 §d전략적 공생 관계§7로 지정합니다",
         "",
         "§e§l[패시브 - 피해 이전]",
-        "§7공생 대상이 받는 최종 피해의 §f10%§7만큼 대신 받습니다.",
-        "§7대신 받은 피해는 자신의 방어력과 보호 인챈트를 무시합니다.",
-        "§7공생 대상이 입힌 최종 피해의 §f25%§7만큼 체력을 회복합니다.",
+        "§7공생 대상이 받는 최종 피해의 §f10%§7만큼 대신 받습니다",
+        "§7대신 받은 피해는 자신의 방어력과 보호 인챈트를 무시합니다",
+        "§7공생 대상이 입힌 최종 피해의 §f25%§7만큼 체력을 회복합니다",
         "",
         "§e§l[패시브 - 관계 청산]",
         "§7공생 대상이 사망하면 최대 체력이 §a2§7 증가하고",
-        "§7전략적 공생의 쿨타임이 초기화됩니다."
+        "§7전략적 공생의 쿨타임이 초기화됩니다"
 }, summarize = {
         "§7철괴 타격§f: 적 1명을 공생 대상으로 지정",
         "§7대상 피격§f: 최종 피해의 10%만큼 대신 받음",
@@ -111,7 +111,7 @@ public class StrategicSymbiosis extends AbilityBase {
         cooldown.start();
         applyIronCooldownIfEmpty(COOLDOWN_SECONDS);
         owner.sendMessage(Component.text("§d전략적 공생 §f대상: §e" + target.getName()));
-        target.sendMessage(Component.text("§d" + owner.getName() + "§f님과 전략적 공생 관계가 되었습니다."));
+        target.sendMessage(Component.text("§d" + owner.getName() + "§f님과 전략적 공생 관계가 되었습니다"));
         owner.playSound(owner.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.0f, 1.2f);
         target.playSound(target.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.0f, 0.8f);
         return true;
@@ -192,7 +192,7 @@ public class StrategicSymbiosis extends AbilityBase {
             return;
         }
         increaseMaxHealth(owner, MAX_HEALTH_BONUS);
-        owner.sendMessage(Component.text("§d전략적 공생 §f대상이 사망해 최대 체력이 §a2§f 증가했습니다."));
+        owner.sendMessage(Component.text("§d전략적 공생 §f대상이 사망해 최대 체력이 §a2§f 증가했습니다"));
         owner.playSound(owner.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.2f);
     }
 

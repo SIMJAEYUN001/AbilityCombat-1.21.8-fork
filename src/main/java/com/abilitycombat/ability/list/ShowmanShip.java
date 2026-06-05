@@ -13,14 +13,14 @@ import org.bukkit.potion.PotionEffectType;
 
 @AbilityManifest(name = "쇼맨쉽 (ShowmanShip)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 관중]",
-        "§7주변 §f10칸§7 이내의 생명체 수에 따라 강화됩니다.",
+        "§7주변 §f10칸§7 이내의 생명체 수에 따라 강화됩니다",
         "§7(플레이어: §f1§7점, 기타: §f0.2§7점)",
         "",
         "§7- §f2점 이상§7: §c힘 II§7 버프 획득",
         "§7- §f4점 이상§7: §c힘 III§7 버프 및 §4처형§7 활성화",
         "",
         "§7점수가 §f4점 이상§7일 때, 체력 §c30% 미만§7인 적을",
-        "§7공격 시 §4즉사(처형)§7시킵니다."
+        "§7공격 시 §4즉사(처형)§7시킵니다"
 }, summarize = {
         "§7패시브§f: 관중 수에 따라 힘 버프",
         "§74점 이상§f: 힘 III + 처형 발동"

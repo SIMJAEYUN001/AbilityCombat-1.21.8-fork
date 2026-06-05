@@ -75,10 +75,6 @@ public final class SharedBurn implements AbilityTickManager.Tickable, Listener {
         updateBurn(target, source, profile, stacks, fireTicks);
     }
 
-    public static void refreshProfile(LivingEntity target, Player source, BurnProfile profile, int fireTicks) {
-        updateBurn(target, source, profile, 0, fireTicks);
-    }
-
     private static void updateBurn(LivingEntity target, Player source, BurnProfile profile, int stackDelta, int fireTicks) {
         if (target == null || target.isDead() || source == null || fireTicks <= 0) {
             return;
@@ -147,7 +143,6 @@ public final class SharedBurn implements AbilityTickManager.Tickable, Listener {
                 continue;
             }
             BurnState state = entry.getValue();
-            state.stacks++;
             double maxHealth = getMaxHealth(target);
             double totalHealingOrDamage = calculateTotalDamage(state, maxHealth);
             if (ABSORBERS.contains(target.getUniqueId())) {

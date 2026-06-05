@@ -11,12 +11,12 @@ import org.bukkit.potion.PotionEffectType;
 
 @AbilityManifest(name = "헤르밋 (Hermit)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 은둔]",
-        "§7비전투 상태로 §f20초§7간 있으면 §e은신§7합니다.",
+        "§7비전투 상태로 §f20초§7간 있으면 §e은신§7합니다",
         "§7(피해를 주거나 받으면 해제/초기화)",
         "",
         "§e§l[은신 효과]",
-        "§7투명해지며 타게팅되지 않습니다.",
-        "§7장비가 보이지 않게 됩니다."
+        "§7투명해지며 타게팅되지 않습니다",
+        "§7장비가 보이지 않게 됩니다"
 }, summarize = {
         "§7패시브§f: 비전투 20초 후 은신"
 })

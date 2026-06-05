@@ -18,19 +18,19 @@ import org.bukkit.util.Vector;
 
 @AbilityManifest(name = "제논 (Xenon)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 방어 시스템]",
-        "§f12초§7마다 §e보호막 +10§7을 획득합니다.",
-        "§7보호막은 최대 §f20§7까지 중첩됩니다.",
+        "§f12초§7마다 §e보호막 +10§7을 획득합니다",
+        "§7보호막은 최대 §f20§7까지 중첩됩니다",
         "",
         "§e§l[철괴 우클릭 - 오버클럭]",
-        "§f2초§7 간격으로 §f7회§7 연속 §e보호막 +5§7를 획득합니다.",
-        "§7종료 후 §f40초§7간 방어 시스템이 중단됩니다.",
+        "§f2초§7 간격으로 §f7회§7 연속 §e보호막 +5§7를 획득합니다",
+        "§7종료 후 §f40초§7간 방어 시스템이 중단됩니다",
         "",
         "§e§l[보호막 효과]",
-        "§7피해를 받으면 §e보호막§7이 먼저 감소합니다.",
-        "§7보호막이 피해를 막아도 §f넉백은 정상 적용§7됩니다.",
+        "§7피해를 받으면 §e보호막§7이 먼저 감소합니다",
+        "§7보호막이 피해를 막아도 §f넉백은 정상 적용§7됩니다",
         "",
         "§e§l[부작용 - 금단현상]",
-        "§6보호막§7이 없으면 받는 피해가 §c30% 증가§7합니다."
+        "§6보호막§7이 없으면 받는 피해가 §c30% 증가§7합니다"
 }, summarize = {
         "§7패시브§f: 12초마다 보호막 +10 (최대 20)",
         "§7철괴 우클릭§f: 오버클럭 (+5 x7)",
@@ -257,7 +257,7 @@ public class Xenon extends AbilityBase implements ActiveHandler {
                     if (overclockShots == 0) {
                         pauseSeconds = OVERCLOCK_COOLDOWN;
                         getPlayer().sendMessage(
-                                Component.text("오버클럭 종료. " + OVERCLOCK_COOLDOWN + "초간 휴식.", NamedTextColor.RED));
+                                Component.text("오버클럭 종료 " + OVERCLOCK_COOLDOWN + "초간 휴식", NamedTextColor.RED));
                     }
                 } else {
                     addShield(NORMAL_SHIELD);

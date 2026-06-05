@@ -27,13 +27,13 @@ import java.util.Iterator;
 
 @AbilityManifest(name = "악마의 부츠 (DevilBoots)", species = AbilityManifest.Species.OTHERS, explain = {
         "§e§l[패시브 - 지옥불 자취]",
-        "§7이동 경로에 §f4초§7간 유지되는 §c화염 자취§7를 남깁니다.",
-        "§7자취에 닿은 적은 매초 §c화상 1스택§7을 얻고 §c4초§7간 불탑니다.",
-        "§7화상은 공유 스택이며 이 능력은 스택당 매초 §c0.5 피해§7를 줍니다.",
-        "§7대상이 물에 닿거나 불이 꺼지면 화상 스택이 초기화됩니다.",
+        "§7이동 경로에 §f4초§7간 유지되는 §c화염 자취§7를 남깁니다",
+        "§7자취에 닿은 적은 매초 §c화상 1스택§7을 얻고 §c4초§7간 불탑니다",
+        "§7화상은 공유 스택이며 이 능력은 스택당 매초 §c0.5 피해§7를 줍니다",
+        "§7대상이 물에 닿거나 불이 꺼지면 화상 스택이 초기화됩니다",
         "",
         "§e§l[철괴 우클릭 - 악마의 질주]§f §8(쿨타임: 30초)",
-        "§7자신에게 §b신속 II 10초§7를 부여합니다."
+        "§7자신에게 §b신속 II 10초§7를 부여합니다"
 }, summarize = {
         "§7패시브§f: 4초 화염 자취, 닿은 적 매초 화상 +1",
         "§7화상§f: 스택당 초당 0.5 피해, 물/소화 시 초기화",
@@ -197,7 +197,7 @@ public class DevilBoots extends AbilityBase implements ActiveHandler {
             if (!isTouchingTrail(target)) {
                 continue;
             }
-            SharedBurn.refreshProfile(target, owner, SharedBurn.BurnProfile.DEVIL_BOOTS, FIRE_TICKS);
+            SharedBurn.addStack(target, owner, SharedBurn.BurnProfile.DEVIL_BOOTS, FIRE_TICKS);
         }
     }
 

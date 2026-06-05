@@ -21,15 +21,15 @@ import java.util.Random;
 @AbilityManifest(name = "급조모루 (MakeshiftAnvil)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 급조 강화]",
         "§7페이즈가 넘어가거나 적을 처치할 때마다",
-        "§7착용 중인 갑옷/들고 있는 검 중 무작위 1개를 강화합니다.",
+        "§7착용 중인 갑옷/들고 있는 검 중 무작위 1개를 강화합니다",
         "",
-        "§7철 장비는 §b다이아 장비§7로, 다이아 장비는 §8네더라이트 장비§7로 강화됩니다.",
-        "§7이미 네더라이트 장비는 강화 대상에서 제외됩니다.",
-        "§7강화 시 기존 인챈트는 전승되며, §5소실 저주§7가 부여됩니다.",
+        "§7철 장비는 §b다이아 장비§7로, 다이아 장비는 §8네더라이트 장비§7로 강화됩니다",
+        "§7이미 네더라이트 장비는 강화 대상에서 제외됩니다",
+        "§7강화 시 기존 인챈트는 전승되며, §5소실 저주§7가 부여됩니다",
         "",
         "§e§l[패시브 - 복수의 모루]",
         "§7이 능력 보유자를 다른 플레이어가 처치하면",
-        "§7처치자의 장비도 동일한 규칙으로 무작위 강화됩니다."
+        "§7처치자의 장비도 동일한 규칙으로 무작위 강화됩니다"
 }, summarize = {
         "§7패시브§f: 페이즈/처치 시 갑옷·검 1개 무작위 강화",
         "§7강화§f: 철→다이아, 다이아→네더라이트",
@@ -71,7 +71,7 @@ public class MakeshiftAnvil extends AbilityBase {
         }
         int currentPhase = Math.max(1, getCurrentPhaseIndex());
 
-        // 게임 재시작 등으로 페이즈 인덱스가 내려간 경우 기준점을 재동기화한다.
+        // 게임 재시작 등으로 페이즈 인덱스가 내려간 경우 기준점을 재동기화한다
         if (lastPhaseIndex < 0 || currentPhase < lastPhaseIndex) {
             lastPhaseIndex = currentPhase;
             return;

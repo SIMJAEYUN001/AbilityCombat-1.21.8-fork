@@ -30,10 +30,10 @@ import java.util.UUID;
 
 @AbilityManifest(name = "검무 (SwordDance)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 검무]§f §8(쿨타임: 18초)",
-        "§7주변 §f5칸§7 내 적을 거리순으로 골라 총 §f4회§7 베어냅니다.",
-        "§7베기마다 §f0.2초§7 간격으로 대상 주변 §f1.5칸§7에 이동해 §c10 피해§7를 줍니다.",
-        "§7대상이 부족하면 같은 대상을 동서남북 방향에서 반복 베어냅니다.",
-        "§7시전 중 §e1.2초간 무적§7 상태가 됩니다."
+        "§7주변 §f5칸§7 내 적을 거리순으로 골라 총 §f4회§7 베어냅니다",
+        "§7베기마다 §f0.2초§7 간격으로 대상 주변 §f1.5칸§7에 이동해 §c10 피해§7를 줍니다",
+        "§7대상이 부족하면 같은 대상을 동서남북 방향에서 반복 베어냅니다",
+        "§7시전 중 §e1.2초간 무적§7 상태가 됩니다"
 }, summarize = {
         "§7철괴 우클릭§f: 5칸 내 적을 총 4회 순차 이동 타격",
         "§7시전 중§f: 1.2초 무적, 타격당 피해 10"
@@ -102,7 +102,7 @@ public class SwordDance extends AbilityBase implements ActiveHandler {
                 .sorted(Comparator.comparingDouble(target -> target.getLocation().distanceSquared(player.getLocation())))
                 .toList();
         if (targets.isEmpty()) {
-            player.sendMessage("§c검무 대상이 없습니다.");
+            player.sendMessage("§c검무 대상이 없습니다");
             return false;
         }
 

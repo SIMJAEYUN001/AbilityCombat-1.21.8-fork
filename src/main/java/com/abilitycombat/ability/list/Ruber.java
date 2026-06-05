@@ -17,8 +17,8 @@ import java.util.Collection;
 
 @AbilityManifest(name = "루베르 (Ruber)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 스택 시스템]",
-        "§7공격/스킬 사용마다 §c스택§7이 쌓입니다. (최대 §f2§7)",
-        "§f2스택§7 도달 시 다음 스킬이 §c강화§7됩니다.",
+        "§7공격/스킬 사용마다 §c스택§7이 쌓입니다 (최대 §f2§7)",
+        "§f2스택§7 도달 시 다음 스킬이 §c강화§7됩니다",
         "",
         "§e§l[철괴 우클릭 - 흡혈]§f §8(쿨타임: 8초)",
         "§7§f10칸§7 내 적에게 §c4의 피해§7 + 체력 회복 (§f2§7)",

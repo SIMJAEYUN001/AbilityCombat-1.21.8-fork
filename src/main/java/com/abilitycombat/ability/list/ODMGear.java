@@ -22,17 +22,17 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
 @AbilityManifest(name = "리바이 병장 (LeviAckerman)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[입체기동장치]",
-        "§7게임 시작 시 §f입체기동장치§7(낚시대)를 지급받습니다.",
+        "§7게임 시작 시 §f입체기동장치§7(낚시대)를 지급받습니다",
         "",
         "§7낚시대를 던져 §f블록§7이나 §f플레이어§7에 닿으면",
-        "§b해당 위치로 빠르게 돌진§7합니다.",
+        "§b해당 위치로 빠르게 돌진§7합니다",
         "",
-        "§7낚시대가 허공에서 회수되면 돌진하지 않습니다.",
+        "§7낚시대가 허공에서 회수되면 돌진하지 않습니다",
         "",
         "§e§l[패시브 - 거인 슬레이어]",
         "§7'§c거인§7' 능력을 가진 플레이어를 공격 시",
         "§c100%§7의 추가 데미지를 입히며,",
-        "§7낙하 피해를 §f50%§7 감소시킵니다."
+        "§7낙하 피해를 §f50%§7 감소시킵니다"
 }, summarize = {
         "§7낚시대 적중 시 돌진",
         "§7거인 능력자에게 +100% 데미지",
@@ -144,7 +144,7 @@ public class ODMGear extends AbilityBase {
                 state == PlayerFishEvent.State.IN_GROUND ||
                 state == PlayerFishEvent.State.CAUGHT_FISH) {
 
-            // 1. 엔티티(플레이어)가 주변에 있는지 확인
+            // 1 엔티티(플레이어)가 주변에 있는지 확인
             for (org.bukkit.entity.Entity entity : hookLoc.getWorld().getNearbyEntities(hookLoc, 2.0, 2.0, 2.0)) {
                 if (entity instanceof Player target && !target.equals(player)) {
                     dashTowards(player, target.getLocation());
@@ -152,7 +152,7 @@ public class ODMGear extends AbilityBase {
                 }
             }
 
-            // 2. 주변에 솔리드 블록이 있는지 확인
+            // 2 주변에 솔리드 블록이 있는지 확인
             if (hasNearbyBlock(hookLoc)) {
                 dashTowards(player, hookLoc);
             }

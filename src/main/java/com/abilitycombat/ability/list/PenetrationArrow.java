@@ -25,8 +25,8 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @AbilityManifest(name = "관통화살 (PenetrationArrow)", species = AbilityManifest.Species.OTHERS, explain = {
         "§e§l[활 발사 - 관통화살]",
-        "§7특수한 관통 화살을 발사합니다. (탄창: §f4발§7, 재장전: §f3초§7)",
-        "§7화살은 블록을 §f2회§7까지 관통하며, 5명까지 관통합니다.",
+        "§7특수한 관통 화살을 발사합니다 (탄창: §f4발§7, 재장전: §f3초§7)",
+        "§7화살은 블록을 §f2회§7까지 관통하며, 5명까지 관통합니다",
         "",
         "§e§l[탄환 종류]§f §8(재장전 시 무작위)",
         "§7- §c절단§7: 적중 시 §c+2 추가 피해§7",
@@ -109,7 +109,7 @@ public class PenetrationArrow extends AbilityBase {
             case GRAVITY -> applyGravity(target);
             case WIND -> applyWind(target, projectileVelocity);
             case CUT -> {
-                // Damage bonus handled separately.
+                // Damage bonus handled separately
             }
         }
     }

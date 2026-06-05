@@ -20,21 +20,21 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
     @AbilityManifest(name = "대기만성 (LateBloom)", species = AbilityManifest.Species.HUMAN, explain = {
             "§e§l[패시브 - 수행]",
-            "§7받는 피해가 §c+10%§7 증가합니다.",
-            "§7주는 피해가 §c-10%§7 감소합니다. (기본)",
+            "§7받는 피해가 §c+10%§7 증가합니다",
+            "§7주는 피해가 §c-10%§7 감소합니다 (기본)",
             "",
-            "§7자기장 페이즈당 §6(페이즈 - 1) × 5§7 수행 스택을 획득합니다.",
+            "§7자기장 페이즈당 §6(페이즈 - 1) × 5§7 수행 스택을 획득합니다",
             "§7최대 공격 게이지로 타격 시 §6+1 스택§7 획득",
             "§7수행 1스택당 추가 피해 §a+0.5%§7 증가",
             "§8(50스택 시: -10% + 25% = +15% 추가 피해)",
         "",
         "§e§l[철괴 좌클릭 - 잠력폭발]",
         "§7수행 스택을 모두 소모하고 주변 §f4칸§7 적에게",
-        "§c스택 × 20%§7의 피해를 입힙니다.",
+        "§c스택 × 20%§7의 피해를 입힙니다",
         "",
         "§7소모한 스택에 비례해 §f15초§7간",
-        "§c스택 × 2%§7 추가 피해 버프를 얻습니다.",
-        "§4버프 종료 시 사망합니다."
+        "§c스택 × 2%§7 추가 피해 버프를 얻습니다",
+        "§4버프 종료 시 사망합니다"
 }, summarize = {
         "§7패시브§f: 받는 피해↑, 스택당 추가 피해↑",
         "§7철괴 좌클릭§f: 스택 폭발 → 버프 → 즉사"
@@ -208,7 +208,7 @@ public class LateBloom extends AbilityBase implements ActiveHandler {
                     buffGauge.clear();
                     buffDamageMultiplier = 0;
                     Player player = getPlayer();
-                    player.sendMessage(Component.text("잠력폭발의 대가로 사망합니다.", NamedTextColor.DARK_RED));
+                    player.sendMessage(Component.text("잠력폭발의 대가로 사망합니다", NamedTextColor.DARK_RED));
                     player.setHealth(0);
                 }
             }

@@ -27,12 +27,12 @@ import java.util.UUID;
 
 @AbilityManifest(name = "구급상자 (FirstAidKit)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 응급 식별]",
-        "§7체력이 §c50% 미만§7인 아군이 자신에게만 발광합니다.",
+        "§7체력이 §c50% 미만§7인 아군이 자신에게만 발광합니다",
         "",
         "§e§l[철괴 우클릭 - 응급 처치]§f §8(공유 쿨타임: 45초)",
-        "§7바라본 팀원 또는 주변 §f12칸§7 내 팀원의 체력을 §a14§7 회복합니다.",
+        "§7바라본 팀원 또는 주변 §f12칸§7 내 팀원의 체력을 §a14§7 회복합니다",
         "§e§l[철괴 좌클릭 - 자가 처치]§f §8(공유 쿨타임: 45초)",
-        "§7자신의 체력을 §a7§7 회복합니다."
+        "§7자신의 체력을 §a7§7 회복합니다"
 }, summarize = {
         "§7패시브§f: 체력 50% 미만 아군 사용자 전용 발광",
         "§7우클릭§f: 팀원 체력 14 회복",
@@ -120,7 +120,7 @@ public class FirstAidKit extends AbilityBase implements ActiveHandler {
     private boolean healAlly(Player owner) {
         GameManager gameManager = getGameManager();
         if (gameManager == null || !gameManager.isTeamMode()) {
-            owner.sendMessage("§c치료할 팀원이 없습니다.");
+            owner.sendMessage("§c치료할 팀원이 없습니다");
             return false;
         }
         Player target = LocationUtil.getEntityLookingAt(Player.class, owner, RANGE,
@@ -133,7 +133,7 @@ public class FirstAidKit extends AbilityBase implements ActiveHandler {
                     .orElse(null);
         }
         if (target == null) {
-            owner.sendMessage("§c12칸 내 치료할 팀원이 없습니다.");
+            owner.sendMessage("§c12칸 내 치료할 팀원이 없습니다");
             return false;
         }
         return heal(target, ALLY_HEAL);

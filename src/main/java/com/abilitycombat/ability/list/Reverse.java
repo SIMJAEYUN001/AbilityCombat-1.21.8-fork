@@ -26,13 +26,13 @@ import org.bukkit.potion.PotionEffectType;
 @AbilityManifest(name = "리버스 (Reverse)", species = AbilityManifest.Species.OTHERS, explain = {
         "§e§l[패시브 - 리버스 지대]",
         "§7자신 주변 §f8칸§7 이내의 모든 적에게",
-        "§7넉백 및 끌어당김 효과를 §a반전§7시킵니다.",
+        "§7넉백 및 끌어당김 효과를 §a반전§7시킵니다",
         "",
         "§e§l[철괴 우클릭 - 체력 대전환]§f §8(쿨타임: 90초)",
-        "§7대상을 §e우클릭§7하여 자신과 대상의 §c체력 비율§7을 교환합니다. (5칸)",
-        "§7교환 시 자신의 체력이 §f20%§7 이하일 경우에만 발동 가능합니다.",
+        "§7대상을 §e우클릭§7하여 자신과 대상의 §c체력 비율§7을 교환합니다 (5칸)",
+        "§7교환 시 자신의 체력이 §f20%§7 이하일 경우에만 발동 가능합니다",
         "",
-        "§7교환당한 대상은 §e흡수1 버프§7를 §f10초§7간 획득합니다."
+        "§7교환당한 대상은 §e흡수1 버프§7를 §f10초§7간 획득합니다"
 }, summarize = {
         "§7패시브§f: 넉백 반전 지대",
         "§7철괴 우클릭§f: 대상과 체력 교환 (상대 흡수1 10초)"
@@ -74,7 +74,7 @@ public class Reverse extends AbilityBase implements TargetHandler {
         }
 
         if (!(target instanceof Player targetPlayer)) {
-            getPlayer().sendMessage("§c대상은 플레이어여야 합니다.");
+            getPlayer().sendMessage("§c대상은 플레이어여야 합니다");
             return;
         }
         Player player = getPlayer();
@@ -97,7 +97,7 @@ public class Reverse extends AbilityBase implements TargetHandler {
         double myMaxHealth = myMaxHealthAttr.getValue();
         double myHealthPercent = player.getHealth() / myMaxHealth;
         if (myHealthPercent > 0.2) {
-            player.sendMessage("§c체력이 20% 이하일 때만 사용할 수 있습니다.");
+            player.sendMessage("§c체력이 20% 이하일 때만 사용할 수 있습니다");
             return;
         }
 
@@ -123,7 +123,7 @@ public class Reverse extends AbilityBase implements TargetHandler {
 
     private void notifyNoTargetInRange() {
         var channel = getActionbarChannel();
-        Component message = Component.text("바라보는 대상이 범위 내에 없습니다.", NamedTextColor.RED);
+        Component message = Component.text("바라보는 대상이 범위 내에 없습니다", NamedTextColor.RED);
         if (channel != null) {
             channel.update(getPlayer(), NO_TARGET_KEY, 5, message);
             AbilityCombat.getPlugin().getServer().getScheduler().runTaskLater(AbilityCombat.getPlugin(),

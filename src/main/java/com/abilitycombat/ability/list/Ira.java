@@ -12,9 +12,9 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 @AbilityManifest(name = "이라 (Ira)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 분노]",
         "§f3번§7 공격당할 때마다 §c자신의 위치§7에",
-        "§c폭발§7을 일으킵니다. (폭발력: §f2.5§7)",
+        "§c폭발§7을 일으킵니다 (폭발력: §f2.5§7)",
         "",
-        "§7자신도 폭발 피해를 입을 수 있습니다."
+        "§7자신도 폭발 피해를 입을 수 있습니다"
 }, summarize = {
         "§7패시브§f: 3회 피격마다 폭발 (파워 2.5)"
 })

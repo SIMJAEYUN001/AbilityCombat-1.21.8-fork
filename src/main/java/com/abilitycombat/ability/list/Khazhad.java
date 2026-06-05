@@ -37,16 +37,16 @@ import java.util.Set;
 
 @AbilityManifest(name = "카쟈드 (Khazhad)", species = AbilityManifest.Species.GOD, explain = {
         "§e§l[패시브 - 삼지창 충전]",
-        "§7약 §f4초§7마다 §b삼지창§7이 충전됩니다.",
+        "§7약 §f4초§7마다 §b삼지창§7이 충전됩니다",
         "§7충전된 삼지창은 플레이어 주변에 §b떠다니며§7,",
-        "§7최대 §f4개§7까지 보유할 수 있습니다.",
+        "§7최대 §f4개§7까지 보유할 수 있습니다",
         "",
         "§e§l[철괴 우클릭 - 삼지창 발사]",
-        "§7충전된 삼지창을 바라보는 방향으로 발사합니다.",
+        "§7충전된 삼지창을 바라보는 방향으로 발사합니다",
         "§7적 적중 시: §c8 피해§7 + §b빙결§7 효과 (1.5초)",
         "",
         "§e§l[철괴 좌클릭 - 빙결 폭발]",
-        "§7적중하지 못해 박힌 삼지창을 폭발시킵니다.",
+        "§7적중하지 못해 박힌 삼지창을 폭발시킵니다",
         "§7폭발력: §f1.8"
 }, summarize = {
         "§7패시브§f: 7초마다 삼지창 충전 (최대 3개)",
@@ -214,17 +214,17 @@ public class Khazhad extends AbilityBase implements ActiveHandler {
             return;
         }
 
-        // 1. 충전 로직 (1초마다)
+        // 1 충전 로직 (1초마다)
         if (tick % 20 == 0) {
             processCharge();
         }
 
-        // 2. 삼지창 애니메이션 & 게이지 로직 (8틱마다)
+        // 2 삼지창 애니메이션 & 게이지 로직 (8틱마다)
         if (tick % 8 == 0) {
             processTridentManagement();
         }
 
-        // 3. 박힌 삼지창 수명 관리 (20틱마다)
+        // 3 박힌 삼지창 수명 관리 (20틱마다)
         if (tick % 20 == 0) {
             cleanupDeadTridents();
         }

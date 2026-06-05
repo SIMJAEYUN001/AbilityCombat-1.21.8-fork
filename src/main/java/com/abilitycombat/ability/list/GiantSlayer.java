@@ -18,10 +18,10 @@ import org.bukkit.potion.PotionEffectType;
 @AbilityManifest(name = "거인 학살자 (GiantSlayer)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 거인 사냥꾼]",
         "§7플레이어 크기가 §f20%§7 감소하며,",
-        "§b신속 I§7 효과를 무제한으로 얻습니다.",
+        "§b신속 I§7 효과를 무제한으로 얻습니다",
         "",
         "§7상대와의 크기 차이 §f10%§7당",
-        "§c+15%§7의 추가 피해를 입힙니다.",
+        "§c+15%§7의 추가 피해를 입힙니다",
         "",
         "§8예시: 거인(150%) vs 거인 학살자(80%)",
         "§8크기 차이 70% → 추가 피해 105%"

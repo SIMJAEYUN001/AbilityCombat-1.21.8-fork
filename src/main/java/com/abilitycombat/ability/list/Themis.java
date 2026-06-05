@@ -14,10 +14,10 @@ import java.util.UUID;
 
 @AbilityManifest(name = "테미스 (Themis)", species = AbilityManifest.Species.GOD, explain = {
         "§e§l[패시브 - 단죄]",
-        "§7정의의 여신 테미스는 살인자를 용서하지 않습니다.",
+        "§7정의의 여신 테미스는 살인자를 용서하지 않습니다",
         "",
         "§7적이 §c플레이어를 처치한 수§7(죄 스택)에 비례하여",
-        "§7추가 피해를 입힙니다.",
+        "§7추가 피해를 입힙니다",
         "",
         "§7추가 피해: 처치당 §c+2§7 (최대 §c+16§7)"
 }, summarize = {

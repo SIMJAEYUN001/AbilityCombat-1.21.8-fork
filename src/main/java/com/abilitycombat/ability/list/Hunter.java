@@ -36,18 +36,18 @@ import java.util.UUID;
 
 @AbilityManifest(name = "사냥꾼 (Hunter)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 사냥꾼의 본능]",
-        "§7근접 공격(칼, 도끼) 피해가 §f40%§7 감소합니다.",
-        "§7석궁 사용 시 §e자동 장전§7됩니다.",
+        "§7근접 공격(칼, 도끼) 피해가 §f40%§7 감소합니다",
+        "§7석궁 사용 시 §e자동 장전§7됩니다",
         "§7석궁 화살 적중 시 §b정조준§7 쿨타임이",
-        "§f2초§7 감소합니다.",
+        "§f2초§7 감소합니다",
         "",
         "§e§l[석궁 좌클릭 - 정조준]§f §8(쿨타임: 20초)",
-        "§7다음 화살을 §c강화 화살§7로 강화합니다.",
-        "§7적중 1초 후 §f3칸§7 반경에 §c18의 광역 피해§7를 입힙니다.",
+        "§7다음 화살을 §c강화 화살§7로 강화합니다",
+        "§7적중 1초 후 §f3칸§7 반경에 §c18의 광역 피해§7를 입힙니다",
         "",
         "§e§l[철괴 우클릭 - 추적]§f §8(쿨타임: 45초)",
         "§7주변 §f30칸§7을 탐색하여 가장 가까운 플레이어에게",
-        "§e발광§7 효과와 받는 피해 §c10% 증가§7 디버프를 §f15초§7간 부여합니다."
+        "§e발광§7 효과와 받는 피해 §c10% 증가§7 디버프를 §f15초§7간 부여합니다"
 }, summarize = {
         "§7패시브§f: 근접 피해 40%↓, 석궁 자동 장전",
         "§7석궁 좌클릭§f: 강화 화살 (18 광역, 20초)",
@@ -418,7 +418,7 @@ public class Hunter extends AbilityBase implements ActiveHandler {
                 p -> !p.equals(player) && LocationUtil.isValidTarget(getPlayer(), p));
 
         if (target == null) {
-            player.sendMessage("§c주변에 추적할 대상이 없습니다.");
+            player.sendMessage("§c주변에 추적할 대상이 없습니다");
             return false;
         }
 

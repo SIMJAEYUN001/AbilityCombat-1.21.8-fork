@@ -32,18 +32,18 @@ import java.util.UUID;
 
 @AbilityManifest(name = "벨리움 (Bellum)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 기력]",
-        "§7모든 능력이 쿨타임 대신 §6기력§7을 소모합니다.",
+        "§7모든 능력이 쿨타임 대신 §6기력§7을 소모합니다",
         "§7기력은 최대 §f6§7까지 차오르며,",
         "§7매 초 §f0.5§7씩 자동으로 회복되며",
-        "§7기력 소모 후 §f3초§7간 회복되지 않습니다.",
+        "§7기력 소모 후 §f3초§7간 회복되지 않습니다",
         "",
         "§e§l[철괴 우클릭 - 정면 돌파]§f §8(기력 2 소모)",
-        "§7타게팅이 되지 않는 상태로 짧게 돌진합니다.",
-        "§7닿은 적에게 §c4의 피해§7를 입히고 §f1초§7간 §e기절§7시킵니다.",
-        "§7돌진 중 벽을 만나면 벽을 파괴하고 주변을 기절시킵니다.",
+        "§7타게팅이 되지 않는 상태로 짧게 돌진합니다",
+        "§7닿은 적에게 §c4의 피해§7를 입히고 §f1초§7간 §e기절§7시킵니다",
+        "§7돌진 중 벽을 만나면 벽을 파괴하고 주변을 기절시킵니다",
         "",
         "§e§l[패시브 - 일방적 구타]",
-        "§7기절 상태인 적에게 §c125%§7 피해를 입힙니다. (§f기력 0.5 소모§7)"
+        "§7기절 상태인 적에게 §c125%§7 피해를 입힙니다 (§f기력 0.5 소모§7)"
 }, summarize = {
         "§7기력 시스템§f: 쿨타임 대신 기력 소모",
         "§7철괴 우클릭§f: 돌진 + 기절"
@@ -110,11 +110,11 @@ public class Bellum extends AbilityBase implements ActiveHandler {
             return false;
         }
         if (isDashing()) {
-            getPlayer().sendMessage("§c이미 돌진 사용 중입니다.");
+            getPlayer().sendMessage("§c이미 돌진 사용 중입니다");
             return false;
         }
         if (!consumeStamina(DASH_COST)) {
-            getPlayer().sendMessage("§c기력이 부족합니다.");
+            getPlayer().sendMessage("§c기력이 부족합니다");
             return false;
         }
         startDash();
@@ -187,7 +187,7 @@ public class Bellum extends AbilityBase implements ActiveHandler {
             return;
         }
 
-        // 1. Stamina Regen (Every 20 ticks = 1 second)
+        // 1 Stamina Regen (Every 20 ticks = 1 second)
         if (tick % 20 == 0) {
             if (stamina < MAX_STAMINA) {
                 if (regenDelaySeconds > 0) {
@@ -199,7 +199,7 @@ public class Bellum extends AbilityBase implements ActiveHandler {
             updateStaminaBar();
         }
 
-        // 2. Dash Logic (Every 1 tick for smooth movement)
+        // 2 Dash Logic (Every 1 tick for smooth movement)
         if (isDashing()) {
             Player player = getPlayer();
             if (player == null) {

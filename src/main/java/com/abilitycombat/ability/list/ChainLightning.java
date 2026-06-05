@@ -22,8 +22,8 @@ import java.util.Comparator;
 
 @AbilityManifest(name = "연쇄 번개 (ChainLightning)", species = AbilityManifest.Species.SPECIAL, explain = {
         "§e§l[패시브 - 연쇄]",
-        "§7근접 공격이 적중하면 피격자 주변 §f5칸§7 내 추가 적을 찾습니다.",
-        "§7최대 §f3명§7에게 원본 최종 피해의 §e35%§7 전이 피해를 줍니다."
+        "§7근접 공격이 적중하면 피격자 주변 §f5칸§7 내 추가 적을 찾습니다",
+        "§7최대 §f3명§7에게 원본 최종 피해의 §e35%§7 전이 피해를 줍니다"
 }, summarize = {
         "§7패시브§f: 근접 적중 시 5칸 내 3명에게 35% 전이 피해"
 })

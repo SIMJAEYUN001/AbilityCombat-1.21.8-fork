@@ -20,9 +20,9 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
 @AbilityManifest(name = "탭 댄서 (TapDancer)", species = AbilityManifest.Species.SPECIAL, explain = {
         "§e§l[패시브 - 템포]",
-        "§7근접 공격이 적중할 때마다 §b템포 1스택§7을 얻습니다.",
-        "§7스택 제한 없이 누적되며 스택당 이동 속도가 §f+0.012§7 증가합니다.",
-        "§7§f3초§7간 전투가 없으면 모든 템포 스택이 사라집니다."
+        "§7근접 공격이 적중할 때마다 §b템포 1스택§7을 얻습니다",
+        "§7스택 제한 없이 누적되며 스택당 이동 속도가 §f+0.012§7 증가합니다",
+        "§7§f3초§7간 전투가 없으면 모든 템포 스택이 사라집니다"
 }, summarize = {
         "§7패시브§f: 근접 공격 시 이동 속도 +0.012 x 스택",
         "§7제한 없음§f: 3초 미전투 시 전체 소멸"

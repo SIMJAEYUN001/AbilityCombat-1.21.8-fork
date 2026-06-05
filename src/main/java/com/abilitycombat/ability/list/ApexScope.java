@@ -12,8 +12,8 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
 @AbilityManifest(name = "최상급 조준경 (ApexScope)", species = AbilityManifest.Species.SPECIAL, explain = {
         "§e§l[패시브 - 최상급 조준경]",
-        "§7입히는 피해가 §c50% 감소§7합니다.",
-        "§7대신 공격 사거리가 §b50% 증가§7합니다."
+        "§7입히는 피해가 §c50% 감소§7합니다",
+        "§7대신 공격 사거리가 §b50% 증가§7합니다"
 }, summarize = {
         "§7패시브§f: 피해 -50%, 공격 사거리 +50%"
 })

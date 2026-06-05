@@ -29,15 +29,15 @@ import java.util.List;
 @AbilityManifest(name = "피의 군주 (BloodLord)", species = AbilityManifest.Species.UNDEAD, explain = {
         "§e§l[패시브 - 핏빛 탐식]",
         "§7주변 §f15칸§7 이내의 §f플레이어§7가 체력을 잃을 때마다",
-        "§7잃은 체력 §f1§7당 §4피 중첩 1§7을 얻습니다.",
+        "§7잃은 체력 §f1§7당 §4피 중첩 1§7을 얻습니다",
         "",
         "§e§l[철괴 좌클릭 - 혈흔 폭발]§f §8(쿨타임: 1초)",
-        "§7§4피 중첩§7을 모두 소모(최소 15)해서 주변 §f10칸§7 내 적에게 피해를 입힙니다.",
-        "§7소모한 피 중첩 §f1§7당 §c0.5 + 잃은 체력 50%§7의 피해를 입힙니다.",
+        "§7§4피 중첩§7을 모두 소모(최소 15)해서 주변 §f10칸§7 내 적에게 피해를 입힙니다",
+        "§7소모한 피 중첩 §f1§7당 §c0.5 + 잃은 체력 50%§7의 피해를 입힙니다",
         "",
         "§e§l[철괴 우클릭 - 피의 속박]§f §8(쿨타임: 1초)",
-        "§4피 중첩 20§7을 소모해 §e5초간 기절§7하는 투사체를 발사합니다.",
-        "§8좌클릭/우클릭 쿨타임은 서로 공유됩니다."
+        "§4피 중첩 20§7을 소모해 §e5초간 기절§7하는 투사체를 발사합니다",
+        "§8좌클릭/우클릭 쿨타임은 서로 공유됩니다"
 }, summarize = {
         "§7패시브§f: 주변 15칸 플레이어가 체력 1 잃을 때마다 피 중첩 1 획득",
         "§7철괴 좌클릭§f: 최소 15 중첩, 주변 10칸에 중첩당 0.25 + 잃은 체력 30% 피해",
@@ -143,7 +143,7 @@ public class BloodLord extends AbilityBase implements ActiveHandler {
 
     private boolean castBloodBurst() {
         if (bloodStacks < BLOOD_EXPLOSION_MIN_STACKS) {
-            showStatus("피 중첩이 부족합니다. (" + STACK_FORMAT.format(bloodStacks) + "/15.0)", NamedTextColor.RED);
+            showStatus("피 중첩이 부족합니다 (" + STACK_FORMAT.format(bloodStacks) + "/15.0)", NamedTextColor.RED);
             return false;
         }
 
@@ -151,7 +151,7 @@ public class BloodLord extends AbilityBase implements ActiveHandler {
         var targets = LocationUtil.getNearbyPlayers(owner.getLocation(), BLOOD_EXPLOSION_RANGE, owner,
                 entity -> !entity.equals(owner));
         if (targets.isEmpty()) {
-            showStatus("주변에 폭발시킬 적이 없습니다.", NamedTextColor.RED);
+            showStatus("주변에 폭발시킬 적이 없습니다", NamedTextColor.RED);
             return false;
         }
 
@@ -176,7 +176,7 @@ public class BloodLord extends AbilityBase implements ActiveHandler {
 
     private boolean castBloodBind() {
         if (bloodStacks < BLOOD_BIND_COST) {
-            showStatus("피 중첩이 부족합니다. (" + STACK_FORMAT.format(bloodStacks) + "/20.0)", NamedTextColor.RED);
+            showStatus("피 중첩이 부족합니다 (" + STACK_FORMAT.format(bloodStacks) + "/20.0)", NamedTextColor.RED);
             return false;
         }
 

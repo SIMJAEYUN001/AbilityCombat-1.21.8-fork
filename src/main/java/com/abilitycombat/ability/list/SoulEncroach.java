@@ -31,14 +31,14 @@ import java.util.function.Predicate;
 
 @AbilityManifest(name = "영혼 잠식 (SoulEncroach)", species = AbilityManifest.Species.GOD, explain = {
                 "§e§l[철괴 우클릭 - 잠식]§f §8(쿨타임: 60초)",
-                "§f7칸§7 이내, 마지막으로 타격한 대상에게 잠식합니다.",
-                "§f3초§7간 §b무적§7, §b비가시§7, §b비행§7 상태로 대상을 따라다닙니다.",
+                "§f7칸§7 이내, 마지막으로 타격한 대상에게 잠식합니다",
+                "§f3초§7간 §b무적§7, §b비가시§7, §b비행§7 상태로 대상을 따라다닙니다",
                 "",
                 "§e§l[웅크리기 - 잠식 해제]",
-                "§7잠식을 해제하며 대상에게 순간이동합니다.",
-                "§7잠식 중 대상의 §c체력이 적을수록§7 추가 피해를 줍니다.",
+                "§7잠식을 해제하며 대상에게 순간이동합니다",
+                "§7잠식 중 대상의 §c체력이 적을수록§7 추가 피해를 줍니다",
                 "",
-                "§7이 피해로 대상 §c처치§7 시 체력 50%를 회복하고 쿨타임이 초기화됩니다."
+                "§7이 피해로 대상 §c처치§7 시 체력 50%를 회복하고 쿨타임이 초기화됩니다"
 }, summarize = {
                 "§7철괴 우클릭§f: 3초 잠식 → 잃은 체력 피해",
                 "§7처치 시§f: 회복 + 쿨타임 초기화"
@@ -620,7 +620,7 @@ public class SoulEncroach extends AbilityBase implements ActiveHandler {
                         var channel = getActionbarChannel();
                         if (channel != null) {
                                 channel.update(getPlayer(), NOTICE_KEY, 5,
-                                                Component.text("마지막으로 때린 상대의 체력이 적습니다.", NamedTextColor.RED));
+                                                Component.text("마지막으로 때린 상대의 체력이 적습니다", NamedTextColor.RED));
                         }
                 } else {
                         clearNotice();

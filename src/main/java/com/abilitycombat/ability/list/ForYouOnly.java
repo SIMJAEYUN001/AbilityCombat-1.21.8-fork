@@ -23,11 +23,11 @@ import java.util.UUID;
 
 @AbilityManifest(name = "너만을 위해 (ForYouOnly)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 너만을 위해]§f §8(쿨타임: 120초)",
-        "§7사용 시 최대 체력이 §c10§7 영구 감소합니다.",
-        "§7현재 체력이 §c10 미만§7이면 즉사하고 효과가 발동하지 않습니다.",
-        "§7사망한 팀원 1명을 §a체력 4 / 최대 체력 20§7으로 부활시킵니다.",
-        "§7사망한 팀원이 없으면 §e흡수 5§7와 §c주는 피해 +50% 60초§7를 얻습니다.",
-        "§8팀전/2인전 전용. 같은 능력으로 줄어든 최대 체력은 부활해도 유지됩니다."
+        "§7사용 시 최대 체력이 §c10§7 영구 감소합니다",
+        "§7현재 체력이 §c10 미만§7이면 즉사하고 효과가 발동하지 않습니다",
+        "§7사망한 팀원 1명을 §a체력 4 / 최대 체력 20§7으로 부활시킵니다",
+        "§7사망한 팀원이 없으면 §e흡수 5§7와 §c주는 피해 +50% 60초§7를 얻습니다",
+        "§8팀전/2인전 전용 같은 능력으로 줄어든 최대 체력은 부활해도 유지됩니다"
 }, summarize = {
         "§7철괴 우클릭§f: 최대 체력 10 소모",
         "§7팀원 사망§f: 체력 4로 부활",
@@ -82,7 +82,7 @@ public class ForYouOnly extends AbilityBase implements ActiveHandler {
         GameManager gameManager = getGameManager();
         if (player == null || gameManager == null || !gameManager.isTeamMode()) {
             if (player != null) {
-                player.sendMessage("§c너만을 위해는 팀전/2인전에서만 사용할 수 있습니다.");
+                player.sendMessage("§c너만을 위해는 팀전/2인전에서만 사용할 수 있습니다");
             }
             return false;
         }

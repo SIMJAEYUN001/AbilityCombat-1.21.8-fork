@@ -26,10 +26,10 @@ import java.util.UUID;
 
 @AbilityManifest(name = "처형 시간 (ExecutionTime)", species = AbilityManifest.Species.SPECIAL, explain = {
         "§e§l[철괴 우클릭 - 처형 표식]§f §8(쿨타임: 35초)",
-        "§7바라본 §f8칸§7 내 적 1명에게 §c처형 표식§7을 남깁니다.",
-        "§7표식은 §f10초§7 동안 대상이 받은 원본 피해를 기록합니다.",
-        "§710초 후 대상은 §c2 + 기록 피해의 40% 고정 피해§7를 받습니다.",
-        "§7표식은 한 번에 §f1개§7만 유지됩니다."
+        "§7바라본 §f8칸§7 내 적 1명에게 §c처형 표식§7을 남깁니다",
+        "§7표식은 §f10초§7 동안 대상이 받은 원본 피해를 기록합니다",
+        "§710초 후 대상은 §c2 + 기록 피해의 40% 고정 피해§7를 받습니다",
+        "§7표식은 한 번에 §f1개§7만 유지됩니다"
 }, summarize = {
         "§7철괴 우클릭§f: 8칸 적 1명에게 10초 처형 표식",
         "§7종료§f: 2 + 기록 피해 40% 고정 피해",
@@ -78,7 +78,7 @@ public class ExecutionTime extends AbilityBase implements ActiveHandler {
         LivingEntity target = LocationUtil.getEntityLookingAt(LivingEntity.class, player, MARK_RANGE,
                 entity -> LocationUtil.isValidTarget(player, entity));
         if (target == null) {
-            player.sendMessage("§c8칸 내 바라본 적이 없습니다.");
+            player.sendMessage("§c8칸 내 바라본 적이 없습니다");
             return false;
         }
         clearMark();

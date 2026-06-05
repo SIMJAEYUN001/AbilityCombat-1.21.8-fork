@@ -27,11 +27,11 @@ import java.util.concurrent.ThreadLocalRandom;
 @AbilityManifest(name = "도플갱어 (Doppelganger)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 복제]",
         "§7능력 선택이 모두 끝나면 생존자 중 랜덤한 한 명의",
-        "§7능력을 복제합니다. (복제 대상은 본인에게만 공개)",
+        "§7능력을 복제합니다 (복제 대상은 본인에게만 공개)",
         "",
         "§e§l[조건]",
-        "§7복제 대상을 §c직접 처치§7하면 최대 체력이 §c10§7 증가합니다.",
-        "§7복제 대상을 처치하지 못하고 대상이 사망하면 §c즉시 사망§7합니다."
+        "§7복제 대상을 §c직접 처치§7하면 최대 체력이 §c10§7 증가합니다",
+        "§7복제 대상을 처치하지 못하고 대상이 사망하면 §c즉시 사망§7합니다"
 }, summarize = {
         "§7게임 시작 시§f: 생존자 1명의 능력 복제",
         "§7대상 처치§f: 최대 체력 +10",
@@ -105,7 +105,7 @@ public class Doppelganger extends AbilityBase implements ActiveHandler, TargetHa
         if (candidates.isEmpty()) {
             copied = true;
             resolved = true;
-            self.sendMessage("§c[도플갱어] §f복제할 대상이 없습니다.");
+            self.sendMessage("§c[도플갱어] §f복제할 대상이 없습니다");
             return;
         }
 
@@ -116,7 +116,7 @@ public class Doppelganger extends AbilityBase implements ActiveHandler, TargetHa
         if (targetAbility == null || targetAbility instanceof Doppelganger) {
             copied = true;
             resolved = true;
-            self.sendMessage("§c[도플갱어] §f복제할 대상의 능력을 찾을 수 없습니다.");
+            self.sendMessage("§c[도플갱어] §f복제할 대상의 능력을 찾을 수 없습니다");
             return;
         }
 
@@ -124,17 +124,17 @@ public class Doppelganger extends AbilityBase implements ActiveHandler, TargetHa
         targetUuid = target.getUniqueId();
 
         self.sendMessage("§e[도플갱어] §f복제 대상: §c" + target.getName() + "§f (" + targetAbility.getName() + ")");
-        target.sendMessage("§c[도플갱어] §f당신의 능력이 누군가에게 복제되었습니다.");
+        target.sendMessage("§c[도플갱어] §f당신의 능력이 누군가에게 복제되었습니다");
 
         try {
             copiedAbility = AbilityFactory.create(targetAbility.getClass(), getParticipant());
             copiedAbility.activate();
-            // 게임 시작 시 복제한 능력의 /aw info 를 바로 출력합니다.
+            // 게임 시작 시 복제한 능력의 /aw info 를 바로 출력합니다
             sendCopiedAbilityInfo(self);
         } catch (Exception ex) {
             copiedAbility = null;
             resolved = true;
-            self.sendMessage("§c[도플갱어] §f능력 복제에 실패했습니다.");
+            self.sendMessage("§c[도플갱어] §f능력 복제에 실패했습니다");
         }
     }
 
@@ -178,7 +178,7 @@ public class Doppelganger extends AbilityBase implements ActiveHandler, TargetHa
         if (killer != null && killer.getUniqueId().equals(self.getUniqueId())) {
             resolved = true;
             grantBonusHealth(self);
-            self.sendMessage("§a[도플갱어] §f대상 처치 성공! 최대 체력 §c+10§f.");
+            self.sendMessage("§a[도플갱어] §f대상 처치 성공! 최대 체력 §c+10§f");
         } else {
             fail(self);
         }
@@ -202,7 +202,7 @@ public class Doppelganger extends AbilityBase implements ActiveHandler, TargetHa
 
     private void fail(Player self) {
         resolved = true;
-        self.sendMessage("§c[도플갱어] §f대상 처치에 실패했습니다.");
+        self.sendMessage("§c[도플갱어] §f대상 처치에 실패했습니다");
         self.setHealth(0.0);
     }
 
@@ -238,7 +238,7 @@ public class Doppelganger extends AbilityBase implements ActiveHandler, TargetHa
                 player.sendMessage("§f- " + line);
             }
         } else {
-            player.sendMessage("§7설명이 등록되어 있지 않습니다.");
+            player.sendMessage("§7설명이 등록되어 있지 않습니다");
         }
     }
 

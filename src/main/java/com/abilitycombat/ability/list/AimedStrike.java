@@ -21,9 +21,9 @@ import java.util.UUID;
 @AbilityManifest(name = "정조준 일격 (AimedStrike)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 정조준 일격]",
         "§f10칸§7 이상 떨어진 대상에게 활을 적중시키면",
-        "§7대상을 향해 §6정조준 일격§7을 추가로 발사합니다.",
+        "§7대상을 향해 §6정조준 일격§7을 추가로 발사합니다",
         "",
-        "§7정조준 일격은 §c15의 피해§7를 입힙니다."
+        "§7정조준 일격은 §c15의 피해§7를 입힙니다"
 }, summarize = {
         "§7활 원거리 적중§f: 정조준 일격 발사 (피해 15)"
 })

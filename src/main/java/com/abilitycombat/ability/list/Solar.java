@@ -7,6 +7,8 @@ import com.abilitycombat.ability.handler.ActiveHandler;
 import com.abilitycombat.effect.Bind;
 import com.abilitycombat.game.Participant;
 import com.abilitycombat.utils.LocationUtil;
+import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.LivingEntity;
@@ -14,21 +16,30 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @AbilityManifest(name = "솔라 (Solar)", species = AbilityManifest.Species.SPECIAL, explain = {
         "§e§l[패시브 - 빛 표식]",
-        "§7타격 시 대상에게 §e빛 표식 1스택§7을 남깁니다.",
-        "§74스택이 되면 표식을 소모해 §e속박 1초§7를 부여합니다.",
-        "§7주변 §f5칸§7 플레이어에게 달빛 표식이 있으면 달빛 표식을 제거합니다.",
+        "§7타격 시 대상에게 §e빛 표식 1스택§7을 남깁니다",
+        "§7표식 대상은 자신에게만 §e노란색 발광§7으로 보입니다",
+        "§74스택이 되면 표식을 소모해 §e속박 1초§7를 부여합니다",
+        "§7주변 §f5칸§7 플레이어에게 달빛 표식이 있으면 달빛 표식을 제거합니다",
         "",
         "§e§l[철괴 우클릭 - 태양 보호막]§f §8(쿨타임: 35초)",
-        "§710초§7간 받는 피해가 §b25% 감소§7합니다."
+        "§710초§7간 받는 피해가 §b25% 감소§7하고 자신에게 §e노란색 발광§7을 부여합니다"
 }, summarize = {
-        "§7패시브§f: 타격으로 빛 표식, 4스택 속박 1초",
+        "§7패시브§f: 빛 표식 4스택 속박 1초",
+        "§7표식§f: 사용자 전용 노란색 발광",
         "§7철괴 우클릭§f: 10초간 피해 25% 감소"
 })
 public class Solar extends AbilityBase implements ActiveHandler {
@@ -38,9 +49,13 @@ public class Solar extends AbilityBase implements ActiveHandler {
     private static final int SHIELD_TICKS = 200;
     private static final int COOLDOWN_SECONDS = 35;
     private static final double MOON_PURGE_RADIUS = 5.0;
+    private static final int FAKE_GLOW_TICKS = 16;
+    private static final String GLOW_TEAM_NAME = "aw_solar_mark";
+    private static final String SHIELD_TEAM_NAME = "aw_solar_shield";
 
     private final Cooldown cooldown = new Cooldown(COOLDOWN_SECONDS);
     private final Map<UUID, Integer> lightStacks = new HashMap<>();
+    private final Map<UUID, String> highlightedTargets = new HashMap<>();
     private int shieldEndTick;
 
     public Solar(Participant participant) {
@@ -51,12 +66,15 @@ public class Solar extends AbilityBase implements ActiveHandler {
     protected void onActivate() {
         subscribeEvent(EntityDamageByEntityEvent.class);
         subscribeEvent(org.bukkit.event.entity.EntityDamageEvent.class);
+        registerTick();
     }
 
     @Override
     protected void onDeactivate() {
-        lightStacks.clear();
+        clearLightStacks();
+        clearShieldGlow();
         shieldEndTick = 0;
+        unregisterTick();
     }
 
     @Override
@@ -83,9 +101,11 @@ public class Solar extends AbilityBase implements ActiveHandler {
         int next = lightStacks.getOrDefault(target.getUniqueId(), 0) + 1;
         if (next >= BIND_STACKS) {
             lightStacks.remove(target.getUniqueId());
+            hideHighlight(target);
             Bind.apply(target, BIND_TICKS);
         } else {
             lightStacks.put(target.getUniqueId(), next);
+            showHighlight(target);
         }
         purgeNearbyMoonMarks(player);
     }
@@ -104,10 +124,25 @@ public class Solar extends AbilityBase implements ActiveHandler {
             return false;
         }
         shieldEndTick = AbilityTickManager.getGlobalTick() + SHIELD_TICKS;
+        applyShieldGlow(player);
         player.playSound(player.getLocation(), Sound.BLOCK_BEACON_POWER_SELECT, 0.7f, 1.7f);
         cooldown.start();
         applyIronCooldownIfEmpty(COOLDOWN_SECONDS);
         return true;
+    }
+
+    @Override
+    public void onTick(int tick) {
+        if (tick % 10 == 0) {
+            refreshHighlights();
+            if (shieldEndTick > tick) {
+                syncShieldGlowTeam();
+            }
+        }
+        if (shieldEndTick > 0 && tick >= shieldEndTick) {
+            clearShieldGlow();
+            shieldEndTick = 0;
+        }
     }
 
     private void purgeNearbyMoonMarks(Player player) {
@@ -115,5 +150,119 @@ public class Solar extends AbilityBase implements ActiveHandler {
                 entity -> true)) {
             Luna.removeMoonMark(target);
         }
+    }
+
+    private void showHighlight(LivingEntity target) {
+        Player owner = getPlayer();
+        if (owner == null || target == null) {
+            return;
+        }
+        String entry = scoreboardEntry(target);
+        Team team = getOrCreateTeam(owner.getScoreboard(), GLOW_TEAM_NAME, NamedTextColor.YELLOW);
+        if (team != null && !team.hasEntry(entry)) {
+            team.addEntry(entry);
+        }
+        owner.sendPotionEffectChange(target,
+                new PotionEffect(PotionEffectType.GLOWING, FAKE_GLOW_TICKS, 0, false, false));
+        highlightedTargets.put(target.getUniqueId(), entry);
+    }
+
+    private void hideHighlight(LivingEntity target) {
+        if (target != null) {
+            hideHighlight(target.getUniqueId(), target);
+        }
+    }
+
+    private void hideHighlight(UUID targetId, LivingEntity target) {
+        Player owner = getPlayer();
+        if (owner != null && target != null) {
+            owner.sendPotionEffectChangeRemove(target, PotionEffectType.GLOWING);
+        }
+        Team team = owner != null ? owner.getScoreboard().getTeam(GLOW_TEAM_NAME) : null;
+        String entry = highlightedTargets.remove(targetId);
+        if (team != null && entry != null) {
+            team.removeEntry(entry);
+            if (team.getSize() == 0) {
+                team.unregister();
+            }
+        }
+    }
+
+    private void refreshHighlights() {
+        Set<UUID> desired = new HashSet<>(lightStacks.keySet());
+        for (UUID targetId : desired) {
+            LivingEntity target = resolve(targetId);
+            if (target == null || target.isDead()) {
+                lightStacks.remove(targetId);
+                continue;
+            }
+            showHighlight(target);
+        }
+        for (UUID targetId : new HashSet<>(highlightedTargets.keySet())) {
+            if (!lightStacks.containsKey(targetId)) {
+                hideHighlight(targetId, resolve(targetId));
+            }
+        }
+    }
+
+    private void clearLightStacks() {
+        for (UUID targetId : new HashSet<>(highlightedTargets.keySet())) {
+            hideHighlight(targetId, resolve(targetId));
+        }
+        lightStacks.clear();
+    }
+
+    private void applyShieldGlow(Player player) {
+        syncShieldGlowTeam();
+        player.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, SHIELD_TICKS, 0, false, false));
+    }
+
+    private void clearShieldGlow() {
+        Player player = getPlayer();
+        if (player != null) {
+            player.removePotionEffect(PotionEffectType.GLOWING);
+            for (Player viewer : Bukkit.getOnlinePlayers()) {
+                Team team = viewer.getScoreboard().getTeam(SHIELD_TEAM_NAME);
+                if (team == null) {
+                    continue;
+                }
+                team.removeEntry(player.getName());
+                if (team.getSize() == 0) {
+                    team.unregister();
+                }
+            }
+        }
+    }
+
+    private void syncShieldGlowTeam() {
+        Player player = getPlayer();
+        if (player == null) {
+            return;
+        }
+        for (Player viewer : Bukkit.getOnlinePlayers()) {
+            Team team = getOrCreateTeam(viewer.getScoreboard(), SHIELD_TEAM_NAME, NamedTextColor.YELLOW);
+            if (team != null) {
+                team.addEntry(player.getName());
+            }
+        }
+    }
+
+    private Team getOrCreateTeam(Scoreboard scoreboard, String name, NamedTextColor color) {
+        Team team = scoreboard.getTeam(name);
+        if (team == null) {
+            team = scoreboard.registerNewTeam(name);
+            team.color(color);
+            team.setAllowFriendlyFire(false);
+        }
+        return team;
+    }
+
+    private String scoreboardEntry(LivingEntity target) {
+        return target instanceof Player targetPlayer ? targetPlayer.getName() : target.getUniqueId().toString();
+    }
+
+    private LivingEntity resolve(UUID id) {
+        org.bukkit.entity.Entity entity = org.bukkit.Bukkit.getEntity(id);
+        return entity instanceof LivingEntity living ? living : null;
     }
 }

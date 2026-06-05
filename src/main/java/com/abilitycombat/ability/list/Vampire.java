@@ -21,12 +21,12 @@ import java.util.List;
 @AbilityManifest(name = "뱀파이어 (Vampire)", species = AbilityManifest.Species.UNDEAD, explain = {
         "§e§l[철괴 우클릭 - 피의 제전]§f §8(쿨타임: 60초)",
         "§7주변 §f8칸§7 내의 모든 플레이어에게 §c3의 고정 피해§7를 입히고",
-        "§7'피의 힘'을 §f1스택§7 획득합니다.",
+        "§7'피의 힘'을 §f1스택§7 획득합니다",
         "",
         "§e§l[패시브 - 흡혈의 정석]",
         "§7피의 힘을 1스택 획득할 때마다 §a3의 체력§7을 회복하고",
-        "§7최대 체력이 §c1§7만큼 영구적으로 증가합니다.",
-        "§7피의 힘 스택당 §f+0.4§7의 추가 피해를 입힙니다."
+        "§7최대 체력이 §c1§7만큼 영구적으로 증가합니다",
+        "§7피의 힘 스택당 §f+0.4§7의 추가 피해를 입힙니다"
     }, summarize = {
         "§7철괴 우클릭§f: 광역 고정 피해 및 스택 획득",
         "§7패시브§f: 스택당 체력/최대체력 증가, 스택당 추가 데미지"
@@ -94,7 +94,7 @@ public class Vampire extends AbilityBase implements ActiveHandler {
                 .stream().map(e -> (Player) e).toList();
 
         if (targets.isEmpty()) {
-            getPlayer().sendMessage("§c주변에 플레이어가 없습니다.");
+            getPlayer().sendMessage("§c주변에 플레이어가 없습니다");
             return false;
         }
 

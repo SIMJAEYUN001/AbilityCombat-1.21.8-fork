@@ -18,11 +18,11 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 @AbilityManifest(name = "상위존재 (HigherBeing)", species = AbilityManifest.Species.OTHERS, explain = {
         "§e§l[철괴 우클릭 - 무릎 꿇어라]§f §8(쿨타임: 45초)",
         "§7주변 §f9칸§7 이내 플레이어들의 시선을",
-        "§e4초§7간 강제로 §c아래로 고정§7합니다.",
+        "§e4초§7간 강제로 §c아래로 고정§7합니다",
         "",
         "§e§l[패시브 - 위치 선정]",
         "§7자신보다 §fY좌표(높이)§7가 낮은 적을 공격 시",
-        "§7높이 차이에 비례해 추가 피해를 줍니다.",
+        "§7높이 차이에 비례해 추가 피해를 줍니다",
         "",
         "§7추가 피해: 높이 차이 1칸당 §c+1§7 (최대 §c+8§7)"
 }, summarize = {

@@ -23,19 +23,19 @@ import java.util.UUID;
 
 @AbilityManifest(name = "아레스 (Ares)", species = AbilityManifest.Species.GOD, explain = {
         "§e§l[철괴 우클릭 - 전쟁의 도약]§f §8(쿨타임: 30초)",
-        "§7전방으로 강하게 도약합니다.",
+        "§7전방으로 강하게 도약합니다",
         "",
         "§7도약 중 주변 §f3칸§7 이내의 생명체를 §6끌어당기며§7",
-        "§7최초 접촉 시 §c12의 피해§7를 입힙니다.",
+        "§7최초 접촉 시 §c12의 피해§7를 입힙니다",
         "",
         "§7착지하면 주변 §f4칸§7 이내의 생명체를 §6밀쳐내고§7",
-        "§c15의 피해§7를 추가로 입힙니다.",
-        "§7도약 중에는 낙하 피해를 받지 않습니다."
+        "§c15의 피해§7를 추가로 입힙니다",
+        "§7도약 중에는 낙하 피해를 받지 않습니다"
 }, summarize = {
         "§7철괴 우클릭§f: 도약 + 끌어당김 + 밀쳐냄"
 })
 // Verified: AbilityManifest and ActiveHandler should now be resolved in the
-// IDE.
+// IDE
 public class Ares extends AbilityBase implements ActiveHandler {
 
     private static final int COOLDOWN_SECONDS = 30;

@@ -30,13 +30,13 @@ import java.util.UUID;
 
 @AbilityManifest(name = "제우스 (Zeus)", species = AbilityManifest.Species.GOD, explain = {
         "§e§l[패시브 - 하늘의 지배자]",
-        "§7낙하 피해를 받지 않습니다.",
+        "§7낙하 피해를 받지 않습니다",
         "",
         "§e§l[철괴 우클릭 - 번개 비행]§f §8(비행만 사용: 12초 / 재사용: 25초)",
-        "§7바라보는 방향으로 §f2초§7간 비행합니다. §8(속도: 1.5)",
-        "§7비행 중 다시 사용하면 매우 빠른 번개창을 던집니다.",
-        "§7번개창이 적중한 구조물 위로만 순간이동하고, 경로마다 번개를 떨어뜨립니다.",
-        "§7번개마다 거리 감쇠 없이 §c12 피해§7와 §e기절 1.5초§7를 적용합니다."
+        "§7바라보는 방향으로 §f2초§7간 비행합니다 §8(속도: 1.5)",
+        "§7비행 중 다시 사용하면 매우 빠른 번개창을 던집니다",
+        "§7번개창이 적중한 구조물 위로만 순간이동하고, 경로마다 번개를 떨어뜨립니다",
+        "§7번개마다 거리 감쇠 없이 §c12 피해§7와 §e기절 1.5초§7를 적용합니다"
 }, summarize = {
         "§7철괴 우클릭§f: 바라보는 방향으로 2초 비행",
         "§7비행 중 우클릭§f: 번개창 적중 지점 텔레포트 + 경로 번개",
@@ -144,7 +144,7 @@ public class Zeus extends AbilityBase implements ActiveHandler {
         Location destination = resolveTridentDestination(event, player);
         clearTeleportTrident(true);
         if (destination == null) {
-            player.sendMessage("§c번개창이 적중한 위치에 순간이동할 안전한 구조물이 없습니다.");
+            player.sendMessage("§c번개창이 적중한 위치에 순간이동할 안전한 구조물이 없습니다");
             return;
         }
         player.teleport(destination);
@@ -240,7 +240,7 @@ public class Zeus extends AbilityBase implements ActiveHandler {
         Location eye = player.getEyeLocation();
         Vector direction = eye.getDirection();
         if (direction.lengthSquared() <= 0.0) {
-            player.sendMessage("§c번개창을 던질 방향이 없습니다.");
+            player.sendMessage("§c번개창을 던질 방향이 없습니다");
             return false;
         }
         direction.normalize();
@@ -275,7 +275,7 @@ public class Zeus extends AbilityBase implements ActiveHandler {
         teleportTridentLastLocation = current;
         if (tick > teleportTridentExpireTick) {
             clearTeleportTrident(true);
-            player.sendMessage("§c번개창이 구조물에 적중하지 못했습니다.");
+            player.sendMessage("§c번개창이 구조물에 적중하지 못했습니다");
         }
     }
 

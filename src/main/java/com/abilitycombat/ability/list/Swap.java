@@ -16,11 +16,11 @@ import java.util.concurrent.ThreadLocalRandom;
 @AbilityManifest(name = "스왑 (Swap)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 스왑]§f §8(쿨타임: 35초)",
         "§f2초§7간 주변 §f8칸§7 이내 플레이어들의",
-        "§7핫바 슬롯을 마구잡이로 변경합니다.",
+        "§7핫바 슬롯을 마구잡이로 변경합니다",
         "",
         "§e§l[슬롯 고정]",
         "§7지속시간 종료 시, 자신을 제외한 대상들의",
-        "§7슬롯을 마지막으로 변경된 위치에 §f3초§7간 고정시킵니다."
+        "§7슬롯을 마지막으로 변경된 위치에 §f3초§7간 고정시킵니다"
 }, summarize = {
         "§7철괴 우클릭§f: 2초 핫바 스왑 → 3초 고정"
 })

@@ -35,20 +35,20 @@ import java.util.List;
 
 @AbilityManifest(name = "소드 마스터 (SwordMaster)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 검기 충전]",
-        "§7검을 들고 있으면 약 §f0.75초§7마다 §6검기§7가 충전됩니다.",
+        "§7검을 들고 있으면 약 §f0.75초§7마다 §6검기§7가 충전됩니다",
         "§7충전된 검기는 플레이어 주변에 §b떠다니며§7,",
-        "§7최대 §f10개§7까지 보유할 수 있습니다.",
+        "§7최대 §f10개§7까지 보유할 수 있습니다",
         "",
         "§e§l[검 우클릭 - 검기 발사]",
-        "§7충전된 검기 하나를 바라보는 방향으로 발사합니다.",
-        "§7피해량은 §c들고 있는 검의 공격력§7에 비례합니다.",
+        "§7충전된 검기 하나를 바라보는 방향으로 발사합니다",
+        "§7피해량은 §c들고 있는 검의 공격력§7에 비례합니다",
         "",
         "§e§l[점프 중 웅크리기 - 삼연참]",
-        "§7후방으로 빠르게 이동하며 검기 §f3개§7를 연속 발사합니다.",
+        "§7후방으로 빠르게 이동하며 검기 §f3개§7를 연속 발사합니다",
         "",
         "§e§l[웅크리기 + 하향 시선 - 궁극기]§f §8(쿨타임: 50초)",
-        "§7검기가 §f10개§7 모두 충전되었을 때만 발동 가능합니다.",
-        "§7모든 검기가 바닥에 꽂히며 §e번개§7가 떨어집니다."
+        "§7검기가 §f10개§7 모두 충전되었을 때만 발동 가능합니다",
+        "§7모든 검기가 바닥에 꽂히며 §e번개§7가 떨어집니다"
 }, summarize = {
         "§7패시브§f: 검 주변에 떠다니는 검기",
         "§7검 우클릭§f: 검기 발사",
@@ -157,17 +157,17 @@ public class SwordMaster extends AbilityBase implements ActiveHandler {
             return;
         }
 
-        // 1. Charge Logic (Every 5 ticks)
+        // 1 Charge Logic (Every 5 ticks)
         if (tick % 5 == 0) {
             processCharge();
         }
 
-        // 2. Sword Animation & Gauge Logic (Every 8 ticks)
+        // 2 Sword Animation & Gauge Logic (Every 8 ticks)
         if (tick % 8 == 0) {
             processSwordManagement();
         }
 
-        // 3. Projectile Logic (Every 2 ticks for smoothness)
+        // 3 Projectile Logic (Every 2 ticks for smoothness)
         if (tick % 2 == 0 && !projectiles.isEmpty()) {
             processProjectiles();
         }

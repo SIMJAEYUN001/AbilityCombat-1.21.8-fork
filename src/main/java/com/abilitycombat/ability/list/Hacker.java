@@ -20,14 +20,14 @@ import org.bukkit.event.Event;
 
 @AbilityManifest(name = "해커 (Hacker)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 해킹]§f §8(쿨타임: 90초)",
-        "§7주변 §f25칸§7 내 가장 가까운 플레이어를 해킹합니다.",
+        "§7주변 §f25칸§7 내 가장 가까운 플레이어를 해킹합니다",
         "",
         "§7해킹이 진행되는 §f5초§7 동안 대상은",
-        "§e기절§7(이동 불가) 상태가 됩니다.",
+        "§e기절§7(이동 불가) 상태가 됩니다",
         "",
-        "§7해킹 진행 상황은 자신과 대상에게 표시됩니다.",
+        "§7해킹 진행 상황은 자신과 대상에게 표시됩니다",
         "",
-        "§7해킹 완료 시 대상의 §e정확한 좌표§7를 알아냅니다."
+        "§7해킹 완료 시 대상의 §e정확한 좌표§7를 알아냅니다"
 }, summarize = {
         "§7철괴 우클릭§f: 5초 해킹 + 기절",
         "§7완료 시§f: 좌표 파악"
@@ -91,10 +91,10 @@ public class Hacker extends AbilityBase implements ActiveHandler {
     private void startHack() {
         remainingHackSeconds = HACK_SECONDS;
         if (target != null) {
-            target.sendMessage("§e해킹이 시작되었습니다.");
+            target.sendMessage("§e해킹이 시작되었습니다");
             Stun.apply(target, HACK_SECONDS * 20);
         }
-        getPlayer().sendMessage("§e해킹 시작.");
+        getPlayer().sendMessage("§e해킹 시작");
         updateBossBars(HACK_SECONDS);
         registerTick();
     }
@@ -104,7 +104,7 @@ public class Hacker extends AbilityBase implements ActiveHandler {
             Location location = target.getLocation();
             getPlayer().sendMessage("§e해킹 완료: §f" + location.getBlockX() + ", " + location.getBlockY() + ", "
                     + location.getBlockZ());
-            target.sendMessage("§e해킹이 종료되었습니다.");
+            target.sendMessage("§e해킹이 종료되었습니다");
             Stun.remove(target);
         } else if (target != null) {
             Stun.remove(target);

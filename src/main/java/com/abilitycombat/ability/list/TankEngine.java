@@ -21,8 +21,8 @@ import java.util.UUID;
 
 @AbilityManifest(name = "탱크 엔진 (TankEngine)", species = AbilityManifest.Species.OTHERS, explain = {
         "§e§l[패시브 - 장갑 증설]",
-        "§7피해를 입힌 적이 §f10초§7 안에 사망하면 처치 관여로 인정됩니다.",
-        "§7처치 관여 시 최대 체력이 §a4§7 증가합니다."
+        "§7피해를 입힌 적이 §f10초§7 안에 사망하면 처치 관여로 인정됩니다",
+        "§7처치 관여 시 최대 체력이 §a4§7 증가합니다"
 }, summarize = {
         "§7패시브§f: 10초 내 처치 관여 시 최대 체력 +4"
 })

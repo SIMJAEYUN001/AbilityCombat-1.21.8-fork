@@ -19,14 +19,14 @@ import java.util.Map;
 @AbilityManifest(name = "호박 (Pumpkin)", species = AbilityManifest.Species.OTHERS, explain = {
         "§e§l[철괴 우클릭 - 호박 씬우기]§f §8(쿨타임: 40초)",
         "§7주변 §f30칸§7 이내의 모든 플레이어에게",
-        "§6조각된 호박§7을 §f15초§7간 강제 착용시킵니다.",
+        "§6조각된 호박§7을 §f15초§7간 강제 착용시킵니다",
         "",
         "§7호박에는 §c귀속 저주§7가 적용되어",
-        "§7벗을 수 없습니다.",
+        "§7벗을 수 없습니다",
         "",
         "§e§l[패시브 - 참수형]",
         "§7호박을 쓴 적을 공격할 때,",
-        "§7상대의 체력이 §c20% 미만§7이면 §4처형§7합니다."
+        "§7상대의 체력이 §c20% 미만§7이면 §4처형§7합니다"
 }, summarize = {
         "§7철괴 우클릭§f: 호박 강제 착용 (15초)",
         "§7패시브§f: 호박 쓴 적 20% 미만 시 처형"
@@ -75,7 +75,7 @@ public class Pumpkin extends AbilityBase implements ActiveHandler {
         if (healthPercent < 0.2) {
             event.setCancelled(true);
             target.setHealth(0);
-            attacker.sendMessage("§4참수형! §c" + target.getName() + "§4을(를) 처형했습니다.");
+            attacker.sendMessage("§4참수형! §c" + target.getName() + "§4을(를) 처형했습니다");
             target.sendMessage("§4호박의 저주로 참수형당했습니다!");
         }
     }
