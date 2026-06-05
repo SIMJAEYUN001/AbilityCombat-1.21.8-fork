@@ -175,25 +175,33 @@ public final class SharedBurn implements AbilityTickManager.Tickable, Listener {
     }
 
     private void applyProfileDamage(LivingEntity target, BurnState state, double maxHealth, int tick) {
+        double totalDamage = calculateTotalDamage(state, maxHealth);
+        if (totalDamage <= 0.0) {
+            return;
+        }
+        suppressKnockback(target, tick);
         if (state.profiles.contains(BurnProfile.DEVIL_BOOTS)) {
             applyEventDamageNoKnockback(target, Bukkit.getPlayer(state.sources.get(BurnProfile.DEVIL_BOOTS)),
-                    DEVIL_BOOTS_DAMAGE_PER_STACK * state.stacks, tick);
+                    DEVIL_BOOTS_DAMAGE_PER_STACK * state.stacks);
         }
         if (state.profiles.contains(BurnProfile.FLAME_BRAND)) {
             applyEventDamageNoKnockback(target, Bukkit.getPlayer(state.sources.get(BurnProfile.FLAME_BRAND)),
-                    maxHealth * FLAME_BRAND_DAMAGE_PER_STACK_RATIO * state.stacks, tick);
+                    maxHealth * FLAME_BRAND_DAMAGE_PER_STACK_RATIO * state.stacks);
         }
         if (state.profiles.contains(BurnProfile.FIRE_FIGHT_WITH_FIRE)) {
-            applyFixedDamage(target, maxHealth * FIRE_FIGHT_FIXED_DAMAGE_PER_STACK_RATIO * state.stacks, tick);
+            applyFixedDamage(target, maxHealth * FIRE_FIGHT_FIXED_DAMAGE_PER_STACK_RATIO * state.stacks);
         }
     }
 
-    private void applyEventDamageNoKnockback(LivingEntity target, Player source, double damage, int tick) {
+    private void suppressKnockback(LivingEntity target, int tick) {
+        SUPPRESSED_KNOCKBACKS.put(target.getUniqueId(),
+                new SuppressedKnockback(target.getVelocity().clone(), tick + 2));
+    }
+
+    private void applyEventDamageNoKnockback(LivingEntity target, Player source, double damage) {
         if (damage <= 0.0) {
             return;
         }
-        SUPPRESSED_KNOCKBACKS.put(target.getUniqueId(),
-                new SuppressedKnockback(target.getVelocity().clone(), tick + 2));
         target.setNoDamageTicks(0);
         if (source != null && source.isOnline()) {
             target.damage(damage, source);
@@ -202,12 +210,10 @@ public final class SharedBurn implements AbilityTickManager.Tickable, Listener {
         }
     }
 
-    private void applyFixedDamage(LivingEntity target, double damage, int tick) {
+    private void applyFixedDamage(LivingEntity target, double damage) {
         if (damage <= 0.0) {
             return;
         }
-        SUPPRESSED_KNOCKBACKS.put(target.getUniqueId(),
-                new SuppressedKnockback(target.getVelocity().clone(), tick + 2));
         double nextHealth = target.getHealth() - damage;
         if (nextHealth <= 0.0) {
             target.setHealth(0.0);
@@ -231,7 +237,7 @@ public final class SharedBurn implements AbilityTickManager.Tickable, Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onEntityKnockback(EntityKnockbackEvent event) {
-        SuppressedKnockback suppressed = SUPPRESSED_KNOCKBACKS.remove(event.getEntity().getUniqueId());
+        SuppressedKnockback suppressed = SUPPRESSED_KNOCKBACKS.get(event.getEntity().getUniqueId());
         if (suppressed == null || AbilityTickManager.getGlobalTick() > suppressed.expireTick) {
             return;
         }
