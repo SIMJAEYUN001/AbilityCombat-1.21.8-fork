@@ -3,6 +3,7 @@ package com.abilitycombat.ability.list;
 import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.ability.handler.ActiveHandler;
+import com.abilitycombat.effect.DamageModifier;
 import com.abilitycombat.game.Participant;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
@@ -174,12 +175,7 @@ public class Lazyness extends AbilityBase implements ActiveHandler {
         }
         applyingDamage = true;
         try {
-            double newHealth = player.getHealth() - damage;
-            if (newHealth <= 0) {
-                player.setHealth(0);
-            } else {
-                player.setHealth(newHealth);
-            }
+            DamageModifier.applyFlatDamage(player, damage, null);
         } finally {
             applyingDamage = false;
         }

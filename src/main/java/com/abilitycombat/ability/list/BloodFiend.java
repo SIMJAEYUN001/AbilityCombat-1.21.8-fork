@@ -3,6 +3,7 @@ package com.abilitycombat.ability.list;
 import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.ability.handler.ActiveHandler;
+import com.abilitycombat.effect.DamageModifier;
 import com.abilitycombat.game.Participant;
 import com.abilitycombat.utils.ParticleUtil;
 import com.abilitycombat.utils.LocationUtil;
@@ -102,26 +103,20 @@ public class BloodFiend extends AbilityBase implements ActiveHandler {
         stacks = 0;
         updateHud();
 
-        // 고정 데미지 적용
-        double newTargetHealth = target.getHealth() - stealAmount;
+        double targetHealthBefore = target.getHealth();
         applyingActiveSteal = true;
         try {
-            target.setNoDamageTicks(0);
-            if (newTargetHealth <= 0) {
-                target.setHealth(0.01);
-                target.damage(0.01, player);
-            } else {
-                target.setHealth(newTargetHealth);
-                target.damage(0.01, player);
-            }
+            DamageModifier.applyFlatDamage(target, stealAmount, player);
         } finally {
             applyingActiveSteal = false;
         }
+        double dealtDamage = Math.min(stealAmount,
+                Math.max(0.0, targetHealthBefore - (target.isDead() ? 0.0 : target.getHealth())));
 
         // 사용자 회복
         AttributeInstance attribute = player.getAttribute(Attribute.MAX_HEALTH);
         double maxHealth = attribute != null ? attribute.getValue() : 20.0;
-        double newHealth = Math.min(maxHealth, player.getHealth() + stealAmount);
+        double newHealth = Math.min(maxHealth, player.getHealth() + dealtDamage);
         player.setHealth(newHealth);
 
         // 효과

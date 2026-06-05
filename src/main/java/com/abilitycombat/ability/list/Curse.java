@@ -25,7 +25,7 @@ import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
@@ -70,7 +70,7 @@ public class Curse extends AbilityBase implements ActiveHandler {
 
     @Override
     protected void onActivate() {
-        subscribeEvent(EntityDamageByEntityEvent.class);
+        subscribeEvent(EntityDamageEvent.class);
     }
 
     @Override
@@ -108,26 +108,25 @@ public class Curse extends AbilityBase implements ActiveHandler {
 
     @Override
     public void handleBridgeEvent(Event event) {
-        if (event instanceof EntityDamageByEntityEvent) {
-            onDamage((EntityDamageByEntityEvent) event);
+        if (event instanceof EntityDamageEvent damageEvent) {
+            onDamage(damageEvent);
         }
     }
 
-    private void onDamage(EntityDamageByEntityEvent event) {
+    private void onDamage(EntityDamageEvent event) {
         if (doll == null || target == null) {
             return;
         }
         if (!doll.matches(event.getEntity())) {
             return;
         }
-        event.setCancelled(true);
-        doll.setNoDamageTicks(0);
         if (target.isDead()) {
             stopCurse();
             return;
         }
         int currentTick = AbilityTickManager.getGlobalTick();
         if (currentTick - lastTransferTick < TRANSFER_COOLDOWN_TICKS) {
+            event.setCancelled(true);
             return;
         }
         var maxAttr = target.getAttribute(Attribute.MAX_HEALTH);
@@ -135,6 +134,11 @@ public class Curse extends AbilityBase implements ActiveHandler {
         double healthRatio = Math.max(0.0, target.getHealth() / maxHealth);
         double multiplier = 0.4 + (1.0 - healthRatio) * 0.6;
         double transfer = getCalculatedFinalDamage(event) * multiplier;
+        event.setCancelled(true);
+        doll.setNoDamageTicks(0);
+        if (transfer <= 0.0) {
+            return;
+        }
         int previousNoDamageTicks = target.getNoDamageTicks();
         target.setNoDamageTicks(0);
         target.damage(transfer, getPlayer());

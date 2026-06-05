@@ -5,6 +5,7 @@ import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.ability.AbilityTickManager;
 import com.abilitycombat.ability.handler.ActiveHandler;
+import com.abilitycombat.effect.DamageModifier;
 import com.abilitycombat.game.Participant;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -45,7 +46,6 @@ public class Virtus extends AbilityBase implements ActiveHandler {
     private static final int DURATION_TICKS = 60; // 3초
     private static final double DAMAGE_MULTIPLIER = 0.25;
     private static final double REFLECT_RATIO = 0.4;
-    private static final double REFLECT_KNOCKBACK_DAMAGE = 0.001;
 
     private Cooldown cooldown = new Cooldown(COOLDOWN_SECONDS);
     private boolean guarding;
@@ -170,30 +170,7 @@ public class Virtus extends AbilityBase implements ActiveHandler {
         if (target == null || source == null || amount <= 0.0 || target.isDead()) {
             return;
         }
-        double currentHealth = target.getHealth();
-        if (amount >= currentHealth) {
-            target.setNoDamageTicks(0);
-            target.setHealth(REFLECT_KNOCKBACK_DAMAGE);
-            target.damage(REFLECT_KNOCKBACK_DAMAGE, source);
-            if (!target.isDead()) {
-                target.setHealth(0.0);
-            }
-            return;
-        }
-        double nextHealth = Math.max(REFLECT_KNOCKBACK_DAMAGE, currentHealth - amount);
-        target.setHealth(nextHealth);
-        triggerReflectKnockback(target, source, nextHealth);
-    }
-
-    private void triggerReflectKnockback(Player target, Player source, double restoredHealth) {
-        if (target == null || source == null || target.isDead()) {
-            return;
-        }
-        target.setNoDamageTicks(0);
-        target.damage(REFLECT_KNOCKBACK_DAMAGE, source);
-        if (!target.isDead()) {
-            target.setHealth(Math.max(REFLECT_KNOCKBACK_DAMAGE, restoredHealth));
-        }
+        DamageModifier.applyFlatDamage(target, amount, source);
     }
 
     private Player resolvePlayerAttacker(EntityDamageByEntityEvent event) {

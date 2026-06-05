@@ -4,6 +4,7 @@ import com.abilitycombat.AbilityCombat;
 import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.ability.handler.ActiveHandler;
+import com.abilitycombat.effect.DamageModifier;
 import com.abilitycombat.game.Participant;
 import com.abilitycombat.utils.LocationUtil;
 import io.papermc.paper.datacomponent.DataComponentTypes;
@@ -111,7 +112,7 @@ public class ExecutionTime extends AbilityBase implements ActiveHandler {
         }
         updateMarker(mark, target);
         if (tick >= mark.triggerTick) {
-            dealFixedDamage(target, BASE_DAMAGE + mark.rawDamage * STORED_DAMAGE_RATIO);
+            dealFixedDamage(target, BASE_DAMAGE + mark.rawDamage * STORED_DAMAGE_RATIO, getPlayer());
             clearMark();
         }
     }
@@ -151,12 +152,11 @@ public class ExecutionTime extends AbilityBase implements ActiveHandler {
         return target.getLocation().clone().add(0, target.getHeight() + 0.18, 0);
     }
 
-    private void dealFixedDamage(LivingEntity target, double amount) {
+    private void dealFixedDamage(LivingEntity target, double amount, Player source) {
         if (amount <= 0.0 || target.isDead()) {
             return;
         }
-        double nextHealth = target.getHealth() - amount;
-        target.setHealth(nextHealth <= 0.0 ? 0.0 : nextHealth);
+        DamageModifier.applyFlatDamage(target, amount, source);
     }
 
     private LivingEntity resolve(UUID id) {

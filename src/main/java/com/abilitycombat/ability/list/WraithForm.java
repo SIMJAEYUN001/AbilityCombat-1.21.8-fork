@@ -336,7 +336,7 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
         }
         spawn.setX(spawn.getBlockX() + 0.5);
         spawn.setZ(spawn.getBlockZ() + 0.5);
-        Block block = findStakeBlock(spawn);
+        Block block = findStakeBlock(spawn, owner);
         if (block == null) {
             return;
         }
@@ -362,7 +362,7 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
         stake = null;
     }
 
-    private Block findStakeBlock(Location center) {
+    private Block findStakeBlock(Location center, Player owner) {
         World world = center.getWorld();
         if (world == null) {
             return null;
@@ -371,7 +371,6 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
         int baseY = center.getBlockY();
         int baseZ = center.getBlockZ();
         int[][] offsets = {
-                {0, 0},
                 {1, 0},
                 {-1, 0},
                 {0, 1},
@@ -379,23 +378,48 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
                 {1, 1},
                 {1, -1},
                 {-1, 1},
-                {-1, -1}
+                {-1, -1},
+                {2, 0},
+                {-2, 0},
+                {0, 2},
+                {0, -2},
+                {2, 1},
+                {2, -1},
+                {-2, 1},
+                {-2, -1},
+                {1, 2},
+                {-1, 2},
+                {1, -2},
+                {-1, -2}
         };
         for (int[] offset : offsets) {
             Block block = world.getBlockAt(baseX + offset[0], baseY, baseZ + offset[1]);
-            if (canPlaceStakeBlock(block)) {
+            if (canPlaceStakeBlock(block, owner)) {
                 return block;
             }
         }
         return null;
     }
 
-    private boolean canPlaceStakeBlock(Block block) {
+    private boolean canPlaceStakeBlock(Block block, Player owner) {
         if (block == null) {
             return false;
         }
+        if (owner != null && owner.getWorld() == block.getWorld()) {
+            Location ownerLocation = owner.getLocation();
+            if (ownerLocation.getBlockX() == block.getX()
+                    && ownerLocation.getBlockY() == block.getY()
+                    && ownerLocation.getBlockZ() == block.getZ()) {
+                return false;
+            }
+            Location blockCenter = block.getLocation().add(0.5, 0.5, 0.5);
+            if (ownerLocation.distanceSquared(blockCenter) < 1.2 * 1.2) {
+                return false;
+            }
+        }
         Material type = block.getType();
-        return type.isAir() || (block.isPassable() && !block.isLiquid());
+        return (type.isAir() || (block.isPassable() && !block.isLiquid()))
+                && block.getRelative(0, 1, 0).isPassable();
     }
 
     private void spawnFieldBoundary() {

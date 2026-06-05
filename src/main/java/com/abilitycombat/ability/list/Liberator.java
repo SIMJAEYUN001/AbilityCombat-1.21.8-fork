@@ -3,6 +3,7 @@ package com.abilitycombat.ability.list;
 import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.ability.handler.ActiveHandler;
+import com.abilitycombat.effect.DamageModifier;
 import com.abilitycombat.game.Participant;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -35,9 +36,6 @@ public class Liberator extends AbilityBase implements ActiveHandler {
     private static final int DURATION_SECONDS = 10;
     private static final double DAMAGE_REDUCTION_MULTIPLIER = 0.75;
     private static final double RETURN_DAMAGE_RATIO = 0.75;
-    private static final double FIXED_DAMAGE_TRIGGER = 0.001;
-    private static final double FIXED_DAMAGE_MIN_HEALTH = 0.001;
-
     private final Cooldown cooldown = new Cooldown(COOLDOWN_SECONDS);
     private int remainingLiberationSeconds = 0;
     private boolean liberated;
@@ -193,15 +191,7 @@ public class Liberator extends AbilityBase implements ActiveHandler {
         if (target == null || target.isDead() || damage <= 0) {
             return;
         }
-        double newHealth = target.getHealth() - damage;
-        target.setNoDamageTicks(0);
-        if (newHealth <= 0) {
-            target.setHealth(FIXED_DAMAGE_MIN_HEALTH);
-            target.damage(FIXED_DAMAGE_TRIGGER, source);
-        } else {
-            target.setHealth(newHealth);
-            target.damage(FIXED_DAMAGE_TRIGGER, source);
-        }
+        DamageModifier.applyFlatDamage(target, damage, source);
     }
 
 }

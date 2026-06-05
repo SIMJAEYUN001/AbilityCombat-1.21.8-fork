@@ -23,10 +23,12 @@ public final class DamageModifier implements Listener {
     private static final long CLEANUP_PERIOD_TICKS = 20L;
     private static final double MIN_PERCENT = -95.0;
     private static final double MAX_PERCENT = 500.0;
+    private static final double FLAT_DAMAGE_TRIGGER = 0.001;
 
     private static final Map<UUID, Map<String, ModifierEntry>> INCOMING = new HashMap<>();
     private static final Map<UUID, Map<String, ModifierEntry>> OUTGOING = new HashMap<>();
     private static final Map<EntityDamageEvent, PendingAdjustment> PENDING = new IdentityHashMap<>();
+    private static final Map<UUID, OneShotFlatDamage> ONE_SHOT_FLAT = new HashMap<>();
 
     private static BukkitTask task;
     private static DamageModifier listener;
@@ -56,6 +58,7 @@ public final class DamageModifier implements Listener {
         INCOMING.clear();
         OUTGOING.clear();
         PENDING.clear();
+        ONE_SHOT_FLAT.clear();
         if (listener != null) {
             HandlerList.unregisterAll(listener);
             listener = null;
@@ -94,6 +97,22 @@ public final class DamageModifier implements Listener {
         addFlat(event, amount);
     }
 
+    public static void applyFlatDamage(LivingEntity target, double amount, Entity source) {
+        if (target == null || target.isDead() || amount <= 0.0 || !Double.isFinite(amount)) {
+            return;
+        }
+        UUID sourceId = source != null ? source.getUniqueId() : null;
+        ONE_SHOT_FLAT.put(target.getUniqueId(),
+                new OneShotFlatDamage(sourceId, amount, Bukkit.getCurrentTick() + 1));
+        target.setNoDamageTicks(0);
+        if (source != null && source.isValid()) {
+            target.damage(FLAT_DAMAGE_TRIGGER, source);
+        } else {
+            target.damage(FLAT_DAMAGE_TRIGGER);
+        }
+        ONE_SHOT_FLAT.remove(target.getUniqueId());
+    }
+
     public static double previewFinalDamage(EntityDamageEvent event) {
         return previewFinalDamage(event, PENDING.get(event));
     }
@@ -125,10 +144,15 @@ public final class DamageModifier implements Listener {
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDamage(EntityDamageEvent event) {
         PendingAdjustment pending = PENDING.remove(event);
+        OneShotFlatDamage oneShotFlatDamage = consumeOneShotFlatDamage(event);
         if (!(event.getEntity() instanceof LivingEntity target)) {
             return;
         }
         if (event.isCancelled()) {
+            return;
+        }
+        if (oneShotFlatDamage != null) {
+            applyFinalDamage(event, oneShotFlatDamage.amount);
             return;
         }
         double previewFinalDamage = previewFinalDamage(event, pending);
@@ -189,6 +213,36 @@ public final class DamageModifier implements Listener {
         return null;
     }
 
+    private static OneShotFlatDamage consumeOneShotFlatDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof LivingEntity target)) {
+            return null;
+        }
+        OneShotFlatDamage damage = ONE_SHOT_FLAT.get(target.getUniqueId());
+        if (damage == null) {
+            return null;
+        }
+        if (damage.expiresAtTick < Bukkit.getCurrentTick()) {
+            ONE_SHOT_FLAT.remove(target.getUniqueId());
+            return null;
+        }
+        if (damage.sourceId != null && !damage.sourceId.equals(resolveEventSourceId(event))) {
+            return null;
+        }
+        ONE_SHOT_FLAT.remove(target.getUniqueId());
+        return damage;
+    }
+
+    private static UUID resolveEventSourceId(EntityDamageEvent event) {
+        if (!(event instanceof org.bukkit.event.entity.EntityDamageByEntityEvent byEntity)) {
+            return null;
+        }
+        Entity damager = byEntity.getDamager();
+        if (damager instanceof Projectile projectile && projectile.getShooter() instanceof Entity shooter) {
+            return shooter.getUniqueId();
+        }
+        return damager.getUniqueId();
+    }
+
     private static void addPercent(EntityDamageEvent event, double percentDelta) {
         if (event == null) {
             return;
@@ -209,6 +263,8 @@ public final class DamageModifier implements Listener {
         long now = System.currentTimeMillis();
         cleanup(INCOMING, now);
         cleanup(OUTGOING, now);
+        int currentTick = Bukkit.getCurrentTick();
+        ONE_SHOT_FLAT.entrySet().removeIf(entry -> entry.getValue().expiresAtTick < currentTick);
     }
 
     private static void cleanup(Map<UUID, Map<String, ModifierEntry>> container, long now) {
@@ -283,5 +339,8 @@ public final class DamageModifier implements Listener {
     private static final class PendingAdjustment {
         private double percentDelta;
         private double flatDelta;
+    }
+
+    private record OneShotFlatDamage(UUID sourceId, double amount, int expiresAtTick) {
     }
 }

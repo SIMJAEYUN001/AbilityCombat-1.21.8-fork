@@ -3,6 +3,7 @@ package com.abilitycombat.ability.list;
 import com.abilitycombat.AbilityCombat;
 import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
+import com.abilitycombat.effect.DamageModifier;
 import com.abilitycombat.game.Participant;
 import com.abilitycombat.utils.LocationUtil;
 import net.kyori.adventure.text.Component;
@@ -163,7 +164,7 @@ public class StrategicSymbiosis extends AbilityBase {
         if (owner == null || amount <= 0.0 || !owner.isOnline() || owner.isDead()) {
             return;
         }
-        owner.setHealth(Math.max(0.0, owner.getHealth() - amount));
+        DamageModifier.applyFlatDamage(owner, amount, null);
         owner.playSound(owner.getLocation(), Sound.ENTITY_PLAYER_HURT, 0.6f, 1.4f);
     }
 

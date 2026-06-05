@@ -2,6 +2,7 @@ package com.abilitycombat.ability.list;
 
 import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
+import com.abilitycombat.effect.DamageModifier;
 import com.abilitycombat.game.Participant;
 import com.abilitycombat.utils.NearbyEntityCache;
 import org.bukkit.entity.LivingEntity;
@@ -47,12 +48,7 @@ public class Hedgehog extends AbilityBase {
             Player player = getPlayer();
             for (LivingEntity entity : nearbyCache.getNearby(player.getLocation(), RANGE,
                     e -> !e.equals(player) && com.abilitycombat.utils.LocationUtil.isValidTarget(getPlayer(), e), 10)) {
-                // 고정 데미지 1 (방어력/보호 무시) + 피격 판정(애니메이션)
-                double health = entity.getHealth();
-                entity.damage(0.0001, player); // 피격 판정 및 애니메이션 발생
-                if (!entity.isDead()) {
-                    entity.setHealth(Math.max(0, health - DAMAGE_AMOUNT));
-                }
+                DamageModifier.applyFlatDamage(entity, DAMAGE_AMOUNT, player);
             }
         }
     }

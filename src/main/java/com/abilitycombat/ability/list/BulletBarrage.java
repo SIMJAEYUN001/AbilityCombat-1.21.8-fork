@@ -3,6 +3,7 @@ package com.abilitycombat.ability.list;
 import com.abilitycombat.AbilityCombat;
 import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.ability.AbilityManifest;
+import com.abilitycombat.effect.DamageModifier;
 import com.abilitycombat.game.Participant;
 import com.abilitycombat.utils.LocationPool;
 import com.abilitycombat.utils.VectorPool;
@@ -190,15 +191,7 @@ public class BulletBarrage extends AbilityBase {
                 continue;
             }
 
-            double newHealth = entity.getHealth() - BULLET_DAMAGE;
-            if (newHealth <= 0) {
-                entity.setHealth(0.01);
-                entity.damage(0.01, shooter);
-            } else {
-                entity.setHealth(newHealth);
-                entity.damage(0.01, shooter);
-                entity.setNoDamageTicks(0);
-            }
+            DamageModifier.applyFlatDamage(entity, BULLET_DAMAGE, shooter);
 
             entity.getWorld().playSound(entity.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.2f);
             data.dead = true;

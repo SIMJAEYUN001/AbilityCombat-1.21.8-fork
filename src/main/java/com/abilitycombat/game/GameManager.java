@@ -603,9 +603,11 @@ public class GameManager implements Listener {
             if (winner == null) {
                 return;
             }
+            Component subtitle = buildWinnerNameWithAbility(winner.getUniqueId());
+            plugin.getServer().broadcast(Component.text("승리! ", NamedTextColor.GOLD).append(subtitle));
             Title titleObj = Title.title(
                     Component.text("승리!").color(NamedTextColor.GOLD),
-                    Component.text(winner.getName()).color(NamedTextColor.WHITE),
+                    subtitle,
                     times);
             for (Player player : Bukkit.getOnlinePlayers()) {
                 player.showTitle(titleObj);
@@ -617,7 +619,7 @@ public class GameManager implements Listener {
         }
         Component teamSubtitle = buildWinningTeamSubtitle(winningTeam, winners);
         plugin.getServer().broadcast(Component.text(winningTeam.getDisplayName() + " 승리!", winningTeam.getColor())
-                .append(Component.text(selectedMatchMode == MatchMode.DUO ? " - " + getWinnerNames(winners) : "",
+                .append(Component.text(selectedMatchMode == MatchMode.DUO ? " - " + getWinnerNamesWithAbilities(winners) : "",
                         NamedTextColor.WHITE)));
         for (Player player : Bukkit.getOnlinePlayers()) {
             boolean winner = winners.contains(player.getUniqueId());
@@ -635,19 +637,36 @@ public class GameManager implements Listener {
         if (selectedMatchMode != MatchMode.DUO) {
             return team;
         }
-        return team.append(Component.text(" - " + getWinnerNames(winners), NamedTextColor.WHITE));
+        return team.append(Component.text(" - " + getWinnerNamesWithAbilities(winners), NamedTextColor.WHITE));
     }
 
-    private String getWinnerNames(Set<UUID> winners) {
+    private Component buildWinnerNameWithAbility(UUID uuid) {
+        Player player = Bukkit.getPlayer(uuid);
+        String name = player != null ? player.getName() : "알 수 없음";
+        return Component.text(name, NamedTextColor.WHITE)
+                .append(Component.text(" - " + getWinnerAbilityName(uuid), NamedTextColor.AQUA));
+    }
+
+    private String getWinnerNamesWithAbilities(Set<UUID> winners) {
         List<String> names = new ArrayList<>();
         for (UUID uuid : winners) {
             Player player = Bukkit.getPlayer(uuid);
             if (player != null) {
-                names.add(player.getName());
+                names.add(player.getName() + "(" + getWinnerAbilityName(uuid) + ")");
             }
         }
         Collections.sort(names);
         return String.join(", ", names);
+    }
+
+    private String getWinnerAbilityName(UUID uuid) {
+        Participant participant = participants.get(uuid);
+        AbilityDefinition definition = participant != null ? participant.getAbilityDefinition() : null;
+        if (definition == null) {
+            return "능력 없음";
+        }
+        String displayName = definition.getDisplayName();
+        return displayName == null || displayName.isBlank() ? definition.getName() : displayName;
     }
 
     private void clearWinnerInventory(Set<UUID> winners) {
