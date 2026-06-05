@@ -381,8 +381,17 @@ abilities:
     icon: SHIELD
     summary:
       - "패시브: 대시마다 내구력 +1"
-      - "내구력: 최대 4스택, 스택당 피해 12% 감소"
+      - "내구력: 최대 4스택, 스택당 피해 8% 감소"
       - "보스바: 5초 유지 잔여시간 표시"
+  - name: "돌풍화살 (GustArrow)"
+    icon: ARROW
+    summary:
+      - "활 발사: 화살 대신 돌풍구 투사체"
+      - "적중: 밀쳐냄 + 피해 10"
+  - name: "확률적 방어 (ProbabilisticDefense)"
+    icon: SHIELD
+    summary:
+      - "패시브: 피격 시 50% 확률로 피해 45% 감소"
   - name: "너만을 위해 (ForYouOnly)"
     icon: TOTEM_OF_UNDYING
     summary:

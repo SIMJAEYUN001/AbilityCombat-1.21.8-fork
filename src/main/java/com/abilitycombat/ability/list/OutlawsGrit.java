@@ -16,18 +16,18 @@ import org.bukkit.event.entity.EntityDamageEvent;
 @AbilityManifest(name = "무법자의 투지 (OutlawsGrit)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 내구력]",
         "§7대시를 사용할 때마다 §f내구력 1스택§7을 얻습니다",
-        "§7최대 §f4스택§7까지 쌓이고, 스택당 받는 피해가 §b12% 감소§7합니다",
+        "§7최대 §f4스택§7까지 쌓이고, 스택당 받는 피해가 §b8% 감소§7합니다",
         "§7내구력 스택과 유지시간은 보스바로 표시됩니다",
         "§75초§7 이상 대시를 사용하지 않으면 내구력 스택이 초기화됩니다"
 }, summarize = {
         "§7패시브§f: 대시마다 내구력 +1",
-        "§7내구력§f: 최대 4스택, 스택당 피해 12% 감소",
+        "§7내구력§f: 최대 4스택, 스택당 피해 8% 감소",
         "§7보스바§f: 스택 유지 잔여시간 표시"
 })
 public class OutlawsGrit extends AbilityBase implements SprintHudService.DashListener {
 
     private static final int MAX_STACKS = 4;
-    private static final double REDUCTION_PER_STACK = 0.12;
+    private static final double REDUCTION_PER_STACK = 0.08;
     private static final int RESET_TICKS = 100;
     private static final int GAUGE_PRIORITY = 7;
 
