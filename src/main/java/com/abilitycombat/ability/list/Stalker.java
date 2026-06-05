@@ -11,6 +11,8 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
 import java.util.UUID;
@@ -18,7 +20,7 @@ import java.util.UUID;
 @AbilityManifest(name = "스토커 (Stalker)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 집착]",
         "§7같은 대상을 공격할 때마다 §6집착 스택§7이 쌓입니다 (최대 §f5§7, §f10초§7 유지)",
-        "§75스택이 되면 스택을 소모해 대상에게 §c받는 피해 +16%§7를 부여합니다",
+        "§75스택이 되면 스택을 소모해 §8실명 2초§7와 §c받는 피해 +16%§7를 부여합니다",
         "§7피해 증가 디버프는 §f20초§7간 유지됩니다",
         "",
         "§e§l[철괴 우클릭 - 관전]§f §8(쿨타임: 105초 - 스택×10, 최소 30초)",
@@ -27,8 +29,8 @@ import java.util.UUID;
         "§e§l[검 우클릭 - 질주]§f §8(쿨타임: 4초)",
         "§7§f6칸§7 내 대상에게 짧게 돌진합니다"
 }, summarize = {
-        "§7집착 스택§f: 5스택 소모 시 받는 피해 +16%",
-        "§7디버프§f: 20초 유지",
+        "§7집착 스택§f: 5스택 소모 시 실명 2초",
+        "§7디버프§f: 받는 피해 +16% 20초",
         "§7철괴/검 우클릭§f: 돌진"
 })
 public class Stalker extends AbilityBase implements ActiveHandler {
@@ -39,6 +41,7 @@ public class Stalker extends AbilityBase implements ActiveHandler {
     private static final double SHORT_RANGE = 6.0;
     private static final int DASH_SECONDS = 3;
     private static final int MAX_OBSESSION_STACK = 5;
+    private static final int OBSESSION_BLIND_TICKS = 40;
     private static final int VULNERABILITY_TICKS = 400;
     private static final double VULNERABILITY_PERCENT = 16.0;
     private static final String VULNERABILITY_SOURCE_KEY = "stalker_obsession";
@@ -109,6 +112,7 @@ public class Stalker extends AbilityBase implements ActiveHandler {
         }
         stack = Math.min(MAX_OBSESSION_STACK, stack + 1);
         if (stack >= MAX_OBSESSION_STACK) {
+            target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, OBSESSION_BLIND_TICKS, 0, true, false));
             DamageModifier.applyIncoming(target, VULNERABILITY_TICKS, VULNERABILITY_SOURCE_KEY,
                     VULNERABILITY_PERCENT);
             stack = 0;

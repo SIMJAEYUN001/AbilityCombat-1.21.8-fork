@@ -337,8 +337,8 @@ abilities:
   - name: "스토커 (Stalker)"
     icon: COMPASS
     summary:
-      - "집착 스택: 5스택 소모 시 받는 피해 +16%"
-      - "디버프: 20초 유지"
+      - "집착 스택: 5스택 소모 시 실명 2초"
+      - "디버프: 받는 피해 +16% 20초"
       - "10초 유지, 철괴/검 우클릭 돌진"
   - name: "예티 (Yeti)"
     icon: SNOW_BLOCK
