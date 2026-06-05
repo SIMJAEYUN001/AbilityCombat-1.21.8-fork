@@ -24,6 +24,9 @@ public final class DamageModifier implements Listener {
     private static final double MIN_PERCENT = -95.0;
     private static final double MAX_PERCENT = 500.0;
     private static final double FLAT_DAMAGE_TRIGGER = 0.001;
+    private static final double DAMAGE_SEARCH_EPSILON = 1.0E-4;
+    private static final double MAX_RAW_DAMAGE = 1_000_000.0;
+    private static final int DAMAGE_SEARCH_ITERATIONS = 28;
 
     private static final Map<UUID, Map<String, ModifierEntry>> INCOMING = new HashMap<>();
     private static final Map<UUID, Map<String, ModifierEntry>> OUTGOING = new HashMap<>();
@@ -305,14 +308,37 @@ public final class DamageModifier implements Listener {
             return;
         }
         double clampedTargetFinal = Math.max(0.0, targetFinalDamage);
-        double currentBaseDamage = Math.max(0.0, event.getDamage());
-        double currentFinalDamage = Math.max(0.0, event.getFinalDamage());
-        if (currentFinalDamage <= 1.0E-6 || currentBaseDamage <= 1.0E-6) {
-            event.setDamage(clampedTargetFinal);
+        if (clampedTargetFinal <= DAMAGE_SEARCH_EPSILON) {
+            event.setDamage(0.0);
             return;
         }
-        double rawMultiplier = clampedTargetFinal / currentFinalDamage;
-        event.setDamage(Math.max(0.0, currentBaseDamage * rawMultiplier));
+
+        double high = Math.min(MAX_RAW_DAMAGE, Math.max(1.0, Math.max(event.getDamage(), clampedTargetFinal)));
+        while (high < MAX_RAW_DAMAGE) {
+            event.setDamage(high);
+            if (Math.max(0.0, event.getFinalDamage()) >= clampedTargetFinal - DAMAGE_SEARCH_EPSILON) {
+                break;
+            }
+            high = Math.min(MAX_RAW_DAMAGE, high * 2.0);
+        }
+
+        event.setDamage(high);
+        if (Math.max(0.0, event.getFinalDamage()) < clampedTargetFinal - DAMAGE_SEARCH_EPSILON) {
+            return;
+        }
+
+        double low = 0.0;
+        for (int i = 0; i < DAMAGE_SEARCH_ITERATIONS; i++) {
+            double mid = (low + high) * 0.5;
+            event.setDamage(mid);
+            double finalDamage = Math.max(0.0, event.getFinalDamage());
+            if (finalDamage < clampedTargetFinal) {
+                low = mid;
+            } else {
+                high = mid;
+            }
+        }
+        event.setDamage(high);
     }
 
     private static double percentToMultiplier(double percentDelta) {
