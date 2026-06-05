@@ -25,12 +25,12 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @AbilityManifest(name = "도박꾼 (Gambler)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 판돈 재분배]§f §8(쿨타임: 30초)",
-        "§7이동속도, 사거리, 최대체력, 받는 피해, 주는 피해가 무작위로 변합니다",
-        "§7각 스탯은 §f0~99%§7 범위에서 증가하거나 감소합니다",
-        "§7다섯 스탯의 증감 합계는 항상 §f0%§7입니다",
-        "§7사용 후 액션바에 현재 스탯 변동량이 표시됩니다"
+        "§7이동속도, 공격 사거리, 최대 체력, 받는 피해 감소, 주는 피해가 무작위로 변합니다",
+        "§7각 전투 능력치는 §f0~99%§7 범위에서 증가하거나 감소합니다",
+        "§7다섯 전투 능력치의 증감 합계는 항상 §f0%§7입니다",
+        "§7사용 후 액션바에 현재 전투 능력치 변동량이 표시됩니다"
 }, summarize = {
-        "§7철괴 우클릭§f: 5개 전투 스탯 0~99% 무작위 조정",
+        "§7철괴 우클릭§f: 5개 전투 능력치 0~99% 무작위 조정",
         "§7조건§f: 모든 증감 합계 0%"
 })
 public class Gambler extends AbilityBase implements ActiveHandler {
@@ -208,11 +208,11 @@ public class Gambler extends AbilityBase implements ActiveHandler {
             return;
         }
         List<Component> parts = new ArrayList<>();
-        parts.add(Component.text("이속 " + format(speedPercent), color(speedPercent)));
-        parts.add(Component.text(" 사거리 " + format(rangePercent), color(rangePercent)));
-        parts.add(Component.text(" 체력 " + format(healthPercent), color(healthPercent)));
-        parts.add(Component.text(" 받피감 " + format(incomingPercent), color(incomingPercent)));
-        parts.add(Component.text(" 주피 " + format(outgoingPercent), color(outgoingPercent)));
+        parts.add(Component.text("이동속도 " + format(speedPercent), color(speedPercent)));
+        parts.add(Component.text(" 공격 사거리 " + format(rangePercent), color(rangePercent)));
+        parts.add(Component.text(" 최대 체력 " + format(healthPercent), color(healthPercent)));
+        parts.add(Component.text(" 받는 피해 감소 " + format(incomingPercent), color(incomingPercent)));
+        parts.add(Component.text(" 주는 피해 " + format(outgoingPercent), color(outgoingPercent)));
         Component message = Component.text("도박꾼 ", NamedTextColor.GOLD);
         for (Component part : parts) {
             message = message.append(part);

@@ -39,8 +39,8 @@ import java.util.UUID;
         "§e§l[패시브 - 전투 인형]",
         "§7자신을 따라다니는 §f60% 크기§7의 체력 §f30§7 인형을 소환합니다",
         "§7인형은 장비 없이 사용자 스킨을 복제하고 일반 사람의 §b120% 속도§7로 이동합니다",
-        "§7사용자가 공격한 대상을 함께 추적해 타격마다 §c6 피해§7를 줍니다",
-        "§7인형이 사용자와 §f7칸§7 이상 멀어지면 사용자 위치로 돌아오고 전투를 멈춥니다",
+        "§7사용자가 공격하거나 사용자/인형을 공격한 대상을 추적해 타격마다 §c6 피해§7를 줍니다",
+        "§7인형이 사용자와 §f10칸§7 이상 멀어지면 사용자 위치로 돌아오고 전투를 멈춥니다",
         "§7인형 사망 시 §f50초§7 후 자동 재소환되며 체력과 재소환 시간은 보스바로 표시됩니다",
         "",
         "§e§l[철괴 우클릭 - 인형 투척]§f §8(쿨타임: 15초)",
@@ -60,7 +60,7 @@ public class PuppetMaster extends AbilityBase implements ActiveHandler {
     private static final double PUPPET_GRAVITY = 0.08;
     private static final double PUPPET_DRAG = 0.02;
     private static final double FOLLOW_DISTANCE = 2.4;
-    private static final double RETURN_DISTANCE = 7.0;
+    private static final double RETURN_DISTANCE = 10.0;
     private static final double ATTACK_RANGE = 2.2;
     private static final int ATTACK_INTERVAL_TICKS = 16;
     private static final int RESPAWN_TICKS = 1000;
@@ -152,16 +152,19 @@ public class PuppetMaster extends AbilityBase implements ActiveHandler {
             Entity damager = resolveDamager(event.getDamager());
             if (damager != null && damager.getUniqueId().equals(owner.getUniqueId())) {
                 event.setCancelled(true);
+                return;
             }
+            setCombatTarget(owner, damager);
+            return;
+        }
+        if (event.getEntity().getUniqueId().equals(owner.getUniqueId())) {
+            setCombatTarget(owner, resolveDamager(event.getDamager()));
             return;
         }
         if (!event.getDamager().equals(owner) || !(event.getEntity() instanceof LivingEntity target)) {
             return;
         }
-        if (!LocationUtil.isValidTarget(owner, target)) {
-            return;
-        }
-        combatTargetId = target.getUniqueId();
+        setCombatTarget(owner, target);
     }
 
     private void onPuppetDamage(EntityDamageEvent event) {
@@ -319,6 +322,13 @@ public class PuppetMaster extends AbilityBase implements ActiveHandler {
             return entity;
         }
         return damager;
+    }
+
+    private void setCombatTarget(Player owner, Entity entity) {
+        if (!(entity instanceof LivingEntity target) || !LocationUtil.isValidTarget(owner, target)) {
+            return;
+        }
+        combatTargetId = target.getUniqueId();
     }
 
     private void tickRespawn() {
