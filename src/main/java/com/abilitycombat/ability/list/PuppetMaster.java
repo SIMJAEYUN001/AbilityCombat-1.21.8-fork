@@ -43,13 +43,13 @@ import java.util.UUID;
         "§7인형이 사용자와 §f7칸§7 이상 멀어지면 사용자 위치로 돌아오고 전투를 멈춥니다",
         "§7인형 사망 시 §f50초§7 후 자동 재소환되며 체력과 재소환 시간은 보스바로 표시됩니다",
         "",
-        "§e§l[철괴 우클릭 - 인형 투척]",
+        "§e§l[철괴 우클릭 - 인형 투척]§f §8(쿨타임: 15초)",
         "§7인형을 바라보는 방향으로 발사하고 §f5초§7간 복귀를 막습니다",
         "§7착지 지점 주변 §f5칸§7 적을 §e1.5초 기절§7시키고 전투를 시작합니다"
 }, summarize = {
         "§7패시브§f: 체력 30 인형이 따라다니며 대상 추격",
         "§7인형 공격§f: 타격마다 피해 6",
-        "§7철괴 우클릭§f: 인형 발사, 착지 주변 5칸 기절 1.5초"
+        "§7철괴 우클릭§f: 인형 발사, 착지 주변 5칸 기절 1.5초 (15초)"
 })
 public class PuppetMaster extends AbilityBase implements ActiveHandler {
 
@@ -68,10 +68,12 @@ public class PuppetMaster extends AbilityBase implements ActiveHandler {
     private static final double LAUNCH_SPEED = 1.8;
     private static final double LAUNCH_RADIUS = 5.0;
     private static final int LAUNCH_STUN_TICKS = 30;
+    private static final int LAUNCH_COOLDOWN_SECONDS = 15;
     private static final int GAUGE_PRIORITY = 7;
 
     private final BossBarGauge puppetGauge = new BossBarGauge("puppet", GAUGE_PRIORITY, BossBar.Color.PURPLE,
             BossBar.Overlay.PROGRESS);
+    private final Cooldown launchCooldown = new Cooldown(LAUNCH_COOLDOWN_SECONDS);
 
     private PlayerReplica puppet;
     private UUID combatTargetId;
@@ -112,6 +114,10 @@ public class PuppetMaster extends AbilityBase implements ActiveHandler {
         if (owner == null || !isPuppetAlive()) {
             return false;
         }
+        if (launchCooldown.isCooldown()) {
+            notifyCooldown(launchCooldown);
+            return false;
+        }
         Vector direction = owner.getLocation().getDirection();
         if (direction.lengthSquared() <= 1.0E-6) {
             direction = new Vector(0, 0, 1);
@@ -122,6 +128,8 @@ public class PuppetMaster extends AbilityBase implements ActiveHandler {
         combatTargetId = null;
         returnDisabledUntilTick = AbilityTickManager.getGlobalTick() + RETURN_DISABLE_TICKS;
         owner.getWorld().playSound(owner.getLocation(), Sound.ENTITY_WIND_CHARGE_THROW, 0.8f, 1.0f);
+        launchCooldown.start();
+        applyIronCooldownIfEmpty(LAUNCH_COOLDOWN_SECONDS);
         return true;
     }
 
