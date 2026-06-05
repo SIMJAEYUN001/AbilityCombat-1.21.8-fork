@@ -50,6 +50,7 @@ public class BloodFiend extends AbilityBase implements ActiveHandler {
 
     private int stacks;
     private int stackResetTicks;
+    private boolean applyingActiveSteal;
     private final Cooldown activeCooldown = new Cooldown(ACTIVE_COOLDOWN_SECONDS);
     private final BossBarGauge durationGauge = new BossBarGauge("duration", 5, BossBar.Color.RED,
             BossBar.Overlay.PROGRESS);
@@ -103,13 +104,18 @@ public class BloodFiend extends AbilityBase implements ActiveHandler {
 
         // 고정 데미지 적용
         double newTargetHealth = target.getHealth() - stealAmount;
-        if (newTargetHealth <= 0) {
-            target.setHealth(0.01);
-            target.damage(0.01, player);
-        } else {
-            target.setHealth(newTargetHealth);
-            target.damage(0.01, player);
+        applyingActiveSteal = true;
+        try {
             target.setNoDamageTicks(0);
+            if (newTargetHealth <= 0) {
+                target.setHealth(0.01);
+                target.damage(0.01, player);
+            } else {
+                target.setHealth(newTargetHealth);
+                target.damage(0.01, player);
+            }
+        } finally {
+            applyingActiveSteal = false;
         }
 
         // 사용자 회복
@@ -139,6 +145,9 @@ public class BloodFiend extends AbilityBase implements ActiveHandler {
         if (event.isCancelled()) {
             return;
         }
+        if (applyingActiveSteal) {
+            return;
+        }
         if (!(event.getDamager() instanceof Player attacker) || !attacker.equals(getPlayer())) {
             return;
         }
@@ -150,7 +159,7 @@ public class BloodFiend extends AbilityBase implements ActiveHandler {
         if (!activeCooldown.isCooldown()) {
             double bonusDamage = stacks * BONUS_DAMAGE_PER_STACK;
             if (bonusDamage > 0) {
-                addOutgoingDamage(event, bonusDamage);
+                event.setDamage(Math.max(0.0, event.getDamage() + bonusDamage));
             }
         }
 
