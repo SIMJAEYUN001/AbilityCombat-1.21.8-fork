@@ -391,8 +391,9 @@ abilities:
   - name: "처형 시간 (ExecutionTime)"
     icon: PLAYER_HEAD
     summary:
-      - "패시브: 8칸 적에게 10초 처형 표식"
+      - "철괴 우클릭: 8칸 적 1명에게 10초 처형 표식"
       - "종료: 2 + 기록 피해 40% 고정 피해"
+      - "표식 1개, 쿨타임 35초"
   - name: "최상급 조준경 (ApexScope)"
     icon: SPYGLASS
     summary:
@@ -400,7 +401,7 @@ abilities:
   - name: "구급상자 (FirstAidKit)"
     icon: HONEY_BOTTLE
     summary:
-      - "패시브: 체력 50% 미만 아군 발광"
+      - "패시브: 체력 50% 미만 아군 사용자 전용 발광"
       - "우클릭: 12칸 팀원 체력 14 회복"
       - "좌클릭: 자신 체력 7 회복 (공유 45초)"
   - name: "평화주의자 (Pacifist)"

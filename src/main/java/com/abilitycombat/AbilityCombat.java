@@ -285,6 +285,11 @@ public final class AbilityCombat extends JavaPlugin {
                     skeleton.remove();
                 }
             }
+            for (org.bukkit.entity.ItemDisplay display : world.getEntitiesByClass(org.bukkit.entity.ItemDisplay.class)) {
+                if (display.getPersistentDataContainer().has(abilityStandKey, PersistentDataType.BYTE)) {
+                    display.remove();
+                }
+            }
         }
     }
 
@@ -300,11 +305,18 @@ public final class AbilityCombat extends JavaPlugin {
         if (stand == null) {
             return;
         }
+        markAbilityEntity(stand);
+    }
+
+    public static void markAbilityEntity(org.bukkit.entity.Entity entity) {
+        if (entity == null) {
+            return;
+        }
         AbilityCombat plugin = getPlugin();
         if (plugin == null) {
             return;
         }
-        stand.getPersistentDataContainer().set(getAbilityArmorStandKey(plugin), PersistentDataType.BYTE, (byte) 1);
+        entity.getPersistentDataContainer().set(getAbilityArmorStandKey(plugin), PersistentDataType.BYTE, (byte) 1);
     }
 
     public static void markPiercingAbilityArmorStand(ArmorStand stand) {
