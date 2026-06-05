@@ -190,12 +190,11 @@ abilities:
     icon: LIGHTNING_ROD
     summary:
       - "패시브: 근접 적중 시 5칸 내 3명에게 35% 전이 피해"
-      - "전이 대상: 대상별 쿨타임 없음"
   - name: "궤도형 레이저 (OrbitalLaser)"
     icon: BEACON
     summary:
       - "철괴 우클릭: 20칸 지점 지정 후 6초 뒤 레이저"
-      - "적중: 반경 12.5칸, 피해 40 + 실명 2초"
+      - "적중: 반경 12.5칸, 피해 20 + 잃은 체력 80% + 실명 2초"
   - name: "탭 댄서 (TapDancer)"
     icon: GOLDEN_BOOTS
     summary:

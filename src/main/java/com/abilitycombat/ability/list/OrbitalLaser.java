@@ -8,6 +8,8 @@ import com.abilitycombat.game.Participant;
 import com.abilitycombat.utils.LocationUtil;
 import com.abilitycombat.utils.ParticleUtil;
 import com.abilitycombat.vfx.Circle;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.Color;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
@@ -27,17 +29,18 @@ import org.bukkit.util.Vector;
         "§e§l[철괴 우클릭 - 궤도 폭격]§f §8(쿨타임: 20초)",
         "§7바라보는 지점 최대 §f20칸§7에 §c붉은 경고 원§7을 §f6초§7 표시합니다.",
         "§7이후 높이 §f15칸§7 수직 레이저가 내려오며 반경 §f12.5칸§7을 타격합니다.",
-        "§7적중한 적은 §c40 피해§7와 §f실명 2초§7를 받습니다."
+        "§7적중한 적은 §c20 + 잃은 체력의 80% 피해§7와 §f실명 2초§7를 받습니다."
 }, summarize = {
         "§7철괴 우클릭§f: 20칸 지점 지정 → 6초 후 레이저",
-        "§7적중§f: 반경 12.5칸, 피해 40 + 실명 2초"
+        "§7적중§f: 반경 12.5칸, 피해 20 + 잃은 체력 80% + 실명 2초"
 })
 public class OrbitalLaser extends AbilityBase implements ActiveHandler {
 
     private static final int COOLDOWN_SECONDS = 20;
     private static final double MAX_RANGE = 20.0;
     private static final double BLAST_RADIUS = 12.5;
-    private static final double DAMAGE = 40.0;
+    private static final double BASE_DAMAGE = 20.0;
+    private static final double MISSING_HEALTH_DAMAGE_RATIO = 0.8;
     private static final int BLIND_TICKS = 40;
     private static final int WARNING_TICKS = 120;
     private static final int LASER_HEIGHT = 15;
@@ -194,9 +197,16 @@ public class OrbitalLaser extends AbilityBase implements ActiveHandler {
         for (LivingEntity target : LocationUtil.getNearbyLivingEntities(impactLocation, BLAST_RADIUS, player,
                 entity -> !(entity instanceof ArmorStand))) {
             target.setNoDamageTicks(0);
-            target.damage(DAMAGE, player);
+            target.damage(calculateDamage(target), player);
             target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, BLIND_TICKS, 0, true, true));
         }
+    }
+
+    private double calculateDamage(LivingEntity target) {
+        AttributeInstance maxHealth = target.getAttribute(Attribute.MAX_HEALTH);
+        double maximum = maxHealth != null ? maxHealth.getValue() : target.getHealth();
+        double missingHealth = Math.max(0.0, maximum - target.getHealth());
+        return BASE_DAMAGE + missingHealth * MISSING_HEALTH_DAMAGE_RATIO;
     }
 
     private void startRisingExplosionEffect(Location base) {
