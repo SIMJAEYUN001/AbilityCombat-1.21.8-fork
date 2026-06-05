@@ -102,11 +102,8 @@ public final class ActionbarChannel implements Runnable {
                 clearIfNeeded(player);
                 continue;
             }
-            Component last = lastSent.get(uuid);
-            if (!selected.message.equals(last)) {
-                player.sendActionBar(selected.message);
-                lastSent.put(uuid, selected.message);
-            }
+            player.sendActionBar(selected.message);
+            lastSent.put(uuid, selected.message);
             hadMessage.put(uuid, true);
         }
         cleanupOffline();

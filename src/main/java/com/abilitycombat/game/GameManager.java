@@ -93,6 +93,7 @@ import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.event.block.Action;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
@@ -373,8 +374,18 @@ public class GameManager implements Listener {
                 && AbilityFactory.isRegistered(participant.getAbilityDefinition().getName())) {
             participant.setAbility(AbilityFactory.create(participant.getAbilityDefinition().getName(), participant));
         }
+        restoreRevivedVisibility(player);
         updateVisibility();
         syncTeamHealthDisplayVisibility();
+    }
+
+    private void restoreRevivedVisibility(Player player) {
+        player.setInvisible(false);
+        player.removePotionEffect(PotionEffectType.INVISIBILITY);
+        for (Player viewer : Bukkit.getOnlinePlayers()) {
+            viewer.showPlayer(plugin, player);
+            player.showPlayer(plugin, viewer);
+        }
     }
 
     public void allowReplicaDamageTransfer(Entity source, Player target) {
