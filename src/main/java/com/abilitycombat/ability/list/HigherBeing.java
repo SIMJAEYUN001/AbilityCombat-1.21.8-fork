@@ -118,6 +118,6 @@ public class HigherBeing extends AbilityBase implements ActiveHandler {
             return;
         }
         double bonus = Math.min(MAX_BONUS, heightDiff * BONUS_PER_HEIGHT);
-        addOutgoingDamage(event, bonus);
+        event.setDamage(Math.max(0.0, event.getDamage() + bonus));
     }
 }

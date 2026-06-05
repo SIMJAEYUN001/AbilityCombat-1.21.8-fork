@@ -19,6 +19,7 @@ import com.abilitycombat.gui.ChaosPreviewGui;
 import com.abilitycombat.gui.ConfigGui;
 import com.abilitycombat.gui.ToolkitGui;
 import com.abilitycombat.npc.PlayerReplicaManager;
+import com.abilitycombat.utils.FakeGlow;
 import io.papermc.paper.event.entity.EntityKnockbackEvent;
 import io.papermc.paper.scoreboard.numbers.NumberFormat;
 import net.kyori.adventure.text.Component;
@@ -158,6 +159,7 @@ public class GameManager implements Listener {
     private static final int MAP_RESTORE_CHUNKS_PER_TICK = 2;
     private static final String SELECTION_HUD_KEY = "aw:selection";
     private static final int SELECTION_HUD_PRIORITY = 1;
+    private static final String SELECTION_TEAM_GLOW_TEAM = "aw_select_team";
     private static final String VICTORY_FIREWORK_KEY = "victory_firework";
     private static final int BORDER_DAMAGE_INTERVAL_SECONDS = 1;
     private static final double STATIONARY_BORDER_RADIUS_SHRINK_PER_SECOND = 0.001;
@@ -224,6 +226,7 @@ public class GameManager implements Listener {
     private final Map<UUID, Scoreboard> playerScoreboards = new HashMap<>();
     private final Map<UUID, List<String>> playerSidebarEntries = new HashMap<>();
     private final Map<UUID, TextDisplay> teamHealthDisplays = new HashMap<>();
+    private final Map<UUID, Set<UUID>> selectionTeamGlowTargets = new HashMap<>();
 
 	    public GameManager(AbilityCombat plugin, AbilityRegistry abilityRegistry) {
 	        this.plugin = plugin;
@@ -508,6 +511,7 @@ public class GameManager implements Listener {
         CombatTeam winningTeam = resolveWinningTeam();
         stopTasks();
         clearSelectionHud();
+        clearSelectionTeamGlow();
         resetWorldBorder();
         clearDroppedItems();
         announceResult(winningTeam, winners);
@@ -1486,6 +1490,7 @@ public class GameManager implements Listener {
     private void finalizeSelection() {
         stopSelectionTask();
         clearSelectionHud();
+        clearSelectionTeamGlow();
         selectionRemaining = 0;
         for (Map.Entry<UUID, SelectionSession> entry : selectionSessions.entrySet()) {
             UUID uuid = entry.getKey();
@@ -2484,7 +2489,7 @@ public class GameManager implements Listener {
     }
 
     private void updateScoreboard() {
-        if (state != GameState.RUNNING) {
+        if (state != GameState.RUNNING && state != GameState.SELECTING) {
             return;
         }
         ScoreboardManager manager = Bukkit.getScoreboardManager();
@@ -2511,6 +2516,11 @@ public class GameManager implements Listener {
 
 	    private List<String> buildScoreboardLines(Player viewer) {
 	        List<String> lines = new ArrayList<>();
+            if (state == GameState.SELECTING) {
+                lines.add("§e능력 선택까지: §f" + formatTime(selectionRemaining));
+                appendTeamLines(lines, viewer);
+                return lines;
+            }
 	        if (invincible) {
 	            lines.add("§e무적 해제까지: §f" + formatTime(invincibilityRemaining));
 	            return lines;
@@ -2527,18 +2537,24 @@ public class GameManager implements Listener {
 	        } else {
 	            lines.add("§e다음 페이즈까지 남은 시간: §f" + formatTime(phaseRemaining));
 	        }
-            if (isTeamMode() && viewer != null && isAlive(viewer)) {
-                CombatTeam team = getPlayerTeam(viewer);
-                if (team != null) {
-                    lines.add(" ");
-                    lines.add(team.getLegacyColor() + "내 팀");
-                    for (String teammate : getAliveTeamMemberNames(team)) {
-                        lines.add(team.getLegacyColor() + teammate);
-                    }
-                }
-            }
+            appendTeamLines(lines, viewer);
 	        return lines;
 	    }
+
+    private void appendTeamLines(List<String> lines, Player viewer) {
+        if (!isTeamMode() || viewer == null || !isAlive(viewer)) {
+            return;
+        }
+        CombatTeam team = getPlayerTeam(viewer);
+        if (team == null) {
+            return;
+        }
+        lines.add(" ");
+        lines.add(team.getLegacyColor() + "내 팀");
+        for (String teammate : getAliveTeamMemberNames(team)) {
+            lines.add(team.getLegacyColor() + teammate);
+        }
+    }
 
     private void updateScoreboard(Player viewer, ScoreboardManager manager) {
         UUID viewerId = viewer.getUniqueId();
@@ -2766,6 +2782,8 @@ public class GameManager implements Listener {
                 player.sendActionBar(message);
             }
         }
+        updateScoreboard();
+        syncSelectionTeamGlow();
     }
 
     private void clearSelectionHud() {
@@ -2777,6 +2795,88 @@ public class GameManager implements Listener {
                 player.sendActionBar(Component.empty());
             }
         }
+    }
+
+    private void syncSelectionTeamGlow() {
+        if (state != GameState.SELECTING || !isTeamMode()) {
+            clearSelectionTeamGlow();
+            return;
+        }
+        Set<UUID> onlineViewers = new HashSet<>();
+        for (Player viewer : Bukkit.getOnlinePlayers()) {
+            onlineViewers.add(viewer.getUniqueId());
+            syncSelectionTeamGlow(viewer);
+        }
+        selectionTeamGlowTargets.keySet().removeIf(uuid -> !onlineViewers.contains(uuid));
+    }
+
+    private void syncSelectionTeamGlow(Player viewer) {
+        if (viewer == null || !isAlive(viewer)) {
+            clearSelectionTeamGlow(viewer);
+            return;
+        }
+        CombatTeam team = getPlayerTeam(viewer);
+        if (team == null) {
+            clearSelectionTeamGlow(viewer);
+            return;
+        }
+        Set<UUID> desired = new HashSet<>();
+        for (Player teammate : getTeammates(viewer, true)) {
+            desired.add(teammate.getUniqueId());
+            FakeGlow.show(viewer, teammate, SELECTION_TEAM_GLOW_TEAM, team.getNamedColor());
+        }
+        Set<UUID> current = selectionTeamGlowTargets.computeIfAbsent(viewer.getUniqueId(), ignored -> new HashSet<>());
+        for (UUID targetId : new HashSet<>(current)) {
+            if (desired.contains(targetId)) {
+                continue;
+            }
+            Player target = Bukkit.getPlayer(targetId);
+            FakeGlow.hide(viewer, target, SELECTION_TEAM_GLOW_TEAM, getPlayerEntryName(targetId));
+            current.remove(targetId);
+        }
+        current.addAll(desired);
+        if (current.isEmpty()) {
+            selectionTeamGlowTargets.remove(viewer.getUniqueId());
+        }
+    }
+
+    private void clearSelectionTeamGlow() {
+        for (UUID viewerId : new HashSet<>(selectionTeamGlowTargets.keySet())) {
+            Player viewer = Bukkit.getPlayer(viewerId);
+            if (viewer != null) {
+                clearSelectionTeamGlow(viewer);
+            }
+        }
+        selectionTeamGlowTargets.clear();
+    }
+
+    private void clearSelectionTeamGlow(Player viewer) {
+        if (viewer == null) {
+            return;
+        }
+        Set<UUID> targets = selectionTeamGlowTargets.remove(viewer.getUniqueId());
+        if (targets == null || targets.isEmpty()) {
+            return;
+        }
+        for (UUID targetId : targets) {
+            Player target = Bukkit.getPlayer(targetId);
+            FakeGlow.hide(viewer, target, SELECTION_TEAM_GLOW_TEAM, getPlayerEntryName(targetId));
+        }
+    }
+
+    private String getPlayerEntryName(UUID uuid) {
+        if (uuid == null) {
+            return null;
+        }
+        Player online = Bukkit.getPlayer(uuid);
+        if (online != null) {
+            return online.getName();
+        }
+        Participant participant = participants.get(uuid);
+        if (participant != null && participant.getPlayer() != null) {
+            return participant.getPlayer().getName();
+        }
+        return Bukkit.getOfflinePlayer(uuid).getName();
     }
 
     private String makeUniqueLine(String line, Set<String> used) {

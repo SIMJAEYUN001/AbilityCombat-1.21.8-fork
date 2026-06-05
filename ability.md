@@ -13,7 +13,7 @@
 | **Glacier** | `Glacier.java` | 광역 빙결 및 체력 재생 | **우수** | 빙결 상태 이상 로직 단순화됨 |
 | **Void** | `Void.java` | 보이드 차원문 및 순간이동 | **우수** | 무적 시간 액션바 표시 누락 |
 | **PenetrationArrow** | `PenetrationArrow.java` | 블록 관통 화살 및 특수탄 | **보통** | 커스텀 투사체 엔진 미적용 |
-| **SwordMaster** | `SwordMaster.java` | 다수의 부유 검 소환 및 발사 | **최상** | 프로젝트 내 가장 복잡한 로직 |
+| **SwordMaster** | `SwordMaster.java` | 다수의 부유 검 소환 및 발사 | **최상** | 궁극기 삭제, 검기 1초 충전 및 발사 후 4초 충전 대기 |
 | **Nex** | `Nex.java` | 공중 도약 후 강력한 강습 | **우수** | 착지 지점 파티클 연출 화려함 |
 | **Ares** | `Ares.java` | 돌진 및 적 견인 | **보통** | 지속적 인력(Pull) 연산 부족 |
 | **Assassin** | `Assassin.java` | 은신 및 후방 추가 데미지 | **준수** | 단순 포션 효과 위주 |

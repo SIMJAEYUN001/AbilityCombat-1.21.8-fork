@@ -43,8 +43,8 @@ abilities:
   - name: "소드 마스터 (SwordMaster)"
     icon: NETHERITE_SWORD
     summary:
-      - "검기 충전/발사"
-      - "궁극기"
+      - "검기 1초 충전/발사"
+      - "검기 발사 후 4초 충전 대기"
   - name: "루베르 (Ruber)"
     icon: REDSTONE
     summary:

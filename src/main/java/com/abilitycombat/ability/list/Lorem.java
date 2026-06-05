@@ -82,7 +82,7 @@ public class Lorem extends AbilityBase implements ActiveHandler {
         }
         Material hand = damager.getInventory().getItemInMainHand().getType();
         if (isSword(hand)) {
-            addOutgoingDamage(event, 1.0);
+            event.setDamage(Math.max(0.0, event.getDamage() + 1.0));
         }
     }
 

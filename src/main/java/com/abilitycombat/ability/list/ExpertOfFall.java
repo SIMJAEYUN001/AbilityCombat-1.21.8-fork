@@ -76,7 +76,7 @@ public class ExpertOfFall extends AbilityBase {
         }
 
         if (storedDamage > 0 && remainingTicks > 0) {
-            addOutgoingDamage(event, storedDamage);
+            event.setDamage(Math.max(0.0, event.getDamage() + storedDamage));
             getActionbarChannel().updateForTicks(getPlayer(), "expert:stored", 10,
                     Component.text("§c피해 " + String.format("%.1f", storedDamage) + " 전달!"), 40);
             storedDamage = 0;
