@@ -133,6 +133,11 @@ public final class SharedBurn implements AbilityTickManager.Tickable, Listener {
     }
 
     private void applyBurnDamage(int tick) {
+        AbilityCombat plugin = AbilityCombat.getPlugin();
+        if (plugin != null && plugin.getGameManager() != null
+                && !plugin.getGameManager().areAbilityEffectsEnabled()) {
+            return;
+        }
         Iterator<Map.Entry<UUID, BurnState>> iterator = BURNS.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<UUID, BurnState> entry = iterator.next();

@@ -34,6 +34,8 @@ public abstract class AbilityBase implements Listener, AbilityTickManager.Tickab
     private final AbilityManifest manifest;
     private final AbilityDescriptor descriptor;
     private boolean destroyed = false;
+    private boolean activated = false;
+    private boolean activationDeferred = false;
     private final Set<AbilityTimer> timers = new HashSet<>();
     private boolean tickRegistered = false;
 
@@ -309,10 +311,38 @@ public abstract class AbilityBase implements Listener, AbilityTickManager.Tickab
         return destroyed;
     }
 
+    public boolean canTrigger() {
+        AbilityCombat plugin = AbilityCombat.getPlugin();
+        if (plugin == null || plugin.getGameManager() == null) {
+            return true;
+        }
+        return plugin.getGameManager().canTriggerAbilityEffects(getPlayer());
+    }
+
     /**
      * 능력 활성화 (이벤트 리스너 등록)
      */
     public void activate() {
+        if (destroyed || activated) {
+            return;
+        }
+        if (!canTrigger()) {
+            activationDeferred = true;
+            return;
+        }
+        startActivation();
+    }
+
+    public void startDeferredActivation() {
+        if (!activationDeferred || destroyed || activated || !canTrigger()) {
+            return;
+        }
+        startActivation();
+    }
+
+    private void startActivation() {
+        activated = true;
+        activationDeferred = false;
         AbilityCombat.getPlugin().getServer().getPluginManager().registerEvents(this, AbilityCombat.getPlugin());
         onActivate();
     }
@@ -322,7 +352,11 @@ public abstract class AbilityBase implements Listener, AbilityTickManager.Tickab
      */
     public void deactivate() {
         HandlerList.unregisterAll(this);
-        onDeactivate();
+        if (activated) {
+            onDeactivate();
+        }
+        activated = false;
+        activationDeferred = false;
     }
 
     /**

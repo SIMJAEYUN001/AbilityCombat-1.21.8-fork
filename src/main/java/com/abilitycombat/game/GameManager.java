@@ -8,12 +8,14 @@ import com.abilitycombat.ability.AbilityFactory;
 import com.abilitycombat.ability.AbilityRegistry;
 import com.abilitycombat.ability.handler.ActiveHandler;
 import com.abilitycombat.ability.handler.TargetHandler;
+import com.abilitycombat.ability.list.Chaos;
 import com.abilitycombat.ability.list.ForYouOnly;
 import com.abilitycombat.ability.list.Luna;
 import com.abilitycombat.effect.CrowdControl;
 import com.abilitycombat.effect.SharedBurn;
 import com.abilitycombat.gui.AbilityDebugGui;
 import com.abilitycombat.gui.AbilitySelectGui;
+import com.abilitycombat.gui.ChaosPreviewGui;
 import com.abilitycombat.gui.ConfigGui;
 import com.abilitycombat.gui.ToolkitGui;
 import com.abilitycombat.npc.PlayerReplicaManager;
@@ -251,6 +253,17 @@ public class GameManager implements Listener {
 
     public boolean isInvincible() {
         return invincible;
+    }
+
+    public boolean areAbilityEffectsEnabled() {
+        return state == GameState.RUNNING && !invincible;
+    }
+
+    public boolean canTriggerAbilityEffects(Player player) {
+        if (state == GameState.IDLE) {
+            return player != null && debugAbilityUsers.contains(player.getUniqueId());
+        }
+        return player != null && areAbilityEffectsEnabled() && isAlive(player);
     }
 
     public MatchMode getSelectedMatchMode() {
@@ -715,6 +728,50 @@ public class GameManager implements Listener {
                     }
                 } else {
                     player.sendMessage("§7설명이 등록되어 있지 않습니다.");
+                }
+                return;
+            }
+            if (ability instanceof Chaos chaos
+                    && (!chaos.getInnerAbilities().isEmpty() || !chaos.getInnerDefinitions().isEmpty())) {
+                player.sendMessage("§6[능력 정보] §f" + ability.getName());
+                List<AbilityBase> inners = chaos.getInnerAbilities();
+                if (!inners.isEmpty()) {
+                    for (int i = 0; i < inners.size(); i++) {
+                        AbilityBase inner = inners.get(i);
+                        player.sendMessage((i == 0 ? "§f[1번] " : "§6[2번 금괴] ") + inner.getName());
+                        if (!inner.getExplain().isEmpty()) {
+                            for (String line : inner.getExplain()) {
+                                player.sendMessage("§f- " + line);
+                            }
+                        } else {
+                            player.sendMessage("§7설명이 등록되어 있지 않습니다.");
+                        }
+                    }
+                } else {
+                    List<AbilityDefinition> definitions = chaos.getInnerDefinitions();
+                    for (int i = 0; i < definitions.size(); i++) {
+                        AbilityDefinition inner = definitions.get(i);
+                        player.sendMessage((i == 0 ? "§f[1번] " : "§6[2번 금괴] ") + inner.getName());
+                        if (!inner.getSummary().isEmpty()) {
+                            for (String line : inner.getSummary()) {
+                                player.sendMessage("§f- " + line);
+                            }
+                        } else {
+                            player.sendMessage("§7설명이 등록되어 있지 않습니다.");
+                        }
+                    }
+                }
+                return;
+            }
+            if (ability instanceof com.abilitycombat.ability.list.AkashicRecord akashicRecord
+                    && akashicRecord.getCopiedAbility() != null) {
+                player.sendMessage("§6[능력 정보] §f" + ability.getName());
+                AbilityBase copied = akashicRecord.getCopiedAbility();
+                player.sendMessage("§b[복제 중] §f" + copied.getName());
+                if (!copied.getExplain().isEmpty()) {
+                    for (String line : copied.getExplain()) {
+                        player.sendMessage("§f- " + line);
+                    }
                 }
                 return;
             }
@@ -1275,7 +1332,41 @@ public class GameManager implements Listener {
     private List<AbilityDefinition> getImplementedDefinitions() {
         List<AbilityDefinition> result = new ArrayList<>();
         for (AbilityDefinition definition : abilityRegistry.getAll()) {
-            if (AbilityFactory.isRegistered(definition.getName())) {
+            if (AbilityFactory.isRegistered(definition.getName()) && isAbilityAvailableForCurrentMode(definition)) {
+                result.add(definition);
+            }
+        }
+        return result;
+    }
+
+    private boolean isAbilityAvailableForCurrentMode(AbilityDefinition definition) {
+        if (definition == null) {
+            return false;
+        }
+        String name = definition.getName();
+        if ("너만을 위해 (ForYouOnly)".equals(name)) {
+            return selectedMatchMode.isTeamBased();
+        }
+        if ("복수 (Revenge)".equals(name)) {
+            return selectedMatchMode == MatchMode.DUO;
+        }
+        return true;
+    }
+
+    private List<AbilityDefinition> getChaosFirstCandidateDefinitions() {
+        List<AbilityDefinition> result = new ArrayList<>();
+        for (AbilityDefinition definition : getImplementedDefinitions()) {
+            if (Chaos.isFirstCompatibleInner(definition)) {
+                result.add(definition);
+            }
+        }
+        return result;
+    }
+
+    private List<AbilityDefinition> getChaosSecondCandidateDefinitions() {
+        List<AbilityDefinition> result = new ArrayList<>();
+        for (AbilityDefinition definition : getImplementedDefinitions()) {
+            if (Chaos.isSecondCompatibleInner(definition)) {
                 result.add(definition);
             }
         }
@@ -1386,8 +1477,14 @@ public class GameManager implements Listener {
             UUID uuid = entry.getKey();
             SelectionSession session = entry.getValue();
             if (session.selected == null) {
+                if (session.awaitingChaosPreview && session.pendingChaosDefinition != null
+                        && session.pendingChaosFirst != null && session.pendingChaosSecond != null) {
+                    session.awaitingChaosPreview = false;
+                    Chaos.prepare(uuid, session.pendingChaosFirst, session.pendingChaosSecond);
+                    session.selected = session.pendingChaosDefinition;
+                }
                 List<AbilityDefinition> options = session.options;
-                if (!options.isEmpty()) {
+                if (session.selected == null && !options.isEmpty()) {
                     session.selected = options.get(0);
                 }
             }
@@ -1431,7 +1528,19 @@ public class GameManager implements Listener {
 	        updateScoreboard();
             startVisualTask();
 	        startGameTimerInternal();
+            if (!invincible) {
+                activateDeferredAbilities();
+            }
 	    }
+
+    private void activateDeferredAbilities() {
+        for (UUID uuid : new ArrayList<>(alivePlayers)) {
+            Participant participant = participants.get(uuid);
+            if (participant != null && participant.getAbility() != null) {
+                participant.getAbility().startDeferredActivation();
+            }
+        }
+    }
 
     private void resetAllPlayerBossBars() {
         if (plugin.getBossBarManager() != null) {
@@ -1459,6 +1568,7 @@ public class GameManager implements Listener {
 	                invincibilityRemaining = Math.max(0, invincibilityRemaining - 1);
 	                if (invincibilityRemaining <= 0) {
 	                    invincible = false;
+                        activateDeferredAbilities();
 	                }
 	            } else {
 	                gameRemaining = Math.max(0, gameRemaining - 1);
@@ -2177,16 +2287,7 @@ public class GameManager implements Listener {
     }
 
     private boolean canUseAbility(Player player) {
-        if (state == GameState.RUNNING) {
-            if (!isAlive(player)) {
-                return false;
-            }
-            return !invincible;
-        }
-        if (state == GameState.IDLE) {
-            return debugAbilityUsers.contains(player.getUniqueId());
-        }
-        return false;
+        return canTriggerAbilityEffects(player);
     }
 
     public void lockMovement(LivingEntity target, int ticks) {
@@ -2754,6 +2855,73 @@ public class GameManager implements Listener {
         return true;
     }
 
+    private void selectAbility(Player player, SelectionSession session, AbilityDefinition ability) {
+        if (player == null || session == null || ability == null || session.selected != null) {
+            return;
+        }
+        session.selected = ability;
+        session.awaitingChaosPreview = false;
+        session.pendingChaosDefinition = null;
+        session.pendingChaosFirst = null;
+        session.pendingChaosSecond = null;
+        assignAbility(player, ability, true);
+        sendAbilityInfo(player);
+        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.9f, 1.2f);
+        player.closeInventory();
+        if (allSelected()) {
+            finalizeSelection();
+        }
+    }
+
+    private void beginChaosPreview(Player player, SelectionSession session, AbilityDefinition chaosDefinition) {
+        if (player == null || session == null || chaosDefinition == null) {
+            return;
+        }
+        List<AbilityDefinition> firstOptions = getRandomOptions(getChaosFirstCandidateDefinitions(), 1);
+        if (firstOptions.isEmpty()) {
+            player.sendMessage("§c혼돈으로 선택할 수 있는 능력이 부족합니다");
+            return;
+        }
+        AbilityDefinition first = firstOptions.get(0);
+        List<AbilityDefinition> secondCandidates = new ArrayList<>();
+        for (AbilityDefinition definition : getChaosSecondCandidateDefinitions()) {
+            if (!definition.getName().equals(first.getName())) {
+                secondCandidates.add(definition);
+            }
+        }
+        List<AbilityDefinition> secondOptions = getRandomOptions(secondCandidates, 1);
+        if (secondOptions.isEmpty()) {
+            player.sendMessage("§c혼돈 2번 능력으로 선택할 수 있는 능력이 부족합니다");
+            return;
+        }
+        session.awaitingChaosPreview = true;
+        session.pendingChaosDefinition = chaosDefinition;
+        session.pendingChaosFirst = first;
+        session.pendingChaosSecond = secondOptions.get(0);
+        Chaos.prepare(player.getUniqueId(), session.pendingChaosFirst, session.pendingChaosSecond);
+        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.8f, 1.2f);
+        player.openInventory(new ChaosPreviewGui(player.getUniqueId(), session.pendingChaosFirst,
+                session.pendingChaosSecond).getInventory());
+    }
+
+    private void confirmChaosPreview(Player player, ChaosPreviewGui previewGui) {
+        if (player == null || previewGui == null || state != GameState.SELECTING) {
+            return;
+        }
+        if (!player.getUniqueId().equals(previewGui.getPlayerId())) {
+            return;
+        }
+        SelectionSession session = selectionSessions.get(player.getUniqueId());
+        if (session == null || session.selected != null || !session.awaitingChaosPreview
+                || session.pendingChaosDefinition == null
+                || session.pendingChaosFirst == null || session.pendingChaosSecond == null) {
+            return;
+        }
+        Chaos.prepare(player.getUniqueId(), session.pendingChaosFirst, session.pendingChaosSecond);
+        session.awaitingChaosPreview = false;
+        selectAbility(player, session, session.pendingChaosDefinition);
+    }
+
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) {
@@ -2805,15 +2973,19 @@ public class GameManager implements Listener {
             if (ability != null) {
                 SelectionSession session = selectionSessions.get(player.getUniqueId());
                 if (session != null && session.selected == null) {
-                    session.selected = ability;
-                    assignAbility(player, ability, true);
-                    sendAbilityInfo(player);
-                    player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.9f, 1.2f);
-                    player.closeInventory();
-                    if (allSelected()) {
-                        finalizeSelection();
+                    if (Chaos.isChaosAbility(ability.getName())) {
+                        beginChaosPreview(player, session, ability);
+                    } else {
+                        selectAbility(player, session, ability);
                     }
                 }
+            }
+            return;
+        }
+        if (holder instanceof ChaosPreviewGui previewGui) {
+            event.setCancelled(true);
+            if (!player.getUniqueId().equals(previewGui.getPlayerId())) {
+                return;
             }
             return;
         }
@@ -2821,8 +2993,8 @@ public class GameManager implements Listener {
             event.setCancelled(true);
             AbilityDefinition ability = debugGui.getAbilityAt(event.getRawSlot());
             if (ability != null && !debugGui.isViewOnly()) {
-                assignAbility(player, ability, false);
                 debugAbilityUsers.add(player.getUniqueId());
+                assignAbility(player, ability, false);
                 player.closeInventory();
                 return;
             }
@@ -2867,7 +3039,7 @@ public class GameManager implements Listener {
                 return;
             }
             SelectionSession session = selectionSessions.get(player.getUniqueId());
-            if (session != null && session.selected == null) {
+            if (session != null && session.selected == null && !session.awaitingChaosPreview) {
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     if (state == GameState.SELECTING && player.isOnline()) {
                         player.openInventory(
@@ -2876,6 +3048,10 @@ public class GameManager implements Listener {
                     }
                 }, 1L);
             }
+        }
+        if (holder instanceof ChaosPreviewGui previewGui) {
+            Bukkit.getScheduler().runTask(plugin, () -> confirmChaosPreview(player, previewGui));
+            return;
         }
         if (holder instanceof ToolkitGui toolkitGui) {
             toolkitGui.saveItems();
@@ -4095,6 +4271,10 @@ public class GameManager implements Listener {
         private final List<AbilityDefinition> options;
         private final Set<String> excludedAbilities = new HashSet<>();
         private AbilityDefinition selected;
+        private boolean awaitingChaosPreview;
+        private AbilityDefinition pendingChaosDefinition;
+        private AbilityDefinition pendingChaosFirst;
+        private AbilityDefinition pendingChaosSecond;
         private int rerollsRemaining;
 
         private SelectionSession(List<AbilityDefinition> options, int maxRerolls) {

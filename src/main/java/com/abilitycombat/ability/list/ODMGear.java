@@ -49,7 +49,6 @@ public class ODMGear extends AbilityBase {
     @Override
     protected void onActivate() {
         subscribeEvent(PlayerFishEvent.class);
-        subscribeEvent(EntityDamageByEntityEvent.class);
         subscribeEvent(EntityDamageEvent.class);
         giveODMGear();
     }

@@ -55,6 +55,9 @@ public final class AbilityTickManager implements Runnable {
                 TICKABLES.remove(null);
                 return;
             }
+            if (tickable instanceof AbilityBase ability && !ability.canTrigger()) {
+                return;
+            }
             try {
                 tickable.onTick(globalTick);
             } catch (Exception e) {

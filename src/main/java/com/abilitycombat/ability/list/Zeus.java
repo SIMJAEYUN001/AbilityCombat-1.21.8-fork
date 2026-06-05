@@ -73,7 +73,6 @@ public class Zeus extends AbilityBase implements ActiveHandler {
     protected void onActivate() {
         registerTick();
         subscribeEvent(EntityDamageEvent.class);
-        subscribeEvent(EntityDamageByEntityEvent.class);
         subscribeEvent(ProjectileHitEvent.class);
     }
 

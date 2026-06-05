@@ -18,6 +18,7 @@ import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.PlayerAnimationEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
@@ -117,6 +118,11 @@ public final class EventBridge implements Listener {
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
+    public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
+        dispatch(event, PlayerInteractEntityEvent.class);
+    }
+
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onPlayerAnimation(PlayerAnimationEvent event) {
         dispatch(event, PlayerAnimationEvent.class);
     }
@@ -185,6 +191,9 @@ public final class EventBridge implements Listener {
         }
         set.forEach(ability -> {
             if (ability == null || ability.isDestroyed()) {
+                return;
+            }
+            if (!ability.canTrigger()) {
                 return;
             }
             try {

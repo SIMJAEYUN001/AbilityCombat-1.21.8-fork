@@ -966,6 +966,9 @@ public final class SprintHudService implements Listener {
     }
 
     private void notifyDashStart(Player player) {
+        if (!canNotifyAbilityListeners(player)) {
+            return;
+        }
         for (DashListener listener : Set.copyOf(dashListeners)) {
             listener.onDashStart(player);
         }
@@ -975,6 +978,9 @@ public final class SprintHudService implements Listener {
         if (player == null) {
             return;
         }
+        if (!canNotifyAbilityListeners(player)) {
+            return;
+        }
         org.bukkit.Location location = player.getLocation().clone();
         for (DashListener listener : Set.copyOf(dashListeners)) {
             listener.onDashTick(player, location);
@@ -982,9 +988,16 @@ public final class SprintHudService implements Listener {
     }
 
     private void notifyDashEnd(Player player) {
+        if (!canNotifyAbilityListeners(player)) {
+            return;
+        }
         for (DashListener listener : Set.copyOf(dashListeners)) {
             listener.onDashEnd(player);
         }
+    }
+
+    private boolean canNotifyAbilityListeners(Player player) {
+        return plugin.getGameManager() == null || plugin.getGameManager().canTriggerAbilityEffects(player);
     }
 
     public void resetAllBossBars() {

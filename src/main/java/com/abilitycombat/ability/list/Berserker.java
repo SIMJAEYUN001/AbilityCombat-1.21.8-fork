@@ -68,7 +68,6 @@ public class Berserker extends AbilityBase implements ActiveHandler {
     protected void onActivate() {
         registerTick();
         subscribeEvent(EntityDamageEvent.class);
-        subscribeEvent(EntityDamageByEntityEvent.class);
     }
 
     @Override
@@ -101,10 +100,11 @@ public class Berserker extends AbilityBase implements ActiveHandler {
 
     @Override
     public void handleBridgeEvent(Event event) {
-        if (event instanceof EntityDamageEvent) {
-            onDamage((EntityDamageEvent) event);
-        } else if (event instanceof EntityDamageByEntityEvent) {
-            onDamageByEntity((EntityDamageByEntityEvent) event);
+        if (event instanceof EntityDamageByEntityEvent byEntity) {
+            onDamage(byEntity);
+            onDamageByEntity(byEntity);
+        } else if (event instanceof EntityDamageEvent damage) {
+            onDamage(damage);
         }
     }
 

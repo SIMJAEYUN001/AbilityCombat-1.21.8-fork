@@ -35,7 +35,6 @@ public class ExpertOfFall extends AbilityBase {
     protected void onActivate() {
         registerTick();
         subscribeEvent(EntityDamageEvent.class);
-        subscribeEvent(EntityDamageByEntityEvent.class);
     }
 
     @Override

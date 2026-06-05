@@ -47,7 +47,6 @@ public class SurvivalInstinct extends AbilityBase {
     protected void onActivate() {
         registerTick();
         subscribeEvent(EntityDamageEvent.class);
-        subscribeEvent(EntityDamageByEntityEvent.class);
         subscribeEvent(PlayerDeathEvent.class);
     }
 
@@ -60,10 +59,11 @@ public class SurvivalInstinct extends AbilityBase {
 
     @Override
     public void handleBridgeEvent(Event event) {
-        if (event instanceof EntityDamageEvent) {
-            onDamage((EntityDamageEvent) event);
-        } else if (event instanceof EntityDamageByEntityEvent) {
-            onAttack((EntityDamageByEntityEvent) event);
+        if (event instanceof EntityDamageByEntityEvent byEntity) {
+            onDamage(byEntity);
+            onAttack(byEntity);
+        } else if (event instanceof EntityDamageEvent damage) {
+            onDamage(damage);
         } else if (event instanceof PlayerDeathEvent) {
             onKill((PlayerDeathEvent) event);
         }

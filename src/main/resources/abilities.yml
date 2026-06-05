@@ -392,6 +392,35 @@ abilities:
     icon: SHIELD
     summary:
       - "패시브: 피격 시 50% 확률로 피해 45% 감소"
+  - name: "혼돈 (Chaos)"
+    icon: ENDER_EYE
+    summary:
+      - "선택 시 능력 2개를 확인하고 GUI를 닫으면 확정"
+      - "1번 능력: 전체 능력 풀에서 등장, 원래 방식으로 발동"
+      - "2번 능력: 위험 능력군 제외, 금괴로 발동"
+  - name: "도박꾼 (Gambler)"
+    icon: GOLD_INGOT
+    summary:
+      - "철괴 우클릭: 5개 전투 스탯 무작위 조정"
+      - "이속/사거리/체력/받피감/주피 합계 0%"
+      - "액션바: 현재 스탯 변동량 표시"
+  - name: "복수 (Revenge)"
+    icon: RED_DYE
+    summary:
+      - "2인전 전용: 팀원 사망 시 피해 +20% 영구 획득"
+      - "복수 상태: 입힌 피해 15% 회복"
+  - name: "인형사 (PuppetMaster)"
+    icon: PLAYER_HEAD
+    summary:
+      - "패시브: 체력 30 인형 소환, 보스바로 체력/재소환 표시"
+      - "인형 공격: 사용자 공격 대상 추적, 타격마다 피해 6"
+      - "철괴 우클릭: 인형 발사, 착지 주변 5칸 기절 1.5초"
+  - name: "아카식 레코드 (AkashicRecord)"
+    icon: ENCHANTED_BOOK
+    summary:
+      - "사망 기록: 자신에게만 보이는 기록 더미 생성"
+      - "더미 우클릭: 해당 능력 180초 복제"
+      - "철괴 우클릭: 복제 중이 아닐 때 바라본 상대 능력 정보 확인"
   - name: "너만을 위해 (ForYouOnly)"
     icon: TOTEM_OF_UNDYING
     summary:
