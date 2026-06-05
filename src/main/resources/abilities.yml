@@ -396,7 +396,7 @@ abilities:
     icon: ENDER_EYE
     summary:
       - "선택 시 능력 2개를 확인하고 GUI를 닫으면 확정"
-      - "1번 능력: 전체 능력 풀에서 등장, 원래 방식으로 발동"
+      - "1번 능력: 도플갱어 제외 전체 능력 풀에서 등장"
       - "2번 능력: 위험 능력군 제외, 금괴로 발동"
   - name: "도박꾼 (Gambler)"
     icon: GOLD_INGOT

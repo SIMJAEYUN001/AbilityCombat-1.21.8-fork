@@ -37,6 +37,13 @@ public @interface AbilityManifest {
         }
     }
 
+    enum ChaosMode {
+        AUTO,
+        ALLOW_SECOND,
+        EXCLUDE_SECOND,
+        EXCLUDE_ALL
+    }
+
     /**
      * 능력 이름
      */
@@ -56,4 +63,9 @@ public @interface AbilityManifest {
      * 능력 요약 설명 (GUI용)
      */
     String[] summarize() default {};
+
+    /**
+     * 혼돈 능력 내부 선택 정책
+     */
+    ChaosMode chaosMode() default ChaosMode.AUTO;
 }

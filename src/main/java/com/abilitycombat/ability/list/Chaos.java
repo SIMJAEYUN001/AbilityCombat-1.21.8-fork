@@ -85,13 +85,16 @@ public class Chaos extends AbilityBase implements ActiveHandler {
     public static boolean isFirstCompatibleInner(AbilityDefinition definition) {
         return definition != null
                 && AbilityFactory.isRegistered(definition.getName())
-                && !isChaosAbility(definition.getName());
+                && !isChaosAbility(definition.getName())
+                && getChaosMode(definition) != AbilityManifest.ChaosMode.EXCLUDE_ALL;
     }
 
     public static boolean isSecondCompatibleInner(AbilityDefinition definition) {
         return definition != null
                 && AbilityFactory.isRegistered(definition.getName())
                 && !isChaosAbility(definition.getName())
+                && getChaosMode(definition) != AbilityManifest.ChaosMode.EXCLUDE_ALL
+                && getChaosMode(definition) != AbilityManifest.ChaosMode.EXCLUDE_SECOND
                 && isSafeSecondAbility(definition);
     }
 
@@ -101,6 +104,9 @@ public class Chaos extends AbilityBase implements ActiveHandler {
         if (abilityClass == null || descriptor == null) {
             return false;
         }
+        if (getChaosMode(definition) == AbilityManifest.ChaosMode.ALLOW_SECOND) {
+            return true;
+        }
         String text = normalizeText(definition, descriptor);
         if (ActiveHandler.class.isAssignableFrom(abilityClass) && !text.contains("철괴")) {
             return false;
@@ -109,6 +115,12 @@ public class Chaos extends AbilityBase implements ActiveHandler {
             return false;
         }
         return !containsAny(text, DANGEROUS_SECOND_KEYWORDS);
+    }
+
+    private static AbilityManifest.ChaosMode getChaosMode(AbilityDefinition definition) {
+        Class<? extends AbilityBase> abilityClass = AbilityFactory.getAbilityClass(definition.getName());
+        AbilityManifest manifest = abilityClass != null ? AbilityFactory.getManifest(abilityClass) : null;
+        return manifest != null ? manifest.chaosMode() : AbilityManifest.ChaosMode.AUTO;
     }
 
     private static String normalizeText(AbilityDefinition definition, AbilityDescriptor descriptor) {

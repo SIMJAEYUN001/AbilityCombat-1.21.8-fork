@@ -24,7 +24,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
-@AbilityManifest(name = "도플갱어 (Doppelganger)", species = AbilityManifest.Species.HUMAN, explain = {
+@AbilityManifest(name = "도플갱어 (Doppelganger)", species = AbilityManifest.Species.HUMAN,
+        chaosMode = AbilityManifest.ChaosMode.EXCLUDE_ALL, explain = {
         "§e§l[패시브 - 복제]",
         "§7능력 선택이 모두 끝나면 생존자 중 랜덤한 한 명의",
         "§7능력을 복제합니다 (복제 대상은 본인에게만 공개)",
