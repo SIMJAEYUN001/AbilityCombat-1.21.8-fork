@@ -6,6 +6,7 @@ import com.abilitycombat.ability.AbilityTickManager;
 import com.abilitycombat.ability.handler.ActiveHandler;
 import com.abilitycombat.effect.Bind;
 import com.abilitycombat.game.Participant;
+import com.abilitycombat.utils.FakeGlow;
 import com.abilitycombat.utils.LocationUtil;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -49,7 +50,6 @@ public class Solar extends AbilityBase implements ActiveHandler {
     private static final int SHIELD_TICKS = 200;
     private static final int COOLDOWN_SECONDS = 35;
     private static final double MOON_PURGE_RADIUS = 5.0;
-    private static final int FAKE_GLOW_TICKS = 16;
     private static final String GLOW_TEAM_NAME = "aw_solar_mark";
     private static final String SHIELD_TEAM_NAME = "aw_solar_shield";
 
@@ -157,13 +157,8 @@ public class Solar extends AbilityBase implements ActiveHandler {
         if (owner == null || target == null) {
             return;
         }
-        String entry = scoreboardEntry(target);
-        Team team = getOrCreateTeam(owner.getScoreboard(), GLOW_TEAM_NAME, NamedTextColor.YELLOW);
-        if (team != null && !team.hasEntry(entry)) {
-            team.addEntry(entry);
-        }
-        owner.sendPotionEffectChange(target,
-                new PotionEffect(PotionEffectType.GLOWING, FAKE_GLOW_TICKS, 0, false, false));
+        String entry = FakeGlow.scoreboardEntry(target);
+        FakeGlow.show(owner, target, GLOW_TEAM_NAME, NamedTextColor.YELLOW);
         highlightedTargets.put(target.getUniqueId(), entry);
     }
 
@@ -175,16 +170,9 @@ public class Solar extends AbilityBase implements ActiveHandler {
 
     private void hideHighlight(UUID targetId, LivingEntity target) {
         Player owner = getPlayer();
-        if (owner != null && target != null) {
-            owner.sendPotionEffectChangeRemove(target, PotionEffectType.GLOWING);
-        }
-        Team team = owner != null ? owner.getScoreboard().getTeam(GLOW_TEAM_NAME) : null;
         String entry = highlightedTargets.remove(targetId);
-        if (team != null && entry != null) {
-            team.removeEntry(entry);
-            if (team.getSize() == 0) {
-                team.unregister();
-            }
+        if (owner != null) {
+            FakeGlow.hide(owner, target, GLOW_TEAM_NAME, entry);
         }
     }
 
@@ -255,10 +243,6 @@ public class Solar extends AbilityBase implements ActiveHandler {
             team.setAllowFriendlyFire(false);
         }
         return team;
-    }
-
-    private String scoreboardEntry(LivingEntity target) {
-        return target instanceof Player targetPlayer ? targetPlayer.getName() : target.getUniqueId().toString();
     }
 
     private LivingEntity resolve(UUID id) {

@@ -6,6 +6,7 @@ import com.abilitycombat.ability.AbilityTickManager;
 import com.abilitycombat.ability.handler.ActiveHandler;
 import com.abilitycombat.effect.Stun;
 import com.abilitycombat.game.Participant;
+import com.abilitycombat.utils.FakeGlow;
 import com.abilitycombat.utils.LocationUtil;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
@@ -15,10 +16,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scoreboard.Scoreboard;
-import org.bukkit.scoreboard.Team;
 import org.bukkit.util.Vector;
 
 import java.util.HashMap;
@@ -49,7 +46,6 @@ public class Luna extends AbilityBase implements ActiveHandler {
     private static final double TRANSFER_RADIUS = 5.0;
     private static final int TARGET_COOLDOWN_TICKS = 240;
     private static final int STUN_TICKS = 20;
-    private static final int FAKE_GLOW_TICKS = 16;
     private static final int DASH_TICKS = 12;
     private static final double DASH_SPEED = 1.65;
     private static final String GLOW_TEAM_NAME = "aw_luna_mark";
@@ -220,13 +216,8 @@ public class Luna extends AbilityBase implements ActiveHandler {
         if (owner == null || target == null) {
             return;
         }
-        String entry = scoreboardEntry(target);
-        Team team = getOrCreateGlowTeam(owner);
-        if (team != null && !team.hasEntry(entry)) {
-            team.addEntry(entry);
-        }
-        owner.sendPotionEffectChange(target,
-                new PotionEffect(PotionEffectType.GLOWING, FAKE_GLOW_TICKS, 0, false, false));
+        String entry = FakeGlow.scoreboardEntry(target);
+        FakeGlow.show(owner, target, GLOW_TEAM_NAME, NamedTextColor.WHITE);
         highlightedTargets.put(target.getUniqueId(), entry);
     }
 
@@ -238,28 +229,10 @@ public class Luna extends AbilityBase implements ActiveHandler {
 
     private void hideHighlight(UUID targetId, LivingEntity target) {
         Player owner = getPlayer();
-        if (owner != null && target != null) {
-            owner.sendPotionEffectChangeRemove(target, PotionEffectType.GLOWING);
-        }
-        Team team = owner != null ? owner.getScoreboard().getTeam(GLOW_TEAM_NAME) : null;
         String entry = highlightedTargets.remove(targetId);
-        if (team != null && entry != null) {
-            team.removeEntry(entry);
-            if (team.getSize() == 0) {
-                team.unregister();
-            }
+        if (owner != null) {
+            FakeGlow.hide(owner, target, GLOW_TEAM_NAME, entry);
         }
-    }
-
-    private Team getOrCreateGlowTeam(Player owner) {
-        Scoreboard scoreboard = owner.getScoreboard();
-        Team team = scoreboard.getTeam(GLOW_TEAM_NAME);
-        if (team == null) {
-            team = scoreboard.registerNewTeam(GLOW_TEAM_NAME);
-            team.color(NamedTextColor.WHITE);
-            team.setAllowFriendlyFire(false);
-        }
-        return team;
     }
 
     private void refreshHighlights() {
@@ -358,7 +331,4 @@ public class Luna extends AbilityBase implements ActiveHandler {
         return targetCooldowns.getOrDefault(target.getUniqueId(), 0) <= AbilityTickManager.getGlobalTick();
     }
 
-    private String scoreboardEntry(LivingEntity target) {
-        return target instanceof Player targetPlayer ? targetPlayer.getName() : target.getUniqueId().toString();
-    }
 }
