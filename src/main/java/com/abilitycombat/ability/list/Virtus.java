@@ -25,7 +25,7 @@ import java.util.UUID;
 
 @AbilityManifest(name = "베르투스 (Virtus)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 응보]§f §8(쿨타임: 40초)",
-        "§f3초§7간 받는 모든 피해가 §b90% 감소§7합니다.",
+        "§f3초§7간 받는 모든 피해가 §b75% 감소§7합니다.",
         "§7능력 사용 시 §8회색 발광§7 효과가 적용됩니다.",
         "",
         "§e§l[반격]",
@@ -35,7 +35,7 @@ import java.util.UUID;
         "§7반사 성공 시 쿨타임이 §e4초§7로 감소합니다.",
         "§7반사하지 못하고 끝나면 쿨타임이 §e25초§7로 감소합니다."
     }, summarize = {
-        "§7철괴 우클릭§f: 3초간 피해 90% 감소 + 최종 피해 반격"
+        "§7철괴 우클릭§f: 3초간 피해 75% 감소 + 최종 피해 반격"
     })
 public class Virtus extends AbilityBase implements ActiveHandler {
 
@@ -43,7 +43,7 @@ public class Virtus extends AbilityBase implements ActiveHandler {
     private static final int REFLECT_COOLDOWN_SECONDS = 4;
     private static final int NO_REFLECT_COOLDOWN_SECONDS = 25;
     private static final int DURATION_TICKS = 60; // 3초
-    private static final double DAMAGE_MULTIPLIER = 0.1;
+    private static final double DAMAGE_MULTIPLIER = 0.25;
     private static final double REFLECT_RATIO = 0.4;
     private static final double REFLECT_KNOCKBACK_DAMAGE = 0.001;
 
@@ -110,7 +110,7 @@ public class Virtus extends AbilityBase implements ActiveHandler {
             return;
         }
 
-        // 피해 90% 감소 적용
+        // 피해 75% 감소 적용
         scaleIncomingDamage(event, DAMAGE_MULTIPLIER);
 
         if (event instanceof EntityDamageByEntityEvent byEntity) {
