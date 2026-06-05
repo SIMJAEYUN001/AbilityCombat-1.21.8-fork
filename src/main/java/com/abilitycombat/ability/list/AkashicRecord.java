@@ -35,19 +35,21 @@ import java.util.UUID;
         "§7플레이어가 사망하면 자신에게만 보이는 기록 더미가 남습니다",
         "§7기록 더미를 우클릭하면 해당 플레이어의 능력을 §f180초§7간 복제합니다",
         "",
-        "§e§l[철괴 우클릭 - 기록 열람]",
+        "§e§l[철괴 우클릭 - 기록 열람]§f §8(쿨타임: 20초)",
         "§7능력 복제 중이 아닐 때 바라본 상대의 능력 정보를 읽습니다"
 }, summarize = {
         "§7패시브§f: 사망 기록 더미 우클릭 시 180초 능력 복제",
-        "§7철괴 우클릭§f: 바라본 상대 능력 정보 확인"
+        "§7철괴 우클릭§f: 바라본 상대 능력 정보 확인 (20초)"
 })
 public class AkashicRecord extends AbilityBase implements ActiveHandler {
 
     private static final int COPY_TICKS = 3600;
     private static final double READ_RANGE = 20.0;
+    private static final int READ_COOLDOWN_SECONDS = 20;
     private static final String GLOW_TEAM_NAME = "aw_akashic";
 
     private final Map<UUID, RecordDummy> records = new HashMap<>();
+    private final Cooldown readCooldown = new Cooldown(READ_COOLDOWN_SECONDS);
     private AbilityBase copiedAbility;
     private int copyEndTick;
 
@@ -83,7 +85,16 @@ public class AkashicRecord extends AbilityBase implements ActiveHandler {
         if (material != Material.IRON_INGOT || clickType != ClickType.RIGHT_CLICK) {
             return false;
         }
-        return readTargetAbility();
+        if (readCooldown.isCooldown()) {
+            notifyCooldown(readCooldown);
+            return false;
+        }
+        if (!readTargetAbility()) {
+            return false;
+        }
+        readCooldown.start();
+        applyIronCooldownIfEmpty(READ_COOLDOWN_SECONDS);
+        return true;
     }
 
     @Override

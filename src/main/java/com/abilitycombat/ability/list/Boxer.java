@@ -23,25 +23,29 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 @AbilityManifest(name = "복서 (Boxer)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 맨주먹]",
         "§7게임 시작 시 인벤토리의 §f검을 모두 회수§7합니다",
-        "§7공격 사거리가 §c50% 감소§7합니다",
+        "§7공격 사거리가 §c30% 감소§7합니다",
         "§7빈손 타격 성공 시 짧게 전진하고 §c추가 피해 8§7을 줍니다",
+        "§7빈손 타격은 §f50% 확률§7로 한 번 더 적용됩니다",
         "",
         "§e§l[철괴 우클릭 - 풋워크]§f §8(쿨타임: 30초)",
         "§7자신에게 §b신속 II 8초§7를 부여합니다"
 }, summarize = {
-        "§7패시브§f: 검 회수, 사거리 50% 감소",
-        "§7빈손 타격§f: 소폭 돌진 + 추가 피해 8",
+        "§7패시브§f: 검 회수, 사거리 30% 감소",
+        "§7빈손 타격§f: 소폭 돌진 + 추가 피해 8, 50% 확률 2회 타격",
         "§7철괴 우클릭§f: 신속 II 8초 (30초)"
 })
 public class Boxer extends AbilityBase implements ActiveHandler {
 
     private static final int COOLDOWN_SECONDS = 30;
     private static final int SPEED_DURATION_TICKS = 160;
-    private static final double RANGE_PENALTY_SCALAR = -0.5;
+    private static final double RANGE_PENALTY_SCALAR = -0.3;
     private static final double EXTRA_DAMAGE = 8.0;
+    private static final double DOUBLE_HIT_CHANCE = 0.5;
     private static final double LUNGE_SPEED = 0.42;
     private static final double LUNGE_Y = 0.06;
 
@@ -103,7 +107,12 @@ public class Boxer extends AbilityBase implements ActiveHandler {
                 || !isBareHand(player.getInventory().getItemInMainHand())) {
             return;
         }
-        addOutgoingDamage(damageEvent, EXTRA_DAMAGE);
+        double bonusDamage = EXTRA_DAMAGE;
+        if (ThreadLocalRandom.current().nextDouble() < DOUBLE_HIT_CHANCE) {
+            bonusDamage += EXTRA_DAMAGE;
+            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 0.65f, 1.2f);
+        }
+        damageEvent.setDamage(Math.max(0.0, damageEvent.getDamage() + bonusDamage));
         lungeToward(player, target);
         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_STRONG, 0.7f, 1.45f);
     }

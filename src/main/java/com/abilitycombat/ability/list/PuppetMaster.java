@@ -57,6 +57,8 @@ public class PuppetMaster extends AbilityBase implements ActiveHandler {
     private static final double PUPPET_MAX_HEALTH = 30.0;
     private static final double PUPPET_DAMAGE = 6.0;
     private static final double PUPPET_SPEED = 0.36;
+    private static final double PUPPET_GRAVITY = 0.08;
+    private static final double PUPPET_DRAG = 0.02;
     private static final double FOLLOW_DISTANCE = 2.4;
     private static final double RETURN_DISTANCE = 7.0;
     private static final double ATTACK_RANGE = 2.2;
@@ -161,14 +163,12 @@ public class PuppetMaster extends AbilityBase implements ActiveHandler {
         if (!isPuppetAlive() || !puppet.matches(event.getEntity())) {
             return;
         }
-        event.setCancelled(true);
-        double nextHealth = puppet.getEntity().getHealth() - event.getFinalDamage();
-        if (nextHealth <= 0.0) {
+        if (puppet.getEntity().getHealth() - event.getFinalDamage() <= 0.0) {
+            event.setCancelled(true);
             killPuppet();
             return;
         }
-        puppet.setHealth(nextHealth);
-        updateGauge();
+        Bukkit.getScheduler().runTask(AbilityCombat.getPlugin(), this::updateGauge);
     }
 
     @Override
@@ -189,8 +189,9 @@ public class PuppetMaster extends AbilityBase implements ActiveHandler {
         if (attackCooldown > 0) {
             attackCooldown--;
         }
+        boolean puppetOnGround = puppet.tickPhysics(PUPPET_GRAVITY, PUPPET_DRAG);
         if (launched) {
-            tickLaunch(owner, tick);
+            tickLaunch(owner, tick, puppetOnGround);
             updateGauge();
             return;
         }
@@ -219,10 +220,10 @@ public class PuppetMaster extends AbilityBase implements ActiveHandler {
         }
     }
 
-    private void tickLaunch(Player owner, int tick) {
+    private void tickLaunch(Player owner, int tick, boolean puppetOnGround) {
         ParticleUtil.spawnParticle(owner.getWorld(), Particle.CLOUD, puppet.getLocation().clone().add(0, 0.5, 0),
                 8, 0.25, 0.2, 0.25, 0.02, 1, 64);
-        if (tick < returnDisabledUntilTick && !puppet.getEntity().isOnGround()) {
+        if (tick < returnDisabledUntilTick && !puppetOnGround) {
             return;
         }
         launched = false;

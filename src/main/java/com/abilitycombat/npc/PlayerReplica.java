@@ -7,6 +7,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Pose;
@@ -41,6 +42,7 @@ public final class PlayerReplica {
 
     private boolean spawned;
     private boolean removed;
+    private boolean physicsOnGround;
 
     PlayerReplica(AbilityCombat plugin, PlayerReplicaManager manager, Location location, ReplicaProfile profile) {
         this.plugin = plugin;
@@ -124,7 +126,6 @@ public final class PlayerReplica {
         }
         Vector applied = velocity != null ? velocity.clone() : new Vector();
         NMS.setVelocity(nmsPlayer, applied);
-        broadcastTeleport();
     }
 
     public void teleport(Location location) {
@@ -191,6 +192,41 @@ public final class PlayerReplica {
         if (immovable) {
             NMS.setVelocity(nmsPlayer, new Vector());
         }
+    }
+
+    public boolean tickPhysics(double gravity, double drag) {
+        if (removed) {
+            return false;
+        }
+        Location current = getLocation();
+        if (current.getWorld() == null) {
+            return false;
+        }
+        Vector velocity = getVelocity();
+        if (!physicsOnGround && gravity > 0.0) {
+            velocity.setY(velocity.getY() - gravity);
+        }
+        MoveResult result = moveWithCollision(current, velocity);
+        Vector nextVelocity = result.velocity();
+        if (drag > 0.0) {
+            double dragFactor = Math.max(0.0, 1.0 - drag);
+            nextVelocity.setX(nextVelocity.getX() * dragFactor);
+            nextVelocity.setZ(nextVelocity.getZ() * dragFactor);
+        }
+        if (result.onGround()) {
+            nextVelocity.setY(Math.max(0.0, nextVelocity.getY()));
+        }
+        physicsOnGround = result.onGround();
+        NMS.setVelocity(nmsPlayer, nextVelocity);
+        if (result.moved()) {
+            NMS.setLocation(nmsPlayer, result.location());
+            broadcastTeleport();
+        }
+        return physicsOnGround;
+    }
+
+    public boolean isPhysicsOnGround() {
+        return physicsOnGround;
     }
 
     public void setNoDamageTicks(int ticks) {
@@ -336,6 +372,106 @@ public final class PlayerReplica {
         return item != null ? item.clone() : null;
     }
 
+    private MoveResult moveWithCollision(Location start, Vector velocity) {
+        if (velocity.lengthSquared() <= 1.0E-8) {
+            return new MoveResult(start, velocity, isSupported(start), false);
+        }
+        double maxComponent = Math.max(Math.abs(velocity.getX()),
+                Math.max(Math.abs(velocity.getY()), Math.abs(velocity.getZ())));
+        int steps = Math.max(1, (int) Math.ceil(maxComponent / 0.2));
+        Vector step = velocity.clone().multiply(1.0 / steps);
+        Vector adjusted = velocity.clone();
+        Location current = start.clone();
+        boolean onGround = false;
+        boolean moved = false;
+        for (int i = 0; i < steps; i++) {
+            AxisMove yMove = tryAxisMove(current, 0.0, step.getY(), 0.0);
+            current = yMove.location();
+            moved |= yMove.moved();
+            if (yMove.blocked()) {
+                if (step.getY() < 0.0) {
+                    onGround = true;
+                }
+                adjusted.setY(0.0);
+                step.setY(0.0);
+            }
+
+            AxisMove xMove = tryAxisMove(current, step.getX(), 0.0, 0.0);
+            current = xMove.location();
+            moved |= xMove.moved();
+            if (xMove.blocked()) {
+                adjusted.setX(0.0);
+                step.setX(0.0);
+            }
+
+            AxisMove zMove = tryAxisMove(current, 0.0, 0.0, step.getZ());
+            current = zMove.location();
+            moved |= zMove.moved();
+            if (zMove.blocked()) {
+                adjusted.setZ(0.0);
+                step.setZ(0.0);
+            }
+        }
+        if (!onGround) {
+            onGround = isSupported(current);
+        }
+        return new MoveResult(current, adjusted, onGround, moved);
+    }
+
+    private AxisMove tryAxisMove(Location current, double dx, double dy, double dz) {
+        if (Math.abs(dx) <= 1.0E-8 && Math.abs(dy) <= 1.0E-8 && Math.abs(dz) <= 1.0E-8) {
+            return new AxisMove(current, false, false);
+        }
+        Location candidate = current.clone().add(dx, dy, dz);
+        if (canOccupy(candidate)) {
+            return new AxisMove(candidate, true, false);
+        }
+        return new AxisMove(current, false, true);
+    }
+
+    private boolean canOccupy(Location location) {
+        World world = location.getWorld();
+        if (world == null || location.getY() < world.getMinHeight() || location.getY() >= world.getMaxHeight()) {
+            return false;
+        }
+        double radius = Math.max(0.12, visualEntity.getWidth() * 0.5 - 0.02);
+        double height = Math.max(0.45, visualEntity.getHeight() - 0.02);
+        double[] xs = { -radius, radius };
+        double[] zs = { -radius, radius };
+        double[] ys = { 0.02, Math.max(0.04, height * 0.5), height };
+        for (double xOffset : xs) {
+            for (double zOffset : zs) {
+                for (double yOffset : ys) {
+                    Block block = blockAt(world, location.getX() + xOffset,
+                            location.getY() + yOffset, location.getZ() + zOffset);
+                    if (!isPassableSpace(block)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    private boolean isSupported(Location location) {
+        Location below = location.clone().add(0.0, -0.05, 0.0);
+        return !canOccupy(below);
+    }
+
+    private Block blockAt(World world, double x, double y, double z) {
+        return world.getBlockAt((int) Math.floor(x), (int) Math.floor(y), (int) Math.floor(z));
+    }
+
+    private boolean isPassableSpace(Block block) {
+        return block != null && !block.isLiquid() && (block.isPassable() || block.getType().isAir());
+    }
+
+    private record MoveResult(Location location, Vector velocity, boolean onGround, boolean moved) {
+    }
+
+    private record AxisMove(Location location, boolean moved, boolean blocked) {
+    }
+
     private static final class NmsBridge {
 
         private final Constructor<?> gameProfileCtor;
@@ -365,6 +501,8 @@ public final class PlayerReplica {
         private final Method getOnGround;
         private final Method sendPacket;
         private final Method getEntityData;
+        private final Method entityDataSet;
+        private final Method entityDataSetForced;
         private final Method packDirty;
         private final Method getNonDefaultValues;
         private final Method clientboundTeleportFactory;
@@ -378,6 +516,7 @@ public final class PlayerReplica {
         private final Field serverPlayerConnectionField;
         private final Field chunkMapField;
         private final Field serverViewDistanceField;
+        private final Object playerSkinPartsAccessor;
 
         private NmsBridge() {
             try {
@@ -391,6 +530,7 @@ public final class PlayerReplica {
                 Class<?> commonCookieClass = Class.forName("net.minecraft.server.network.CommonListenerCookie");
                 Class<?> clientInfoClass = Class.forName("net.minecraft.server.level.ClientInformation");
                 Class<?> serverPlayerClass = Class.forName("net.minecraft.server.level.ServerPlayer");
+                Class<?> playerClass = Class.forName("net.minecraft.world.entity.player.Player");
                 Class<?> serverGamePacketListenerClass = Class.forName(
                         "net.minecraft.server.network.ServerGamePacketListenerImpl");
                 Class<?> packetClass = Class.forName("net.minecraft.network.protocol.Packet");
@@ -404,6 +544,7 @@ public final class PlayerReplica {
                 Class<?> entityClass = Class.forName("net.minecraft.world.entity.Entity");
                 Class<?> livingEntityClass = Class.forName("net.minecraft.world.entity.LivingEntity");
                 Class<?> synchedEntityDataClass = Class.forName("net.minecraft.network.syncher.SynchedEntityData");
+                Class<?> entityDataAccessorClass = Class.forName("net.minecraft.network.syncher.EntityDataAccessor");
                 Class<?> serverLevelClass = Class.forName("net.minecraft.server.level.ServerLevel");
                 Class<?> serverChunkCacheClass = Class.forName("net.minecraft.server.level.ServerChunkCache");
                 Class<?> chunkMapClass = Class.forName("net.minecraft.server.level.ChunkMap");
@@ -451,6 +592,8 @@ public final class PlayerReplica {
                 this.sendPacket = Class.forName("net.minecraft.server.network.ServerCommonPacketListenerImpl")
                         .getMethod("send", packetClass);
                 this.getEntityData = entityClass.getMethod("getEntityData");
+                this.entityDataSet = findEntityDataSet(synchedEntityDataClass, entityDataAccessorClass, false);
+                this.entityDataSetForced = findEntityDataSet(synchedEntityDataClass, entityDataAccessorClass, true);
                 this.packDirty = synchedEntityDataClass.getMethod("packDirty");
                 this.getNonDefaultValues = synchedEntityDataClass.getMethod("getNonDefaultValues");
                 this.clientboundTeleportFactory = teleportPacketClass.getMethod("teleport", int.class,
@@ -468,6 +611,8 @@ public final class PlayerReplica {
                 this.chunkMapField = serverChunkCacheClass.getField("chunkMap");
                 this.serverViewDistanceField = findField(chunkMapClass, "serverViewDistance");
                 this.chunkMapUpdatePlayerStatus = findChunkMapUpdatePlayerStatus(chunkMapClass, serverPlayerClass);
+                this.playerSkinPartsAccessor = findStaticAccessor(playerClass, entityDataAccessorClass,
+                        "DATA_PLAYER_MODE_CUSTOMISATION");
 
                 Object propertyMap = getProperties.invoke(gameProfileCtor.newInstance(UUID.randomUUID(), "Probe"));
                 this.propertyMapPut = propertyMap.getClass().getMethod("put", Object.class, Object.class);
@@ -496,6 +641,7 @@ public final class PlayerReplica {
                 Object listener = serverGamePacketListenerCtor.newInstance(server, connection, handle, cookie);
                 serverPlayerConnectionField.set(handle, listener);
                 setLocation(handle, location);
+                setSkinParts(handle, profile.skinParts());
                 return handle;
             } catch (ReflectiveOperationException exception) {
                 throw new IllegalStateException("Failed to create player replica", exception);
@@ -559,6 +705,22 @@ public final class PlayerReplica {
                 setVelocity.invoke(handle, velocity.getX(), velocity.getY(), velocity.getZ());
             } catch (ReflectiveOperationException exception) {
                 throw new IllegalStateException("Failed to update replica velocity", exception);
+            }
+        }
+
+        private void setSkinParts(Object handle, int rawSkinParts) {
+            if (playerSkinPartsAccessor == null || entityDataSet == null) {
+                return;
+            }
+            try {
+                Object data = getEntityData.invoke(handle);
+                Byte value = (byte) (rawSkinParts & 0x7F);
+                if (entityDataSetForced != null) {
+                    entityDataSetForced.invoke(data, playerSkinPartsAccessor, value, true);
+                } else {
+                    entityDataSet.invoke(data, playerSkinPartsAccessor, value);
+                }
+            } catch (ReflectiveOperationException ignored) {
             }
         }
 
@@ -654,6 +816,45 @@ public final class PlayerReplica {
             } catch (ReflectiveOperationException ignored) {
                 return null;
             }
+        }
+
+        private Object findStaticAccessor(Class<?> owner, Class<?> accessorClass, String preferredName) {
+            for (Field field : owner.getDeclaredFields()) {
+                if (!java.lang.reflect.Modifier.isStatic(field.getModifiers())
+                        || !accessorClass.isAssignableFrom(field.getType())) {
+                    continue;
+                }
+                if (!field.getName().equals(preferredName)) {
+                    continue;
+                }
+                try {
+                    field.setAccessible(true);
+                    return field.get(null);
+                } catch (ReflectiveOperationException ignored) {
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        private Method findEntityDataSet(Class<?> dataClass, Class<?> accessorClass, boolean forced) {
+            for (Method method : dataClass.getMethods()) {
+                if (!method.getName().equals("set")) {
+                    continue;
+                }
+                Class<?>[] parameters = method.getParameterTypes();
+                if (!forced && parameters.length == 2 && accessorClass.isAssignableFrom(parameters[0])) {
+                    method.setAccessible(true);
+                    return method;
+                }
+                if (forced && parameters.length == 3
+                        && accessorClass.isAssignableFrom(parameters[0])
+                        && parameters[2] == boolean.class) {
+                    method.setAccessible(true);
+                    return method;
+                }
+            }
+            return null;
         }
 
         private Object createMetadataPacket(Object handle, boolean full) throws ReflectiveOperationException {

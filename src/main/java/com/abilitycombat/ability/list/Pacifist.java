@@ -23,7 +23,7 @@ import java.util.UUID;
 @AbilityManifest(name = "평화주의자 (Pacifist)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 정전]§f §8(쿨타임: 60초)",
         "§7자신을 제외한 주변 §f8칸§7 플레이어에게 §e무장해제 10초§7를 부여합니다",
-        "§7무장해제된 대상은 공격받지 않고 다른 대상과는 전투할 수 있습니다",
+        "§7평화주의자는 무장해제된 플레이어를 제외한 플레이어만 공격 가능합니다",
         "§7무장해제된 플레이어가 §f10초§7 동안 회복한 만큼 자신이 흡수를 얻습니다"
 }, summarize = {
         "§7철괴 우클릭§f: 8칸 무장해제 10초",

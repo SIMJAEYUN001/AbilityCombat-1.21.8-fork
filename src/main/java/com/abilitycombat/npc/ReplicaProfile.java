@@ -1,16 +1,19 @@
 package com.abilitycombat.npc;
 
+import com.destroystokyo.paper.ClientOption;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
+import com.destroystokyo.paper.SkinParts;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public record ReplicaProfile(UUID uuid, String name, List<PropertyData> properties) {
+public record ReplicaProfile(UUID uuid, String name, List<PropertyData> properties, int skinParts) {
 
     private static final String DEFAULT_NAME = "Replica";
+    private static final int ALL_SKIN_PARTS = 0x7F;
 
     public static ReplicaProfile fromPlayer(Player player) {
         if (player == null) {
@@ -25,11 +28,17 @@ public record ReplicaProfile(UUID uuid, String name, List<PropertyData> properti
                 properties.add(new PropertyData(property.getName(), property.getValue(), property.getSignature()));
             }
         }
-        return new ReplicaProfile(uuid, name, List.copyOf(properties));
+        SkinParts parts = player.getClientOption(ClientOption.SKIN_PARTS);
+        int rawSkinParts = parts != null ? parts.getRaw() : ALL_SKIN_PARTS;
+        return new ReplicaProfile(uuid, name, List.copyOf(properties), rawSkinParts);
     }
 
     public static ReplicaProfile defaultProfile() {
-        return new ReplicaProfile(UUID.randomUUID(), DEFAULT_NAME, List.of());
+        return new ReplicaProfile(UUID.randomUUID(), DEFAULT_NAME, List.of(), ALL_SKIN_PARTS);
+    }
+
+    public static ReplicaProfile named(String name) {
+        return new ReplicaProfile(UUID.randomUUID(), sanitizeName(name), List.of(), ALL_SKIN_PARTS);
     }
 
     private static String sanitizeName(String input) {

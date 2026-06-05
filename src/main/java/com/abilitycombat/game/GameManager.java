@@ -763,8 +763,11 @@ public class GameManager implements Listener {
                     for (int i = 0; i < definitions.size(); i++) {
                         AbilityDefinition inner = definitions.get(i);
                         player.sendMessage((i == 0 ? "§f[1번] " : "§6[2번 금괴] ") + inner.getName());
-                        if (!inner.getSummary().isEmpty()) {
-                            for (String line : inner.getSummary()) {
+                        AbilityDescriptor descriptor = AbilityFactory.getDescriptor(inner.getName());
+                        List<String> explain = descriptor != null ? descriptor.explain() : List.of();
+                        List<String> lines = !explain.isEmpty() ? explain : inner.getSummary();
+                        if (!lines.isEmpty()) {
+                            for (String line : lines) {
                                 player.sendMessage("§f- " + line);
                             }
                         } else {
@@ -3584,7 +3587,7 @@ public class GameManager implements Listener {
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
-        if (PlayerReplicaManager.isTrainingDummy(event.getEntity())) {
+        if (PlayerReplicaManager.isReplicaEntity(event.getEntity())) {
             event.getDrops().clear();
             event.setDroppedExp(0);
             return;

@@ -11,7 +11,6 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -55,8 +54,7 @@ public final class PlayerReplicaManager implements Listener {
     }
 
     public PlayerReplica createTrainingDummy(org.bukkit.Location location) {
-        PlayerReplica replica = createReplica(location,
-                new ReplicaProfile(UUID.randomUUID(), "AWDummy", List.of()));
+        PlayerReplica replica = createReplica(location, ReplicaProfile.named("AWDummy"));
         markTrainingDummyEntity(replica.getEntity());
         return replica;
     }

@@ -26,7 +26,7 @@ import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 @AbilityManifest(name = "궤도형 레이저 (OrbitalLaser)", species = AbilityManifest.Species.SPECIAL, explain = {
-        "§e§l[철괴 우클릭 - 궤도 폭격]§f §8(쿨타임: 20초)",
+        "§e§l[철괴 우클릭 - 궤도 폭격]§f §8(쿨타임: 28초)",
         "§7바라보는 지점 최대 §f20칸§7에 §c붉은 경고 원§7을 §f6초§7 표시합니다",
         "§7이후 높이 §f15칸§7 수직 레이저가 내려오며 반경 §f12.5칸§7을 타격합니다",
         "§7적중한 적은 §c20 + 잃은 체력의 80% 피해§7와 §f실명 2초§7를 받습니다"
@@ -36,7 +36,7 @@ import org.bukkit.util.Vector;
 })
 public class OrbitalLaser extends AbilityBase implements ActiveHandler {
 
-    private static final int COOLDOWN_SECONDS = 20;
+    private static final int COOLDOWN_SECONDS = 28;
     private static final double MAX_RANGE = 20.0;
     private static final double BLAST_RADIUS = 12.5;
     private static final double BASE_DAMAGE = 20.0;

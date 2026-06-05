@@ -193,7 +193,7 @@ abilities:
   - name: "궤도형 레이저 (OrbitalLaser)"
     icon: BEACON
     summary:
-      - "철괴 우클릭: 20칸 지점 지정 후 6초 뒤 레이저"
+      - "철괴 우클릭: 20칸 지점 지정 후 6초 뒤 레이저 (28초)"
       - "적중: 반경 12.5칸, 피해 20 + 잃은 체력 80% + 실명 2초"
   - name: "탭 댄서 (TapDancer)"
     icon: GOLDEN_BOOTS
@@ -395,8 +395,8 @@ abilities:
   - name: "복서 (Boxer)"
     icon: LEATHER
     summary:
-      - "패시브: 게임 시작 시 검 회수, 사거리 50% 감소"
-      - "빈손 타격: 소폭 돌진 + 추가 피해 8"
+      - "패시브: 게임 시작 시 검 회수, 사거리 30% 감소"
+      - "빈손 타격: 소폭 돌진 + 추가 피해 8, 50% 확률 2회 타격"
       - "철괴 우클릭: 신속 II 8초 (30초)"
   - name: "혼돈 (Chaos)"
     icon: ENDER_EYE
@@ -426,7 +426,7 @@ abilities:
     summary:
       - "사망 기록: 자신에게만 보이는 기록 더미 생성"
       - "더미 우클릭: 해당 능력 180초 복제"
-      - "철괴 우클릭: 복제 중이 아닐 때 바라본 상대 능력 정보 확인"
+      - "철괴 우클릭: 복제 중이 아닐 때 바라본 상대 능력 정보 확인 (20초)"
   - name: "너만을 위해 (ForYouOnly)"
     icon: TOTEM_OF_UNDYING
     summary:
@@ -453,7 +453,7 @@ abilities:
     icon: WHITE_BANNER
     summary:
       - "철괴 우클릭: 본인 제외 8칸 무장해제 10초 (60초)"
-      - "무장해제 대상만 공격 차단"
+      - "평화주의자는 무장해제된 플레이어를 제외한 플레이어만 공격 가능"
       - "10초간 회복량만큼 흡수 획득"
   - name: "탱크 엔진 (TankEngine)"
     icon: MINECART
