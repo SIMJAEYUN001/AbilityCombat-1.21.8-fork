@@ -5,10 +5,10 @@ abilities:
   - name: "제우스 (Zeus)"
     icon: LIGHTNING_ROD
     summary:
-      - "철괴 우클릭: 바라보는 방향으로 2초 돌진 (속도 1.5)"
-      - "돌진 중 우클릭: 번개창 적중 지점 텔레포트 + 경로 번개"
+      - "철괴 우클릭: 바라보는 방향으로 2초 비행 (속도 1.5)"
+      - "비행 중 우클릭: 번개창 적중 지점 텔레포트 + 경로 번개"
       - "번개마다 피해 12 + 기절 1.5초, 중복 적중 가능"
-      - "쿨타임: 돌진만 12초 / 재사용 25초"
+      - "쿨타임: 비행만 12초 / 재사용 25초"
   - name: "버서커 (Berserker)"
     icon: NETHERITE_AXE
     summary:
@@ -362,13 +362,72 @@ abilities:
   - name: "이열치열 (FireFightWithFire)"
     icon: BLAZE_ROD
     summary:
-      - "불 반격"
+      - "패시브: 화상 스택 피해를 회복으로 전환"
+      - "화상: 스택당 매초 최대 체력 0.5% 고정 피해"
+      - "철괴 우클릭: 6칸 적에게 화상 10스택 (20초)"
   - name: "악마의 부츠 (DevilBoots)"
     icon: NETHERITE_BOOTS
     summary:
       - "패시브: 4초 화염 자취, 닿은 적 매초 화상 +1"
       - "화상: 4초 점화, 스택당 초당 0.5 피해, 물/소화 시 초기화"
       - "철괴 우클릭: 신속 II 10초 (30초)"
+  - name: "화염 낙인 (FlameBrand)"
+    icon: FIRE_CHARGE
+    summary:
+      - "패시브: 공격 시 화상 1스택"
+      - "화상: 공유 스택, 스택당 매초 최대 체력 5% 피해"
+  - name: "무법자의 투지 (OutlawsGrit)"
+    icon: SHIELD
+    summary:
+      - "패시브: 대시마다 내구력 +1"
+      - "내구력: 최대 4스택, 스택당 피해 12% 감소"
+      - "10초간 대시 미사용 시 초기화"
+  - name: "너만을 위해 (ForYouOnly)"
+    icon: TOTEM_OF_UNDYING
+    summary:
+      - "철괴 우클릭: 최대 체력 10 소모"
+      - "팀원 사망: 체력 4 / 최대 체력 20으로 부활"
+      - "사망 팀원 없음: 흡수 5 + 피해 +50% 60초 (120초)"
+  - name: "처형 시간 (ExecutionTime)"
+    icon: PLAYER_HEAD
+    summary:
+      - "패시브: 8칸 적에게 10초 처형 표식"
+      - "종료: 2 + 기록 피해 40% 고정 피해"
+  - name: "최상급 조준경 (ApexScope)"
+    icon: SPYGLASS
+    summary:
+      - "패시브: 피해 -50%, 공격 사거리 +50%"
+  - name: "구급상자 (FirstAidKit)"
+    icon: HONEY_BOTTLE
+    summary:
+      - "패시브: 체력 50% 미만 아군 발광"
+      - "우클릭: 12칸 팀원 체력 14 회복"
+      - "좌클릭: 자신 체력 7 회복 (공유 45초)"
+  - name: "평화주의자 (Pacifist)"
+    icon: WHITE_BANNER
+    summary:
+      - "철괴 우클릭: 8칸 무장해제 10초 (60초)"
+      - "10초간 회복량만큼 흡수 획득"
+  - name: "탱크 엔진 (TankEngine)"
+    icon: MINECART
+    summary:
+      - "패시브: 10초 내 처치 관여 시 최대 체력 +4"
+  - name: "루나 (Luna)"
+    icon: AMETHYST_SHARD
+    summary:
+      - "패시브: 달빛 표식 5스택 시 추가 피해 8"
+      - "철괴 우클릭: 6칸 표식 + 표식 대상 기절 1초"
+      - "대상별 쿨타임 12초"
+  - name: "솔라 (Solar)"
+    icon: SUNFLOWER
+    summary:
+      - "패시브: 타격으로 빛 표식, 4스택 속박 1초"
+      - "주변 5칸 달빛 표식 제거"
+      - "철괴 우클릭: 10초간 피해 25% 감소 (35초)"
+  - name: "익스플로젼 (ExplosionMark)"
+    icon: TNT
+    summary:
+      - "패시브: 타격 4회마다 반경 3칸 폭발 피해 10"
   - name: "호박 (Pumpkin)"
     icon: CARVED_PUMPKIN
     summary:

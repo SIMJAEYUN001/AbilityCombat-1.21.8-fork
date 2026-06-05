@@ -8,7 +8,10 @@ import com.abilitycombat.ability.AbilityFactory;
 import com.abilitycombat.ability.AbilityRegistry;
 import com.abilitycombat.ability.handler.ActiveHandler;
 import com.abilitycombat.ability.handler.TargetHandler;
+import com.abilitycombat.ability.list.ForYouOnly;
+import com.abilitycombat.ability.list.Luna;
 import com.abilitycombat.effect.CrowdControl;
+import com.abilitycombat.effect.SharedBurn;
 import com.abilitycombat.gui.AbilityDebugGui;
 import com.abilitycombat.gui.AbilitySelectGui;
 import com.abilitycombat.gui.ConfigGui;
@@ -258,6 +261,9 @@ public class GameManager implements Listener {
         stopTasks();
         clearMovementLocks();
         CrowdControl.clearAll();
+        SharedBurn.clearAll();
+        ForYouOnly.clearReducedHealth();
+        Luna.clearMoonMarks();
         restoreFixedDaytime();
     }
 
@@ -279,6 +285,45 @@ public class GameManager implements Listener {
         return firstTeam != null && firstTeam.equals(secondTeam);
     }
 
+    public List<Player> getTeammates(Player player, boolean aliveOnly) {
+        List<Player> result = new ArrayList<>();
+        if (!isTeamMode() || player == null) {
+            return result;
+        }
+        CombatTeam team = getPlayerTeam(player);
+        if (team == null) {
+            return result;
+        }
+        for (Participant participant : participants.values()) {
+            Player teammate = participant.getPlayer();
+            if (teammate == null || teammate.equals(player) || !team.equals(participant.getTeam())) {
+                continue;
+            }
+            if (aliveOnly && !alivePlayers.contains(teammate.getUniqueId())) {
+                continue;
+            }
+            result.add(teammate);
+        }
+        return result;
+    }
+
+    public boolean reviveParticipant(Player player, Location location, double maxHealthValue, double healthValue) {
+        if (state != GameState.RUNNING || player == null || !player.isOnline()) {
+            return false;
+        }
+        Participant participant = participants.get(player.getUniqueId());
+        if (participant == null || alivePlayers.contains(player.getUniqueId())) {
+            return false;
+        }
+        alivePlayers.add(player.getUniqueId());
+        spectators.remove(player.getUniqueId());
+        participant.setTargetable(true);
+        player.spigot().respawn();
+        Bukkit.getScheduler().runTask(plugin, () -> restoreRevivedParticipant(player, participant, location,
+                maxHealthValue, healthValue));
+        return true;
+    }
+
     public boolean canApplyNegativeEffect(LivingEntity source, LivingEntity target) {
         if (source == null || target == null) {
             return false;
@@ -287,6 +332,36 @@ public class GameManager implements Listener {
             return true;
         }
         return !areTeammates(sourcePlayer, targetPlayer);
+    }
+
+    private void restoreRevivedParticipant(Player player, Participant participant, Location location,
+            double maxHealthValue, double healthValue) {
+        if (player == null || !player.isOnline() || participant == null) {
+            return;
+        }
+        player.setGameMode(GameMode.SURVIVAL);
+        player.setAllowFlight(false);
+        player.setFlying(false);
+        player.setInvulnerable(false);
+        player.setCollidable(true);
+        AttributeInstance maxHealth = player.getAttribute(Attribute.MAX_HEALTH);
+        double targetMax = Math.max(1.0, maxHealthValue);
+        if (maxHealth != null) {
+            maxHealth.setBaseValue(targetMax);
+        }
+        double actualMax = maxHealth != null ? maxHealth.getValue() : targetMax;
+        player.setHealth(Math.max(1.0, Math.min(actualMax, healthValue)));
+        if (location != null && location.getWorld() != null) {
+            player.teleport(location);
+        }
+        applyHungerLock(player);
+        giveToolkit(player);
+        if (participant.getAbility() == null && participant.getAbilityDefinition() != null
+                && AbilityFactory.isRegistered(participant.getAbilityDefinition().getName())) {
+            participant.setAbility(AbilityFactory.create(participant.getAbilityDefinition().getName(), participant));
+        }
+        updateVisibility();
+        syncTeamHealthDisplayVisibility();
     }
 
     public void allowReplicaDamageTransfer(Entity source, Player target) {
@@ -425,6 +500,9 @@ public class GameManager implements Listener {
         debugAbilityUsers.clear();
         clearMovementLocks();
         CrowdControl.clearAll();
+        SharedBurn.clearAll();
+        ForYouOnly.clearReducedHealth();
+        Luna.clearMoonMarks();
         lastSwordSwings.clear();
         naturalRegenCounters.clear();
         manualNaturalRegen.clear();
@@ -509,16 +587,39 @@ public class GameManager implements Listener {
         if (winningTeam == null) {
             return;
         }
-        plugin.getServer().broadcast(Component.text(winningTeam.getDisplayName() + " 승리!", winningTeam.getColor()));
+        Component teamSubtitle = buildWinningTeamSubtitle(winningTeam, winners);
+        plugin.getServer().broadcast(Component.text(winningTeam.getDisplayName() + " 승리!", winningTeam.getColor())
+                .append(Component.text(selectedMatchMode == MatchMode.DUO ? " - " + getWinnerNames(winners) : "",
+                        NamedTextColor.WHITE)));
         for (Player player : Bukkit.getOnlinePlayers()) {
             boolean winner = winners.contains(player.getUniqueId());
             Title titleObj = Title.title(
                     Component.text(winner ? "승리!" : "패배...", winner ? NamedTextColor.GOLD : NamedTextColor.RED),
-                    Component.text(winningTeam.getDisplayName(), winningTeam.getColor()),
+                    teamSubtitle,
                     times);
             player.showTitle(titleObj);
             player.sendMessage(winner ? "§6승리했습니다!" : "§c패배했습니다.");
         }
+    }
+
+    private Component buildWinningTeamSubtitle(CombatTeam winningTeam, Set<UUID> winners) {
+        Component team = Component.text(winningTeam.getDisplayName(), winningTeam.getColor());
+        if (selectedMatchMode != MatchMode.DUO) {
+            return team;
+        }
+        return team.append(Component.text(" - " + getWinnerNames(winners), NamedTextColor.WHITE));
+    }
+
+    private String getWinnerNames(Set<UUID> winners) {
+        List<String> names = new ArrayList<>();
+        for (UUID uuid : winners) {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player != null) {
+                names.add(player.getName());
+            }
+        }
+        Collections.sort(names);
+        return String.join(", ", names);
     }
 
     private void clearWinnerInventory(Set<UUID> winners) {
@@ -2071,7 +2172,7 @@ public class GameManager implements Listener {
         return spectators.contains(player.getUniqueId());
     }
 
-    private boolean isAlive(Player player) {
+    public boolean isAlive(Player player) {
         return alivePlayers.contains(player.getUniqueId());
     }
 
