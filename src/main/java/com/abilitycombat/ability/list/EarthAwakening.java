@@ -8,6 +8,7 @@ import com.abilitycombat.game.Participant;
 import com.abilitycombat.ui.SprintHudService;
 import com.abilitycombat.utils.LocationUtil;
 import com.abilitycombat.utils.ParticleUtil;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -48,6 +49,8 @@ public class EarthAwakening extends AbilityBase implements SprintHudService.Dash
     private static final double DAMAGE = 10.0;
     private static final int SLOW_TICKS = 40;
     private static final double SLOW_PERCENT = 30.0;
+    private static final Particle.DustOptions WARNING_DUST =
+            new Particle.DustOptions(Color.fromRGB(255, 170, 35), 1.1f);
 
     private final List<Location> sampledPath = new ArrayList<>();
     private final List<PendingCrack> pendingCracks = new ArrayList<>();
@@ -157,7 +160,6 @@ public class EarthAwakening extends AbilityBase implements SprintHudService.Dash
             PendingCrack crack = new PendingCrack(ground, tick + CRACK_START_DELAY_TICKS
                     + (index * CRACK_STEP_DELAY_TICKS), hitTargets);
             pendingCracks.add(crack);
-            markCrack(crack);
             index++;
         }
     }
@@ -176,22 +178,24 @@ public class EarthAwakening extends AbilityBase implements SprintHudService.Dash
         return new Location(world, x + 0.5, floorY, z + 0.5);
     }
 
-    private void markCrack(PendingCrack crack) {
+    private void markCrack(PendingCrack crack, int tick) {
         World world = crack.location.getWorld();
         if (world == null) {
             return;
         }
-        BlockData blockData = getFloorBlockData(world, crack.location);
+        double pulse = 0.85 + (Math.sin(tick * 0.45) * 0.15);
         for (int i = 0; i < 6; i++) {
             double angle = (Math.PI * 2.0 * i) / 6.0;
             Vector direction = new Vector(Math.cos(angle), 0.0, Math.sin(angle));
             Location start = crack.location.clone().add(0, 0.08, 0);
             for (double distance = 0.35; distance <= CRACK_RADIUS; distance += 0.35) {
                 Location point = start.clone().add(direction.clone().multiply(distance));
-                ParticleUtil.spawnParticle(world, Particle.BLOCK_CRUMBLE, point,
-                        2, 0.05, 0.02, 0.05, 0.01, blockData, 1, 64);
+                ParticleUtil.spawnParticle(world, Particle.DUST, point,
+                        1, 0.025 * pulse, 0.01, 0.025 * pulse, 0.0, WARNING_DUST, 1, 64);
             }
         }
+        ParticleUtil.spawnParticle(world, Particle.ELECTRIC_SPARK, crack.location.clone().add(0, 0.12, 0),
+                2, CRACK_RADIUS * 0.25, 0.02, CRACK_RADIUS * 0.25, 0.0, 1, 64);
     }
 
     private void processCracks(int tick) {
@@ -204,6 +208,8 @@ public class EarthAwakening extends AbilityBase implements SprintHudService.Dash
             if (tick >= crack.triggerTick) {
                 fireCrack(crack);
                 iterator.remove();
+            } else {
+                markCrack(crack, tick);
             }
         }
     }
