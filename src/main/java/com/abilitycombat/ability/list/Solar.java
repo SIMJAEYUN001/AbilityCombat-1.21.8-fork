@@ -17,6 +17,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scoreboard.Scoreboard;
@@ -24,14 +25,13 @@ import org.bukkit.scoreboard.Team;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 @AbilityManifest(name = "솔라 (Solar)", species = AbilityManifest.Species.SPECIAL, explain = {
         "§e§l[패시브 - 빛 표식]",
-        "§7타격 시 대상에게 §e빛 표식 1스택§7을 남깁니다",
+        "§7타격 시 대상에게 §f10초§7 유지되는 빛 표식 1스택을 남깁니다",
         "§7표식 대상은 자신에게만 §e노란색 발광§7으로 보입니다",
         "§74스택이 되면 표식을 소모해 §e속박 1초§7를 부여합니다",
         "§7주변 §f5칸§7 플레이어에게 달빛 표식이 있으면 달빛 표식을 제거합니다",
@@ -39,12 +39,13 @@ import java.util.UUID;
         "§e§l[철괴 우클릭 - 태양 보호막]§f §8(쿨타임: 35초)",
         "§710초§7간 받는 피해가 §b25% 감소§7하고 자신에게 §e노란색 발광§7을 부여합니다"
 }, summarize = {
-        "§7패시브§f: 빛 표식 4스택 속박 1초",
+        "§7패시브§f: 타격으로 10초 빛 표식, 4스택 속박 1초",
         "§7표식§f: 사용자 전용 노란색 발광",
         "§7철괴 우클릭§f: 10초간 피해 25% 감소"
 })
 public class Solar extends AbilityBase implements ActiveHandler {
 
+    private static final int MARK_TICKS = 200;
     private static final int BIND_STACKS = 4;
     private static final int BIND_TICKS = 20;
     private static final int SHIELD_TICKS = 200;
@@ -55,6 +56,7 @@ public class Solar extends AbilityBase implements ActiveHandler {
 
     private final Cooldown cooldown = new Cooldown(COOLDOWN_SECONDS);
     private final Map<UUID, Integer> lightStacks = new HashMap<>();
+    private final Map<UUID, Integer> lightExpireTicks = new HashMap<>();
     private final Map<UUID, String> highlightedTargets = new HashMap<>();
     private int shieldEndTick;
 
@@ -64,8 +66,7 @@ public class Solar extends AbilityBase implements ActiveHandler {
 
     @Override
     protected void onActivate() {
-        subscribeEvent(EntityDamageByEntityEvent.class);
-        subscribeEvent(org.bukkit.event.entity.EntityDamageEvent.class);
+        subscribeEvent(EntityDamageEvent.class);
         registerTick();
     }
 
@@ -79,13 +80,14 @@ public class Solar extends AbilityBase implements ActiveHandler {
 
     @Override
     public void handleBridgeEvent(Event event) {
-        if (event instanceof EntityDamageByEntityEvent damageEvent) {
-            onDamageByEntity(damageEvent);
-        } else if (event instanceof org.bukkit.event.entity.EntityDamageEvent damageEvent) {
-            if (!damageEvent.isCancelled() && damageEvent.getEntity().equals(getPlayer())
-                    && shieldEndTick > AbilityTickManager.getGlobalTick()) {
-                scaleIncomingDamage(damageEvent, 0.75);
-            }
+        if (!(event instanceof EntityDamageEvent damageEvent) || damageEvent.isCancelled()) {
+            return;
+        }
+        if (damageEvent instanceof EntityDamageByEntityEvent damageByEntityEvent) {
+            onDamageByEntity(damageByEntityEvent);
+        }
+        if (damageEvent.getEntity().equals(getPlayer()) && shieldEndTick > AbilityTickManager.getGlobalTick()) {
+            scaleIncomingDamage(damageEvent, 0.75);
         }
     }
 
@@ -98,13 +100,22 @@ public class Solar extends AbilityBase implements ActiveHandler {
         if (player == null || !event.getDamager().equals(player) || !LocationUtil.isValidTarget(player, target)) {
             return;
         }
-        int next = lightStacks.getOrDefault(target.getUniqueId(), 0) + 1;
+        UUID targetId = target.getUniqueId();
+        int currentTick = AbilityTickManager.getGlobalTick();
+        if (lightExpireTicks.getOrDefault(targetId, 0) <= currentTick) {
+            lightStacks.remove(targetId);
+            lightExpireTicks.remove(targetId);
+            hideHighlight(target);
+        }
+        int next = lightStacks.getOrDefault(targetId, 0) + 1;
         if (next >= BIND_STACKS) {
-            lightStacks.remove(target.getUniqueId());
+            lightStacks.remove(targetId);
+            lightExpireTicks.remove(targetId);
             hideHighlight(target);
             Bind.apply(target, BIND_TICKS);
         } else {
-            lightStacks.put(target.getUniqueId(), next);
+            lightStacks.put(targetId, next);
+            lightExpireTicks.put(targetId, currentTick + MARK_TICKS);
             showHighlight(target);
         }
         purgeNearbyMoonMarks(player);
@@ -133,8 +144,8 @@ public class Solar extends AbilityBase implements ActiveHandler {
 
     @Override
     public void onTick(int tick) {
+        refreshHighlights(tick);
         if (tick % 10 == 0) {
-            refreshHighlights();
             if (shieldEndTick > tick) {
                 syncShieldGlowTeam();
             }
@@ -176,12 +187,19 @@ public class Solar extends AbilityBase implements ActiveHandler {
         }
     }
 
-    private void refreshHighlights() {
+    private void refreshHighlights(int tick) {
         Set<UUID> desired = new HashSet<>(lightStacks.keySet());
         for (UUID targetId : desired) {
+            if (lightExpireTicks.getOrDefault(targetId, 0) <= tick) {
+                lightStacks.remove(targetId);
+                lightExpireTicks.remove(targetId);
+                hideHighlight(targetId, resolve(targetId));
+                continue;
+            }
             LivingEntity target = resolve(targetId);
             if (target == null || target.isDead()) {
                 lightStacks.remove(targetId);
+                lightExpireTicks.remove(targetId);
                 continue;
             }
             showHighlight(target);
@@ -198,6 +216,7 @@ public class Solar extends AbilityBase implements ActiveHandler {
             hideHighlight(targetId, resolve(targetId));
         }
         lightStacks.clear();
+        lightExpireTicks.clear();
     }
 
     private void applyShieldGlow(Player player) {

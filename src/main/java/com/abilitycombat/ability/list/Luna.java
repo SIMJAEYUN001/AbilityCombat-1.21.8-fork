@@ -27,19 +27,20 @@ import java.util.UUID;
 
 @AbilityManifest(name = "루나 (Luna)", species = AbilityManifest.Species.SPECIAL, explain = {
         "§e§l[패시브 - 월광 표식]",
-        "§7타격 시 대상에게 §f달빛 표식 1스택§7을 남깁니다",
+        "§7타격 시 대상에게 §f10초§7 유지되는 달빛 표식 1스택을 남깁니다",
         "§7표식 대상은 자신에게만 §f흰색 발광§7으로 보입니다",
         "§75스택이 되면 표식을 소모해 §c추가 피해 8§7을 주고 주변에 표식을 전이합니다",
         "",
         "§e§l[철괴 우클릭 - 월광 돌진]§f §8(대상별 쿨타임: 12초)",
         "§7바라본 표식 대상에게 빠르게 돌진해 §e기절 1초§7를 부여합니다"
 }, summarize = {
-        "§7패시브§f: 타격으로 달빛 표식, 5스택 추가 피해 8",
+        "§7패시브§f: 타격으로 10초 달빛 표식, 5스택 추가 피해 8",
         "§7표식 소모§f: 주변 적에게 달빛 표식 전이",
         "§7철괴 우클릭§f: 표식 대상 돌진/기절 1초"
 })
 public class Luna extends AbilityBase implements ActiveHandler {
 
+    private static final int MARK_TICKS = 200;
     private static final int DETONATE_STACKS = 5;
     private static final double BONUS_DAMAGE = 8.0;
     private static final double ACTIVE_RANGE = 8.0;
@@ -51,10 +52,12 @@ public class Luna extends AbilityBase implements ActiveHandler {
     private static final String GLOW_TEAM_NAME = "aw_luna_mark";
 
     private static final Map<UUID, Map<UUID, Integer>> MOON_STACKS = new HashMap<>();
+    private static final Map<UUID, Map<UUID, Integer>> MOON_EXPIRE_TICKS = new HashMap<>();
     private static final Map<UUID, Luna> ACTIVE_LUNAS = new HashMap<>();
 
     private final Map<UUID, Integer> targetCooldowns = new HashMap<>();
     private final Map<UUID, String> highlightedTargets = new HashMap<>();
+    private final Set<UUID> bonusDamageTargets = new HashSet<>();
     private AbilityTimer dashTimer;
 
     public Luna(Participant participant) {
@@ -84,6 +87,7 @@ public class Luna extends AbilityBase implements ActiveHandler {
         }
         clearHighlights();
         targetCooldowns.clear();
+        bonusDamageTargets.clear();
         unregisterTick();
     }
 
@@ -97,6 +101,9 @@ public class Luna extends AbilityBase implements ActiveHandler {
         if (player == null || !damageEvent.getDamager().equals(player)
                 || !(damageEvent.getEntity() instanceof LivingEntity target)
                 || !LocationUtil.isValidTarget(player, target)) {
+            return;
+        }
+        if (bonusDamageTargets.contains(target.getUniqueId())) {
             return;
         }
         addMark(target, true);
@@ -129,9 +136,7 @@ public class Luna extends AbilityBase implements ActiveHandler {
 
     @Override
     public void onTick(int tick) {
-        if (tick % 10 == 0) {
-            refreshHighlights();
-        }
+        refreshHighlights(tick);
     }
 
     private void addMark(LivingEntity target, boolean transferOnDetonate) {
@@ -141,20 +146,32 @@ public class Luna extends AbilityBase implements ActiveHandler {
         }
         UUID ownerId = player.getUniqueId();
         UUID targetId = target.getUniqueId();
+        int currentTick = AbilityTickManager.getGlobalTick();
+        if (isOwnerMoonMarkExpired(targetId, ownerId, currentTick)) {
+            removeMoonMarkOwner(targetId, ownerId);
+        }
         Map<UUID, Integer> ownerStacks = MOON_STACKS.computeIfAbsent(targetId, ignored -> new HashMap<>());
+        Map<UUID, Integer> ownerExpires = MOON_EXPIRE_TICKS.computeIfAbsent(targetId, ignored -> new HashMap<>());
         int next = ownerStacks.getOrDefault(ownerId, 0) + 1;
         if (next >= DETONATE_STACKS) {
             ownerStacks.remove(ownerId);
+            ownerExpires.remove(ownerId);
             cleanupTargetMoonMap(targetId);
             hideHighlight(target);
             target.setNoDamageTicks(0);
-            target.damage(BONUS_DAMAGE, player);
+            bonusDamageTargets.add(targetId);
+            try {
+                target.damage(BONUS_DAMAGE, player);
+            } finally {
+                bonusDamageTargets.remove(targetId);
+            }
             if (transferOnDetonate) {
                 transferMark(target);
             }
             return;
         }
         ownerStacks.put(ownerId, next);
+        ownerExpires.put(ownerId, currentTick + MARK_TICKS);
         showHighlight(target);
     }
 
@@ -235,7 +252,7 @@ public class Luna extends AbilityBase implements ActiveHandler {
         }
     }
 
-    private void refreshHighlights() {
+    private void refreshHighlights(int tick) {
         Player player = getPlayer();
         if (player == null) {
             clearHighlights();
@@ -243,15 +260,21 @@ public class Luna extends AbilityBase implements ActiveHandler {
         }
         UUID ownerId = player.getUniqueId();
         Set<UUID> desired = new HashSet<>();
-        for (Map.Entry<UUID, Map<UUID, Integer>> entry : MOON_STACKS.entrySet()) {
-            if (!entry.getValue().containsKey(ownerId)) {
+        for (UUID targetId : new HashSet<>(MOON_STACKS.keySet())) {
+            Map<UUID, Integer> ownerStacks = MOON_STACKS.get(targetId);
+            if (ownerStacks == null || !ownerStacks.containsKey(ownerId)) {
                 continue;
             }
-            LivingEntity target = resolve(entry.getKey());
+            if (isOwnerMoonMarkExpired(targetId, ownerId, tick)) {
+                removeMoonMarkOwner(targetId, ownerId);
+                continue;
+            }
+            LivingEntity target = resolve(targetId);
             if (target == null || target.isDead()) {
+                removeMoonMarkOwner(targetId, ownerId);
                 continue;
             }
-            desired.add(entry.getKey());
+            desired.add(targetId);
             showHighlight(target);
         }
         for (UUID targetId : new HashSet<>(highlightedTargets.keySet())) {
@@ -273,8 +296,16 @@ public class Luna extends AbilityBase implements ActiveHandler {
     }
 
     private static boolean hasOwnerMoonMark(UUID ownerId, LivingEntity target) {
-        Map<UUID, Integer> ownerStacks = target != null ? MOON_STACKS.get(target.getUniqueId()) : null;
-        return ownerId != null && ownerStacks != null && ownerStacks.getOrDefault(ownerId, 0) > 0;
+        if (ownerId == null || target == null) {
+            return false;
+        }
+        UUID targetId = target.getUniqueId();
+        if (isOwnerMoonMarkExpired(targetId, ownerId, AbilityTickManager.getGlobalTick())) {
+            removeMoonMarkOwner(targetId, ownerId);
+            return false;
+        }
+        Map<UUID, Integer> ownerStacks = MOON_STACKS.get(targetId);
+        return ownerStacks != null && ownerStacks.getOrDefault(ownerId, 0) > 0;
     }
 
     public static boolean hasMoonMark(LivingEntity target) {
@@ -287,6 +318,7 @@ public class Luna extends AbilityBase implements ActiveHandler {
             return false;
         }
         Map<UUID, Integer> removed = MOON_STACKS.remove(target.getUniqueId());
+        MOON_EXPIRE_TICKS.remove(target.getUniqueId());
         if (removed == null || removed.isEmpty()) {
             return false;
         }
@@ -304,6 +336,7 @@ public class Luna extends AbilityBase implements ActiveHandler {
             luna.clearHighlights();
         }
         MOON_STACKS.clear();
+        MOON_EXPIRE_TICKS.clear();
     }
 
     private static void removeOwnerMoonMarks(UUID ownerId) {
@@ -314,17 +347,52 @@ public class Luna extends AbilityBase implements ActiveHandler {
         while (iterator.hasNext()) {
             Map.Entry<UUID, Map<UUID, Integer>> entry = iterator.next();
             entry.getValue().remove(ownerId);
+            Map<UUID, Integer> ownerExpires = MOON_EXPIRE_TICKS.get(entry.getKey());
+            if (ownerExpires != null) {
+                ownerExpires.remove(ownerId);
+            }
             if (entry.getValue().isEmpty()) {
                 iterator.remove();
+                MOON_EXPIRE_TICKS.remove(entry.getKey());
             }
         }
     }
 
     private static void cleanupTargetMoonMap(UUID targetId) {
         Map<UUID, Integer> ownerStacks = MOON_STACKS.get(targetId);
-        if (ownerStacks != null && ownerStacks.isEmpty()) {
+        if (ownerStacks == null || ownerStacks.isEmpty()) {
             MOON_STACKS.remove(targetId);
+            MOON_EXPIRE_TICKS.remove(targetId);
+            return;
         }
+        Map<UUID, Integer> ownerExpires = MOON_EXPIRE_TICKS.get(targetId);
+        if (ownerExpires != null) {
+            ownerExpires.keySet().retainAll(ownerStacks.keySet());
+            if (ownerExpires.isEmpty()) {
+                MOON_EXPIRE_TICKS.remove(targetId);
+            }
+        }
+    }
+
+    private static boolean isOwnerMoonMarkExpired(UUID targetId, UUID ownerId, int tick) {
+        Map<UUID, Integer> ownerExpires = MOON_EXPIRE_TICKS.get(targetId);
+        return ownerExpires == null || ownerExpires.getOrDefault(ownerId, 0) <= tick;
+    }
+
+    private static void removeMoonMarkOwner(UUID targetId, UUID ownerId) {
+        Map<UUID, Integer> ownerStacks = MOON_STACKS.get(targetId);
+        if (ownerStacks != null) {
+            ownerStacks.remove(ownerId);
+        }
+        Map<UUID, Integer> ownerExpires = MOON_EXPIRE_TICKS.get(targetId);
+        if (ownerExpires != null) {
+            ownerExpires.remove(ownerId);
+        }
+        Luna luna = ACTIVE_LUNAS.get(ownerId);
+        if (luna != null) {
+            luna.hideHighlight(targetId, resolve(targetId));
+        }
+        cleanupTargetMoonMap(targetId);
     }
 
     private boolean isTargetReady(LivingEntity target) {
