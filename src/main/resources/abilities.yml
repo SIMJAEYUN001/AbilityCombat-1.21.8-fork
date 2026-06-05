@@ -392,6 +392,12 @@ abilities:
     icon: SHIELD
     summary:
       - "패시브: 피격 시 50% 확률로 피해 45% 감소"
+  - name: "복서 (Boxer)"
+    icon: LEATHER
+    summary:
+      - "패시브: 게임 시작 시 검 회수, 사거리 50% 감소"
+      - "빈손 타격: 소폭 돌진 + 추가 피해 8"
+      - "철괴 우클릭: 신속 II 8초 (30초)"
   - name: "혼돈 (Chaos)"
     icon: ENDER_EYE
     summary:
