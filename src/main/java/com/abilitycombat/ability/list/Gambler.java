@@ -26,17 +26,18 @@ import java.util.concurrent.ThreadLocalRandom;
 @AbilityManifest(name = "도박꾼 (Gambler)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[철괴 우클릭 - 판돈 재분배]§f §8(쿨타임: 30초)",
         "§7이동속도, 사거리, 최대체력, 받는 피해, 주는 피해가 무작위로 변합니다",
+        "§7각 스탯은 §f1~99%§7 범위에서 증가하거나 감소합니다",
         "§7다섯 스탯의 증감 합계는 항상 §f0%§7입니다",
         "§7사용 후 액션바에 현재 스탯 변동량이 표시됩니다"
 }, summarize = {
-        "§7철괴 우클릭§f: 5개 전투 스탯 무작위 조정",
+        "§7철괴 우클릭§f: 5개 전투 스탯 1~99% 무작위 조정",
         "§7조건§f: 모든 증감 합계 0%"
 })
 public class Gambler extends AbilityBase implements ActiveHandler {
 
     private static final int COOLDOWN_SECONDS = 30;
-    private static final int MIN_PERCENT = -30;
-    private static final int MAX_PERCENT = 30;
+    private static final int MIN_MAGNITUDE = 1;
+    private static final int MAX_MAGNITUDE = 99;
     private static final int ACTIONBAR_PRIORITY = 6;
     private static final String ACTIONBAR_KEY = "gambler:stats";
 
@@ -96,7 +97,7 @@ public class Gambler extends AbilityBase implements ActiveHandler {
             scaleOutgoingDamage(damageEvent, 1.0 + outgoingPercent / 100.0);
         }
         if (event instanceof EntityDamageEvent damageEvent && damageEvent.getEntity().equals(player)) {
-            scaleIncomingDamage(damageEvent, Math.max(0.05, 1.0 - incomingPercent / 100.0));
+            scaleIncomingDamage(damageEvent, Math.max(0.01, 1.0 - incomingPercent / 100.0));
         }
     }
 
@@ -129,15 +130,25 @@ public class Gambler extends AbilityBase implements ActiveHandler {
             int[] values = new int[5];
             int sum = 0;
             for (int i = 0; i < 4; i++) {
-                values[i] = random.nextInt(MIN_PERCENT / 5, MAX_PERCENT / 5 + 1) * 5;
+                values[i] = rollNonZeroPercent(random);
                 sum += values[i];
             }
             values[4] = -sum;
-            if (values[4] >= MIN_PERCENT && values[4] <= MAX_PERCENT) {
+            if (isValidPercent(values[4])) {
                 return values;
             }
         }
-        return new int[] { 10, -10, 5, -5, 0 };
+        return new int[] { 99, -99, 50, -49, -1 };
+    }
+
+    private int rollNonZeroPercent(ThreadLocalRandom random) {
+        int magnitude = random.nextInt(MIN_MAGNITUDE, MAX_MAGNITUDE + 1);
+        return random.nextBoolean() ? magnitude : -magnitude;
+    }
+
+    private boolean isValidPercent(int value) {
+        int magnitude = Math.abs(value);
+        return magnitude >= MIN_MAGNITUDE && magnitude <= MAX_MAGNITUDE;
     }
 
     private void applyAttributeModifiers() {
