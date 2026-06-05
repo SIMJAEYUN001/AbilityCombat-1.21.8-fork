@@ -338,6 +338,7 @@ abilities:
     icon: COMPASS
     summary:
       - "집착 스택: 스택당 +3% 피해"
+      - "5스택 소모: 실명 2초"
       - "10초 유지, 철괴/검 우클릭 돌진"
   - name: "예티 (Yeti)"
     icon: SNOW_BLOCK

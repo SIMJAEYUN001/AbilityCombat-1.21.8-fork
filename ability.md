@@ -19,7 +19,7 @@
 | **Assassin** | `Assassin.java` | 은신 및 후방 추가 데미지 | **준수** | 단순 포션 효과 위주 |
 | **TimeRewind** | `TimeRewind.java` | 과거 위치 및 상태로 회귀 | **우수** | 틱 단위 위치 추적 구현됨 |
 | **SoulEncroach** | `SoulEncroach.java` | 적 영혼 침식 및 디버프 | **보통** | 이펙트 위주의 구현 |
-| **Stalker** | `Stalker.java` | 특정 대상 추적 및 강화 | **보통** | 단순 거리 기반 위주 |
+| **Stalker** | `Stalker.java` | 집착 5스택 소모 실명 및 대상 추적 | **보통** | 상시 실명 제거 |
 | **Zombie** | `Zombie.java` | 사망 시 부활 및 감염 | **보통** | 기본 속성 변경 위주 |
 | **WraithForm** | `WraithForm.java` | 망령화 스택, 18칸 필드, 속박 | **신규** | 50스택 이상 망령 상태 전환 및 필드 이탈 패널티 |
 | **SwordDance** | `SwordDance.java` | 순차 텔레포트 타격 | **신규** | 5칸 내 적을 총 4회 타격, 1.2초 무적 |

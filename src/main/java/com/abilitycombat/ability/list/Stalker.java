@@ -19,7 +19,8 @@ import java.util.UUID;
 @AbilityManifest(name = "스토커 (Stalker)", species = AbilityManifest.Species.HUMAN, explain = {
         "§e§l[패시브 - 집착]",
         "§7같은 대상을 공격할 때마다 §6집착 스택§7이 쌓입니다 (최대 §f5§7, §f10초§7 유지)",
-        "§7스택당 §c+3% 추가 피해§7 + 적에게 §8실명§7 부여",
+        "§7스택당 §c+3% 추가 피해§7를 얻고 §f5스택§7에서 스택을 소모합니다",
+        "§7스택 소모 시 대상에게 §8실명 2초§7를 부여합니다",
         "",
         "§e§l[철괴 우클릭 - 관전]§f §8(쿨타임: 105초 - 스택×10, 최소 30초)",
         "§7§f20칸§7 내 대상에게 §b무적/투명§7 상태로 §f3초§7간 돌진합니다",
@@ -27,7 +28,8 @@ import java.util.UUID;
         "§e§l[검 우클릭 - 질주]§f §8(쿨타임: 4초)",
         "§7§f6칸§7 내 대상에게 짧게 돌진합니다"
 }, summarize = {
-        "§7집착 스택§f: 추가 피해 + 쿨타임 감소",
+        "§7집착 스택§f: 5스택 소모 시 실명 2초",
+        "§7스택당§f: 추가 피해 + 쿨타임 감소",
         "§7철괴/검 우클릭§f: 돌진"
 })
 public class Stalker extends AbilityBase implements ActiveHandler {
@@ -37,6 +39,8 @@ public class Stalker extends AbilityBase implements ActiveHandler {
     private static final double LOOK_RANGE = 20.0;
     private static final double SHORT_RANGE = 6.0;
     private static final int DASH_SECONDS = 3;
+    private static final int MAX_OBSESSION_STACK = 5;
+    private static final int OBSESSION_BLIND_TICKS = 40;
 
     private final Cooldown swordCooldown = new Cooldown(SWORD_COOLDOWN);
 
@@ -89,20 +93,29 @@ public class Stalker extends AbilityBase implements ActiveHandler {
     }
 
     private void onDamageByEntity(EntityDamageByEntityEvent event) {
-        if (!(event.getDamager() instanceof Player player) || !player.equals(getPlayer())) {
+        if (event.isCancelled() || !(event.getDamager() instanceof Player player) || !player.equals(getPlayer())) {
             return;
         }
         if (!(event.getEntity() instanceof LivingEntity target)) {
+            return;
+        }
+        if (!LocationUtil.isValidTarget(player, target)) {
             return;
         }
         if (lastTarget == null || !lastTarget.equals(target.getUniqueId())) {
             lastTarget = target.getUniqueId();
             stack = 0;
         }
-        stack = Math.min(5, stack + 1);
+        stack = Math.min(MAX_OBSESSION_STACK, stack + 1);
         double bonusMultiplier = 1.0 + (stack * 0.03); // 스택당 +3%
         scaleOutgoingDamage(event, bonusMultiplier);
-        target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 0, true, false));
+        if (stack >= MAX_OBSESSION_STACK) {
+            target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, OBSESSION_BLIND_TICKS, 0, true, false));
+            stack = 0;
+            lastTarget = null;
+            remainingStackSeconds = 0;
+            return;
+        }
 
         // 스택 리셋 타이머 갱신
         remainingStackSeconds = 10;
@@ -118,7 +131,7 @@ public class Stalker extends AbilityBase implements ActiveHandler {
             return false;
         }
         LivingEntity target = LocationUtil.getEntityLookingAt(LivingEntity.class, getPlayer(), LOOK_RANGE,
-                entity -> !entity.equals(getPlayer()));
+                entity -> LocationUtil.isValidTarget(getPlayer(), entity));
         if (target == null) {
             return false;
         }
@@ -139,7 +152,7 @@ public class Stalker extends AbilityBase implements ActiveHandler {
             return false;
         }
         LivingEntity target = LocationUtil.getEntityLookingAt(LivingEntity.class, getPlayer(), SHORT_RANGE,
-                entity -> !entity.equals(getPlayer()));
+                entity -> LocationUtil.isValidTarget(getPlayer(), entity));
         if (target == null) {
             return false;
         }
