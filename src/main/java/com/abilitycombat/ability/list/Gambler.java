@@ -93,10 +93,10 @@ public class Gambler extends AbilityBase implements ActiveHandler {
             return;
         }
         if (event instanceof EntityDamageByEntityEvent damageEvent && damageEvent.getDamager().equals(player)) {
-            scaleOutgoingDamage(damageEvent, 1.0 + outgoingPercent / 100.0);
+            modifyDamage(damageEvent, OUTGOING_DAMAGE, outgoingPercent, 0.0);
         }
         if (event instanceof EntityDamageEvent damageEvent && damageEvent.getEntity().equals(player)) {
-            scaleIncomingDamage(damageEvent, Math.max(0.01, 1.0 - incomingPercent / 100.0));
+            modifyDamage(damageEvent, INCOMING_DAMAGE, -incomingPercent, 0.0);
         }
     }
 

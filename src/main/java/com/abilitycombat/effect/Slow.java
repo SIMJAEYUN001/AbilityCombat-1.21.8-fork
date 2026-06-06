@@ -56,7 +56,7 @@ public final class Slow {
         }
         for (SlowEntry entry : SLOWED.values()) {
             clearModifiers(entry.target);
-            DamageModifier.removeOutgoing(entry.target, OUTGOING_DAMAGE_SOURCE_KEY);
+            DamageModifier.remove(entry.target, DamageModifier.DamageChannel.OUTGOING, OUTGOING_DAMAGE_SOURCE_KEY);
         }
         SLOWED.clear();
     }
@@ -96,7 +96,8 @@ public final class Slow {
         entry.until = Math.max(entry.until, until);
         entry.profile = entry.profile.merge(resolvedProfile);
         applyModifiers(target, entry.profile);
-        DamageModifier.applyOutgoing(target, ticks, OUTGOING_DAMAGE_SOURCE_KEY, -entry.profile.outgoingDamagePercent);
+        DamageModifier.apply(target, DamageModifier.DamageChannel.OUTGOING, ticks, OUTGOING_DAMAGE_SOURCE_KEY,
+                -entry.profile.outgoingDamagePercent);
     }
 
     public static boolean isSlowed(LivingEntity target) {
@@ -113,7 +114,7 @@ public final class Slow {
         }
         SLOWED.remove(target.getUniqueId());
         clearModifiers(target);
-        DamageModifier.removeOutgoing(target, OUTGOING_DAMAGE_SOURCE_KEY);
+        DamageModifier.remove(target, DamageModifier.DamageChannel.OUTGOING, OUTGOING_DAMAGE_SOURCE_KEY);
     }
 
     private static void tick() {
@@ -128,14 +129,14 @@ public final class Slow {
             if (target == null || !target.isValid() || target.isDead()) {
                 if (target != null) {
                     clearModifiers(target);
-                    DamageModifier.removeOutgoing(target, OUTGOING_DAMAGE_SOURCE_KEY);
+                    DamageModifier.remove(target, DamageModifier.DamageChannel.OUTGOING, OUTGOING_DAMAGE_SOURCE_KEY);
                 }
                 iterator.remove();
                 continue;
             }
             if (entry.until <= now) {
                 clearModifiers(target);
-                DamageModifier.removeOutgoing(target, OUTGOING_DAMAGE_SOURCE_KEY);
+                DamageModifier.remove(target, DamageModifier.DamageChannel.OUTGOING, OUTGOING_DAMAGE_SOURCE_KEY);
                 iterator.remove();
                 continue;
             }

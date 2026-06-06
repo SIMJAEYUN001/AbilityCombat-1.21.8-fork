@@ -30,6 +30,9 @@ import java.util.Set;
  */
 public abstract class AbilityBase implements Listener, AbilityTickManager.Tickable {
 
+    protected static final DamageModifier.DamageChannel INCOMING_DAMAGE = DamageModifier.DamageChannel.INCOMING;
+    protected static final DamageModifier.DamageChannel OUTGOING_DAMAGE = DamageModifier.DamageChannel.OUTGOING;
+
     private final Participant participant;
     private final AbilityManifest manifest;
     private final AbilityDescriptor descriptor;
@@ -195,38 +198,6 @@ public abstract class AbilityBase implements Listener, AbilityTickManager.Tickab
             return;
         }
         Slow.apply(target, ticks, profile);
-    }
-
-    protected void scaleIncomingDamage(EntityDamageEvent event, double multiplier) {
-        modifyDamage(event, DamageModifier.DamageChannel.INCOMING, (multiplier - 1.0) * 100.0, 0.0);
-    }
-
-    protected void scaleOutgoingDamage(EntityDamageByEntityEvent event, double multiplier) {
-        modifyDamage(event, DamageModifier.DamageChannel.OUTGOING, (multiplier - 1.0) * 100.0, 0.0);
-    }
-
-    protected void increaseIncomingDamage(EntityDamageEvent event, double percent) {
-        modifyDamage(event, DamageModifier.DamageChannel.INCOMING, percent, 0.0);
-    }
-
-    protected void decreaseIncomingDamage(EntityDamageEvent event, double percent) {
-        modifyDamage(event, DamageModifier.DamageChannel.INCOMING, -percent, 0.0);
-    }
-
-    protected void increaseOutgoingDamage(EntityDamageByEntityEvent event, double percent) {
-        modifyDamage(event, DamageModifier.DamageChannel.OUTGOING, percent, 0.0);
-    }
-
-    protected void decreaseOutgoingDamage(EntityDamageByEntityEvent event, double percent) {
-        modifyDamage(event, DamageModifier.DamageChannel.OUTGOING, -percent, 0.0);
-    }
-
-    protected void addIncomingDamage(EntityDamageEvent event, double amount) {
-        modifyDamage(event, DamageModifier.DamageChannel.INCOMING, 0.0, amount);
-    }
-
-    protected void addOutgoingDamage(EntityDamageByEntityEvent event, double amount) {
-        modifyDamage(event, DamageModifier.DamageChannel.OUTGOING, 0.0, amount);
     }
 
     protected double getCalculatedFinalDamage(EntityDamageEvent event) {

@@ -197,9 +197,9 @@ public class WraithForm extends AbilityBase implements ActiveHandler {
 
         boolean wraith = isWraith();
         if (wraith) {
-            increaseOutgoingDamage(byEntity, WRAITH_DAMAGE_BONUS_PERCENT);
+            modifyDamage(byEntity, OUTGOING_DAMAGE, WRAITH_DAMAGE_BONUS_PERCENT, 0.0);
         } else {
-            decreaseOutgoingDamage(byEntity, HUMAN_DAMAGE_PENALTY_PERCENT);
+            modifyDamage(byEntity, OUTGOING_DAMAGE, -HUMAN_DAMAGE_PENALTY_PERCENT, 0.0);
         }
 
         double dealtDamage = Math.min(getCalculatedFinalDamage(event), target.getHealth());

@@ -87,7 +87,7 @@ public class Solar extends AbilityBase implements ActiveHandler {
             onDamageByEntity(damageByEntityEvent);
         }
         if (damageEvent.getEntity().equals(getPlayer()) && shieldEndTick > AbilityTickManager.getGlobalTick()) {
-            scaleIncomingDamage(damageEvent, 0.75);
+            modifyDamage(damageEvent, INCOMING_DAMAGE, -25.0, 0.0);
         }
     }
 

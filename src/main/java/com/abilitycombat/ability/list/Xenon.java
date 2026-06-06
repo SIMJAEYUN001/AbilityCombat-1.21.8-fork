@@ -113,7 +113,7 @@ public class Xenon extends AbilityBase implements ActiveHandler {
 
         // 보호막이 없으면 +30% 피해
         if (shield <= 0) {
-            increaseIncomingDamage(event, 30.0);
+            modifyDamage(event, INCOMING_DAMAGE, 30.0, 0.0);
             return;
         }
 

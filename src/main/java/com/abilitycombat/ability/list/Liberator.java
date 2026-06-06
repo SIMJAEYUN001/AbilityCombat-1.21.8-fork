@@ -91,7 +91,7 @@ public class Liberator extends AbilityBase implements ActiveHandler {
             dealtDamage.merge(target.getUniqueId(), getCalculatedFinalDamage(event), Double::sum);
         }
         if (event.getEntity().equals(getPlayer())) {
-            scaleIncomingDamage(event, DAMAGE_REDUCTION_MULTIPLIER);
+            modifyDamage(event, INCOMING_DAMAGE, (DAMAGE_REDUCTION_MULTIPLIER - 1.0) * 100.0, 0.0);
         }
     }
 

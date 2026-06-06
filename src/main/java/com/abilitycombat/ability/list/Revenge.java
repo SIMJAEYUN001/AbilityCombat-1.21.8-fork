@@ -70,7 +70,7 @@ public class Revenge extends AbilityBase {
         if (player == null || !event.getDamager().equals(player)) {
             return;
         }
-        scaleOutgoingDamage(event, DAMAGE_MULTIPLIER);
+        modifyDamage(event, OUTGOING_DAMAGE, (DAMAGE_MULTIPLIER - 1.0) * 100.0, 0.0);
         double heal = getCalculatedFinalDamage(event) * HEAL_RATIO;
         if (heal > 0.0) {
             var maxHealth = player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);

@@ -123,7 +123,7 @@ public class ODMGear extends AbilityBase {
                 .getParticipant(target.getUniqueId());
         if (targetParticipant != null && targetParticipant.getAbility() instanceof Giant) {
             // 100% 추가 데미지 (즉 2배)
-            scaleOutgoingDamage(event, 2.0);
+            modifyDamage(event, OUTGOING_DAMAGE, 100.0, 0.0);
         }
     }
 
@@ -165,7 +165,7 @@ public class ODMGear extends AbilityBase {
         if (event.getCause() != EntityDamageEvent.DamageCause.FALL) {
             return;
         }
-        decreaseIncomingDamage(event, 50.0);
+        modifyDamage(event, INCOMING_DAMAGE, -50.0, 0.0);
     }
 
     private boolean hasNearbyBlock(Location loc) {

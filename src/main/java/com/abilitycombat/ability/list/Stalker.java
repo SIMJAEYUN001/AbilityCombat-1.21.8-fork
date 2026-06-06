@@ -113,7 +113,7 @@ public class Stalker extends AbilityBase implements ActiveHandler {
         stack = Math.min(MAX_OBSESSION_STACK, stack + 1);
         if (stack >= MAX_OBSESSION_STACK) {
             target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, OBSESSION_BLIND_TICKS, 0, true, false));
-            DamageModifier.applyIncoming(target, VULNERABILITY_TICKS, VULNERABILITY_SOURCE_KEY,
+            DamageModifier.apply(target, DamageModifier.DamageChannel.INCOMING, VULNERABILITY_TICKS, VULNERABILITY_SOURCE_KEY,
                     VULNERABILITY_PERCENT);
             stack = 0;
             lastTarget = null;

@@ -69,7 +69,7 @@ public class OutlawsGrit extends AbilityBase implements SprintHudService.DashLis
         if (stacks <= 0 || !damageEvent.getEntity().equals(getPlayer())) {
             return;
         }
-        scaleIncomingDamage(damageEvent, Math.max(0.0, 1.0 - stacks * REDUCTION_PER_STACK));
+        modifyDamage(damageEvent, INCOMING_DAMAGE, -(stacks * REDUCTION_PER_STACK * 100.0), 0.0);
     }
 
     @Override

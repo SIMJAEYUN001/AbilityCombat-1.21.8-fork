@@ -111,7 +111,7 @@ public class Virtus extends AbilityBase implements ActiveHandler {
         }
 
         // 피해 75% 감소 적용
-        scaleIncomingDamage(event, DAMAGE_MULTIPLIER);
+        modifyDamage(event, INCOMING_DAMAGE, (DAMAGE_MULTIPLIER - 1.0) * 100.0, 0.0);
 
         if (event instanceof EntityDamageByEntityEvent byEntity) {
             player.setVelocity(player.getVelocity().setX(0).setZ(0));

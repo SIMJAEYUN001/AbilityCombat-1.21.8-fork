@@ -73,38 +73,6 @@ public final class DamageModifier implements Listener {
         }
     }
 
-    public static void applyIncoming(LivingEntity target, int ticks, String sourceKey, double percentDelta) {
-        apply(target, DamageChannel.INCOMING, ticks, sourceKey, percentDelta);
-    }
-
-    public static void applyOutgoing(LivingEntity target, int ticks, String sourceKey, double percentDelta) {
-        apply(target, DamageChannel.OUTGOING, ticks, sourceKey, percentDelta);
-    }
-
-    public static void removeIncoming(LivingEntity target, String sourceKey) {
-        remove(target, DamageChannel.INCOMING, sourceKey);
-    }
-
-    public static void removeOutgoing(LivingEntity target, String sourceKey) {
-        remove(target, DamageChannel.OUTGOING, sourceKey);
-    }
-
-    public static void addIncomingPercent(EntityDamageEvent event, double percentDelta) {
-        add(event, DamageChannel.INCOMING, percentDelta, 0.0);
-    }
-
-    public static void addOutgoingPercent(EntityDamageEvent event, double percentDelta) {
-        add(event, DamageChannel.OUTGOING, percentDelta, 0.0);
-    }
-
-    public static void addIncomingFlat(EntityDamageEvent event, double amount) {
-        add(event, DamageChannel.INCOMING, 0.0, amount);
-    }
-
-    public static void addOutgoingFlat(EntityDamageEvent event, double amount) {
-        add(event, DamageChannel.OUTGOING, 0.0, amount);
-    }
-
     public static void apply(LivingEntity target, DamageChannel channel, int ticks, String sourceKey,
             double percentDelta) {
         if (channel == null) {

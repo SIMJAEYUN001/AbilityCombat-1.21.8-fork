@@ -131,7 +131,7 @@ public class StrategicSymbiosis extends AbilityBase {
         if (finalDamage <= 0.0) {
             return;
         }
-        decreaseIncomingDamage(event, SHARED_DAMAGE_RATIO * 100.0);
+        modifyDamage(event, INCOMING_DAMAGE, -(SHARED_DAMAGE_RATIO * 100.0), 0.0);
         double sharedDamage = finalDamage * SHARED_DAMAGE_RATIO;
         Bukkit.getScheduler().runTask(AbilityCombat.getPlugin(), () -> applyExactHealthLoss(owner, sharedDamage));
     }

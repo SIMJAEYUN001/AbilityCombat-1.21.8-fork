@@ -46,7 +46,7 @@ public class ApexScope extends AbilityBase {
         }
         Player player = getPlayer();
         if (player != null && damageEvent.getDamager().equals(player)) {
-            scaleOutgoingDamage(damageEvent, DAMAGE_MULTIPLIER);
+            modifyDamage(damageEvent, OUTGOING_DAMAGE, (DAMAGE_MULTIPLIER - 1.0) * 100.0, 0.0);
         }
     }
 

@@ -39,7 +39,7 @@ public final class Infection {
             task = null;
         }
         for (InfectionEntry entry : INFECTED.values()) {
-            DamageModifier.removeIncoming(entry.target, DAMAGE_SOURCE_KEY);
+            DamageModifier.remove(entry.target, DamageModifier.DamageChannel.INCOMING, DAMAGE_SOURCE_KEY);
         }
         INFECTED.clear();
     }
@@ -60,7 +60,8 @@ public final class Infection {
             INFECTED.put(uuid, entry);
         }
         entry.until = Math.max(entry.until, until);
-        DamageModifier.applyIncoming(target, ticks, DAMAGE_SOURCE_KEY, INCOMING_DAMAGE_INCREASE_PERCENT);
+        DamageModifier.apply(target, DamageModifier.DamageChannel.INCOMING, ticks, DAMAGE_SOURCE_KEY,
+                INCOMING_DAMAGE_INCREASE_PERCENT);
     }
 
     public static boolean isInfected(LivingEntity target) {
@@ -96,12 +97,12 @@ public final class Infection {
             InfectionEntry entry = iterator.next().getValue();
             LivingEntity target = entry.target;
             if (target == null || target.isDead() || !target.isValid()) {
-                DamageModifier.removeIncoming(target, DAMAGE_SOURCE_KEY);
+                DamageModifier.remove(target, DamageModifier.DamageChannel.INCOMING, DAMAGE_SOURCE_KEY);
                 iterator.remove();
                 continue;
             }
             if (entry.until <= now) {
-                DamageModifier.removeIncoming(target, DAMAGE_SOURCE_KEY);
+                DamageModifier.remove(target, DamageModifier.DamageChannel.INCOMING, DAMAGE_SOURCE_KEY);
                 iterator.remove();
                 continue;
             }

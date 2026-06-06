@@ -149,7 +149,7 @@ public class LateBloom extends AbilityBase implements ActiveHandler {
             if (buffRemainingTicks > 0) {
                 damageModifier += buffDamageMultiplier;
             }
-            scaleOutgoingDamage(event, 1 + damageModifier);
+            modifyDamage(event, OUTGOING_DAMAGE, damageModifier * 100.0, 0.0);
 
             // 최대 공격 게이지 타격 시 스택 획득 (정확히 1스택만)
             if (attacker.getCooledAttackStrength(0) >= ATTACK_COOLDOWN_THRESHOLD) {
@@ -161,7 +161,7 @@ public class LateBloom extends AbilityBase implements ActiveHandler {
 
         // 피격 시: 받는 피해 증가
         if (event.getEntity() instanceof Player victim && victim.equals(player)) {
-            scaleIncomingDamage(event, DAMAGE_TAKEN_MULTIPLIER);
+            modifyDamage(event, INCOMING_DAMAGE, (DAMAGE_TAKEN_MULTIPLIER - 1.0) * 100.0, 0.0);
         }
     }
 

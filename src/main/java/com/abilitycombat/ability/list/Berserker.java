@@ -125,12 +125,12 @@ public class Berserker extends AbilityBase implements ActiveHandler {
         if (event.getEntity().equals(getPlayer())) {
             Entity damager = event.getDamager();
             if (damager instanceof Projectile) {
-                decreaseIncomingDamage(event, 50.0);
+                modifyDamage(event, INCOMING_DAMAGE, -50.0, 0.0);
             }
             if (damager instanceof Entity) {
                 double distance = damager.getLocation().distance(getPlayer().getLocation());
                 if (distance > 5.0) {
-                    decreaseIncomingDamage(event, 75.0);
+                    modifyDamage(event, INCOMING_DAMAGE, -75.0, 0.0);
                 }
             }
         }
@@ -138,7 +138,7 @@ public class Berserker extends AbilityBase implements ActiveHandler {
             double maxHealth = getPlayer().getAttribute(Attribute.MAX_HEALTH).getValue();
             double missing = Math.max(0.0, maxHealth - getPlayer().getHealth());
             double ratio = missing / maxHealth;
-            increaseOutgoingDamage(event, 35.0 * ratio);
+            modifyDamage(event, OUTGOING_DAMAGE, 35.0 * ratio, 0.0);
         }
     }
 

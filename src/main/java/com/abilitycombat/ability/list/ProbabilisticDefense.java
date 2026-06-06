@@ -42,7 +42,7 @@ public class ProbabilisticDefense extends AbilityBase {
         if (ThreadLocalRandom.current().nextDouble() >= CHANCE) {
             return;
         }
-        scaleIncomingDamage(damageEvent, DAMAGE_MULTIPLIER);
+        modifyDamage(damageEvent, INCOMING_DAMAGE, (DAMAGE_MULTIPLIER - 1.0) * 100.0, 0.0);
         player.playSound(player.getLocation(), Sound.ITEM_SHIELD_BLOCK, 0.55f, 1.45f);
     }
 }
