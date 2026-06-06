@@ -10,7 +10,11 @@
 - [ ] 직접 `spawnParticle()` 대신 `ParticleUtil` 사용
 - [ ] 필요 시 `VectorPool` / `LocationPool` 활용
 - [ ] `onDeactivate()` / `onDestroy()`에서 리소스 정리
-- [ ] 능력 추가/수정 시 `ability.yml`에 변경 사항 기록
+- [ ] 능력 추가/수정 시 `abilities.yml`에 변경 사항 기록
+- [ ] **받는/주는 피해 증감은 `modifyDamage(...)` 또는 `DamageModifier.apply/remove(...)`만 사용**
+- [ ] **고정 피해는 `DamageModifier.applyFlatDamage(...)`를 사용하고, 화상 스택 예외 외에는 `setHealth()` 직접 차감 금지**
+- [ ] **사거리/이동속도/최대체력/크기/중력 같은 Attribute 보정은 개별 `setBaseValue()`/`addTransientModifier()`를 추가하기 전에 공통화 가능 여부 확인**
+- [ ] **viewer별 발광은 직접 scoreboard 팀을 만들기보다 `FakeGlow.show/hide` 우선 사용**
 - [ ] **주변 탐색 시 `withValidTarget()` 또는 `isValidTarget()` 사용하여 관전자 제외**
 - [ ] **팀전 영향을 받는 타게팅/범위 탐색은 source-aware `withValidTarget(getPlayer(), ...)` 또는 `isValidTarget(getPlayer(), target)` 사용**
 - [ ] **직접 `damage()`, `setVelocity()`, 강제 이동, 디버프 부여, 폭발 피해를 줄 때 팀원 제외가 필요한지 반드시 확인**
@@ -178,6 +182,37 @@ DamageModifier.applyFlatDamage(target, amount, source);
 
 ---
 
+## 2-2. Attribute 보정 통합 대상
+
+### 현재 상태
+- 데미지 증감은 `DamageModifier`로 통합됨
+- 사거리, 이동속도, 최대체력, 크기, 중력, 공격속도 보정은 아직 능력별 직접 구현이 남아 있음
+- 새 능력에서 같은 패턴을 추가하면 추후 정리 비용이 커지므로, 먼저 공통 유틸로 뺄 수 있는지 확인
+
+### 우선 통합 대상
+| 대상 | 현재 반복 패턴 | 권장 방향 |
+|------|----------------|-----------|
+| 사거리 | `ENTITY_INTERACTION_RANGE` 직접 modifier/base 변경 | `RangeModifier` 또는 Attribute 공통 유틸 |
+| 이동속도 | 능력별 `MOVEMENT_SPEED` modifier | Attribute 공통 유틸 |
+| 최대체력 | `MAX_HEALTH#setBaseValue` 직접 변경 | 영구/임시 체력 보정 관리자 |
+| 크기 | `SCALE#setBaseValue` 직접 변경 | 크기 보정 공통 유틸 |
+| 중력 | `GRAVITY#setBaseValue` 직접 변경 | Attribute 공통 유틸 |
+
+### 작성 규칙
+- 임시 보정은 가능하면 `addTransientModifier` + 고유 `NamespacedKey` + 해제 로직으로 작성
+- `setBaseValue()`는 게임 기본값 초기화, NPC/더미 생성, 영구 최대체력 변화처럼 base 변경이 의도인 경우에만 사용
+- 새 Attribute 보정 능력을 추가할 때는 `onDeactivate()` / 게임 종료 / 사망 복구 경로를 먼저 설계
+- 같은 Attribute를 여러 능력이 건드릴 수 있으면 base 값을 직접 덮지 말고 modifier 기반으로 누적되게 구현
+- 사거리 증가/감소는 아직 통합 메서드가 없으므로 다음 리팩터링 1순위로 처리
+
+### 현재 비효율 후보
+- `Boxer`, `WraithForm`, `Gambler`: 사거리 modifier 직접 관리
+- `ApexScope`, `Giant`: 사거리 base 값 직접 변경
+- `Gambler`, `TapDancer`, `Slow`: 속도/스탯 modifier 관리 패턴 중복
+- `Giant`, `GiantSlayer`, `DecayRay`, `GravityField`: 크기/중력 base 값 직접 변경
+
+---
+
 ## 3. 주변 엔티티 캐싱 (`NearbyEntityCache`)
 
 ### 사용법
@@ -202,6 +237,7 @@ nearbyCache.getNearby(center, 8.0, e -> !e.equals(player), 10).forEach(target ->
 ### 사용법
 - **`player.spigot().sendMessage()`를 매 틱 호출하지 마세요.**
 - `BossBarManager`와 `ActionbarChannel`을 사용하세요.
+- 능력 클래스에서 `player.sendActionBar(...)`를 직접 반복 호출하지 말고 `getActionbarChannel().update/clear`를 사용하세요.
 ### 쿨타임 표기 기본 규칙
 - **기본은 바닐라 게이지 + 철괴 우클릭 시 채팅 메시지(`notifyCooldown`)**
 - **액션바 쿨타임은 사용자 요청이 있을 때만 구현**
@@ -267,6 +303,25 @@ applyIronCooldownIfEmpty(COOLDOWN_SECONDS);
 
 ### 부분 위험 후보
 - `Bellum`: `collidable`만 저장/복원하므로 완전 동일 이슈는 아니지만 임시 비충돌 상태와 충돌 가능
+
+---
+
+## 4-3. viewer별 발광 / 표식 UI
+
+### 원칙
+- 특정 플레이어에게만 보여야 하는 발광은 `FakeGlow.show(viewer, target, teamName, color)` / `FakeGlow.hide(...)`를 우선 사용
+- 실제 `PotionEffectType.GLOWING`은 모든 플레이어에게 보이는 효과가 필요할 때만 사용
+- 표식 유지시간이 끝나면 fake glow도 같이 제거해야 함
+- 팀전/2인전에서 팀원 식별용 발광은 같은 팀 viewer에게만 보내야 함
+
+### 직접 구현을 피할 것
+- 능력 클래스마다 scoreboard 팀을 새로 만들고 색상/엔트리/해제를 직접 관리하는 방식
+- `sendPotionEffectChange`와 팀 색상 처리를 능력마다 따로 작성하는 방식
+- 표식 만료와 glow 해제가 서로 다른 타이머에 묶이는 방식
+
+### 현재 비효율 후보
+- `FirstAidKit`: 사용자 전용 발광을 자체 scoreboard 팀으로 관리
+- `Luna`, `Solar`, `AkashicRecord`, 팀 선택 발광: `FakeGlow` 기반이지만 유지시간/해제 패턴이 능력마다 분산
 
 ---
 
@@ -387,7 +442,7 @@ LocationUtil.getNearbyLivingEntities(center, radius, getPlayer(), predicate)
 ### UI / 정보 노출
 - 팀전 전용 정보는 **같은 팀에게만 보여야 함**
 - 체력, 표식, 이름표, 추적 표시 등은 적 팀에 `0`이나 빈 값이라도 보이면 안 됨
-- 필요하면 scoreboard보다 `TextDisplay + showEntity/hideEntity` 같은 viewer 제어 방식 사용
+- 필요하면 `FakeGlow`, `TextDisplay + showEntity/hideEntity` 같은 viewer 제어 방식 사용
 
 ### 승패 처리
 - 팀전 종료 시에는 개인 승자가 아니라 **팀 승리** 기준으로 처리
@@ -509,3 +564,17 @@ applySlow(target, 80, Slow.SlowProfile.builder()
 > [!CAUTION]
 > 이름 불일치는 컴파일 에러를 발생시키지 않아 발견이 어렵습니다.
 > 능력이 추첨에 나오지 않으면 가장 먼저 이름 일치 여부를 확인하세요.
+
+---
+
+## 10. `rule.md` 유지보수 메모
+
+### 이번 점검 결과
+- `ability.yml` 오기를 실제 파일명인 `abilities.yml`로 수정
+- 체크리스트와 본문에 같은 내용이 반복되지만, 체크리스트는 빠른 리뷰용이고 본문은 세부 규칙으로 유지
+- 중복 규칙을 수정할 때는 본문을 먼저 고치고 체크리스트는 한 줄 요약만 남길 것
+
+### 남은 비효율
+- Attribute 보정 규칙은 문서화만 되어 있고 코드 공통 유틸은 아직 없음
+- fake glow는 `FakeGlow` 유틸이 있으나 능력별 유지시간/해제 로직이 분산되어 있음
+- 일부 능력은 액션바를 직접 갱신하므로 `ActionbarChannel`로 점진 정리 필요
