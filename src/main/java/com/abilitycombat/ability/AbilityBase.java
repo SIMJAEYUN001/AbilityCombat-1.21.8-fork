@@ -198,35 +198,35 @@ public abstract class AbilityBase implements Listener, AbilityTickManager.Tickab
     }
 
     protected void scaleIncomingDamage(EntityDamageEvent event, double multiplier) {
-        applyIncomingPercentDamage(event, (multiplier - 1.0) * 100.0);
+        modifyDamage(event, DamageModifier.DamageChannel.INCOMING, (multiplier - 1.0) * 100.0, 0.0);
     }
 
     protected void scaleOutgoingDamage(EntityDamageByEntityEvent event, double multiplier) {
-        applyOutgoingPercentDamage(event, (multiplier - 1.0) * 100.0);
+        modifyDamage(event, DamageModifier.DamageChannel.OUTGOING, (multiplier - 1.0) * 100.0, 0.0);
     }
 
     protected void increaseIncomingDamage(EntityDamageEvent event, double percent) {
-        applyIncomingPercentDamage(event, percent);
+        modifyDamage(event, DamageModifier.DamageChannel.INCOMING, percent, 0.0);
     }
 
     protected void decreaseIncomingDamage(EntityDamageEvent event, double percent) {
-        applyIncomingPercentDamage(event, -percent);
+        modifyDamage(event, DamageModifier.DamageChannel.INCOMING, -percent, 0.0);
     }
 
     protected void increaseOutgoingDamage(EntityDamageByEntityEvent event, double percent) {
-        applyOutgoingPercentDamage(event, percent);
+        modifyDamage(event, DamageModifier.DamageChannel.OUTGOING, percent, 0.0);
     }
 
     protected void decreaseOutgoingDamage(EntityDamageByEntityEvent event, double percent) {
-        applyOutgoingPercentDamage(event, -percent);
+        modifyDamage(event, DamageModifier.DamageChannel.OUTGOING, -percent, 0.0);
     }
 
     protected void addIncomingDamage(EntityDamageEvent event, double amount) {
-        addIncomingFlatDamage(event, amount);
+        modifyDamage(event, DamageModifier.DamageChannel.INCOMING, 0.0, amount);
     }
 
     protected void addOutgoingDamage(EntityDamageByEntityEvent event, double amount) {
-        addOutgoingFlatDamage(event, amount);
+        modifyDamage(event, DamageModifier.DamageChannel.OUTGOING, 0.0, amount);
     }
 
     protected double getCalculatedFinalDamage(EntityDamageEvent event) {
@@ -244,32 +244,12 @@ public abstract class AbilityBase implements Listener, AbilityTickManager.Tickab
         return plugin.getGameManager().isMovementLocked(target);
     }
 
-    private void applyIncomingPercentDamage(EntityDamageEvent event, double percent) {
-        if (event == null || !Double.isFinite(percent)) {
+    protected void modifyDamage(EntityDamageEvent event, DamageModifier.DamageChannel channel,
+            double percentDelta, double flatDelta) {
+        if (event == null || channel == null || !Double.isFinite(percentDelta) || !Double.isFinite(flatDelta)) {
             return;
         }
-        DamageModifier.addIncomingPercent(event, percent);
-    }
-
-    private void applyOutgoingPercentDamage(EntityDamageByEntityEvent event, double percent) {
-        if (event == null || !Double.isFinite(percent)) {
-            return;
-        }
-        DamageModifier.addOutgoingPercent(event, percent);
-    }
-
-    private void addIncomingFlatDamage(EntityDamageEvent event, double amount) {
-        if (event == null || !Double.isFinite(amount)) {
-            return;
-        }
-        DamageModifier.addIncomingFlat(event, amount);
-    }
-
-    private void addOutgoingFlatDamage(EntityDamageByEntityEvent event, double amount) {
-        if (event == null || !Double.isFinite(amount)) {
-            return;
-        }
-        DamageModifier.addOutgoingFlat(event, amount);
+        DamageModifier.add(event, channel, percentDelta, flatDelta);
     }
 
     /**

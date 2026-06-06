@@ -20,6 +20,11 @@ import java.util.UUID;
 
 public final class DamageModifier implements Listener {
 
+    public enum DamageChannel {
+        INCOMING,
+        OUTGOING
+    }
+
     private static final long CLEANUP_PERIOD_TICKS = 20L;
     private static final double MIN_PERCENT = -95.0;
     private static final double MAX_PERCENT = 500.0;
@@ -69,35 +74,63 @@ public final class DamageModifier implements Listener {
     }
 
     public static void applyIncoming(LivingEntity target, int ticks, String sourceKey, double percentDelta) {
-        apply(INCOMING, target, ticks, sourceKey, percentDelta);
+        apply(target, DamageChannel.INCOMING, ticks, sourceKey, percentDelta);
     }
 
     public static void applyOutgoing(LivingEntity target, int ticks, String sourceKey, double percentDelta) {
-        apply(OUTGOING, target, ticks, sourceKey, percentDelta);
+        apply(target, DamageChannel.OUTGOING, ticks, sourceKey, percentDelta);
     }
 
     public static void removeIncoming(LivingEntity target, String sourceKey) {
-        remove(INCOMING, target, sourceKey);
+        remove(target, DamageChannel.INCOMING, sourceKey);
     }
 
     public static void removeOutgoing(LivingEntity target, String sourceKey) {
-        remove(OUTGOING, target, sourceKey);
+        remove(target, DamageChannel.OUTGOING, sourceKey);
     }
 
     public static void addIncomingPercent(EntityDamageEvent event, double percentDelta) {
-        addPercent(event, percentDelta);
+        add(event, DamageChannel.INCOMING, percentDelta, 0.0);
     }
 
     public static void addOutgoingPercent(EntityDamageEvent event, double percentDelta) {
-        addPercent(event, percentDelta);
+        add(event, DamageChannel.OUTGOING, percentDelta, 0.0);
     }
 
     public static void addIncomingFlat(EntityDamageEvent event, double amount) {
-        addFlat(event, amount);
+        add(event, DamageChannel.INCOMING, 0.0, amount);
     }
 
     public static void addOutgoingFlat(EntityDamageEvent event, double amount) {
-        addFlat(event, amount);
+        add(event, DamageChannel.OUTGOING, 0.0, amount);
+    }
+
+    public static void apply(LivingEntity target, DamageChannel channel, int ticks, String sourceKey,
+            double percentDelta) {
+        if (channel == null) {
+            return;
+        }
+        apply(container(channel), target, ticks, sourceKey, percentDelta);
+    }
+
+    public static void remove(LivingEntity target, DamageChannel channel, String sourceKey) {
+        if (channel == null) {
+            return;
+        }
+        remove(container(channel), target, sourceKey);
+    }
+
+    public static void add(EntityDamageEvent event, DamageChannel channel, double percentDelta, double flatDelta) {
+        if (event == null || channel == null) {
+            return;
+        }
+        PendingAdjustment adjustment = PENDING.computeIfAbsent(event, ignored -> new PendingAdjustment());
+        if (Double.isFinite(percentDelta)) {
+            adjustment.percentDelta += percentDelta;
+        }
+        if (Double.isFinite(flatDelta)) {
+            adjustment.flatDelta += flatDelta;
+        }
     }
 
     public static void applyFlatDamage(LivingEntity target, double amount, Entity source) {
@@ -246,22 +279,6 @@ public final class DamageModifier implements Listener {
         return damager.getUniqueId();
     }
 
-    private static void addPercent(EntityDamageEvent event, double percentDelta) {
-        if (event == null) {
-            return;
-        }
-        PendingAdjustment adjustment = PENDING.computeIfAbsent(event, ignored -> new PendingAdjustment());
-        adjustment.percentDelta += percentDelta;
-    }
-
-    private static void addFlat(EntityDamageEvent event, double amount) {
-        if (event == null || !Double.isFinite(amount)) {
-            return;
-        }
-        PendingAdjustment adjustment = PENDING.computeIfAbsent(event, ignored -> new PendingAdjustment());
-        adjustment.flatDelta += amount;
-    }
-
     private static void cleanup() {
         long now = System.currentTimeMillis();
         cleanup(INCOMING, now);
@@ -350,6 +367,10 @@ public final class DamageModifier implements Listener {
             return 0.0;
         }
         return Math.max(MIN_PERCENT, Math.min(MAX_PERCENT, percentDelta));
+    }
+
+    private static Map<UUID, Map<String, ModifierEntry>> container(DamageChannel channel) {
+        return channel == DamageChannel.OUTGOING ? OUTGOING : INCOMING;
     }
 
     private static final class ModifierEntry {
