@@ -128,6 +128,20 @@ public final class PlayerReplica {
         NMS.setVelocity(nmsPlayer, applied);
     }
 
+    public void swingMainHand() {
+        if (removed) {
+            return;
+        }
+        for (UUID viewerId : new ArrayList<>(currentViewers)) {
+            Player viewer = Bukkit.getPlayer(viewerId);
+            if (viewer == null || !viewer.isOnline()) {
+                currentViewers.remove(viewerId);
+                continue;
+            }
+            NMS.sendSwingMainHand(viewer, nmsPlayer);
+        }
+    }
+
     public void teleport(Location location) {
         if (removed || location == null || location.getWorld() == null) {
             return;
@@ -463,7 +477,7 @@ public final class PlayerReplica {
     }
 
     private boolean isPassableSpace(Block block) {
-        return block != null && !block.isLiquid() && (block.isPassable() || block.getType().isAir());
+        return block != null && (block.isLiquid() || block.isPassable() || block.getType().isAir());
     }
 
     private record MoveResult(Location location, Vector velocity, boolean onGround, boolean moved) {
@@ -480,6 +494,7 @@ public final class PlayerReplica {
         private final Constructor<?> serverPlayerCtor;
         private final Constructor<?> serverGamePacketListenerCtor;
         private final Constructor<?> setEntityDataPacketCtor;
+        private final Constructor<?> animatePacketCtor;
         private final Method craftServerGetServer;
         private final Method craftWorldGetHandle;
         private final Method craftPlayerGetHandle;
@@ -570,6 +585,7 @@ public final class PlayerReplica {
                         serverPlayerClass,
                         commonCookieClass);
                 this.setEntityDataPacketCtor = setEntityDataPacketClass.getConstructor(int.class, List.class);
+                this.animatePacketCtor = findAnimatePacketConstructor(entityClass);
                 this.craftServerGetServer = craftServerClass.getMethod("getServer");
                 this.craftWorldGetHandle = craftWorldClass.getMethod("getHandle");
                 this.craftPlayerGetHandle = craftPlayerClass.getMethod("getHandle");
@@ -756,6 +772,16 @@ public final class PlayerReplica {
             }
         }
 
+        private void sendSwingMainHand(Player viewer, Object handle) {
+            if (animatePacketCtor == null) {
+                return;
+            }
+            try {
+                sendPacket(viewer, animatePacketCtor.newInstance(handle, 0));
+            } catch (ReflectiveOperationException ignored) {
+            }
+        }
+
         private void syncDirtyMetadata(Object handle) {
             try {
                 getDirtyMetadata(handle, false);
@@ -835,6 +861,18 @@ public final class PlayerReplica {
                 }
             }
             return null;
+        }
+
+        private Constructor<?> findAnimatePacketConstructor(Class<?> entityClass) {
+            try {
+                Class<?> animatePacketClass = Class.forName(
+                        "net.minecraft.network.protocol.game.ClientboundAnimatePacket");
+                Constructor<?> constructor = animatePacketClass.getConstructor(entityClass, int.class);
+                constructor.setAccessible(true);
+                return constructor;
+            } catch (ReflectiveOperationException ignored) {
+                return null;
+            }
         }
 
         private Method findEntityDataSet(Class<?> dataClass, Class<?> accessorClass, boolean forced) {
