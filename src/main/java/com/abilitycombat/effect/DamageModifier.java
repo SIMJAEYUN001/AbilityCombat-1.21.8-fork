@@ -125,9 +125,20 @@ public final class DamageModifier implements Listener {
         if (event == null) {
             return 0.0;
         }
-        double finalDamage = event.getFinalDamage();
+        double damageBeforeAbsorption = previewDamageBeforeAbsorption(event, pending);
         if (!(event.getEntity() instanceof LivingEntity target)) {
-            return Math.max(0.0, finalDamage);
+            return damageBeforeAbsorption;
+        }
+        return applyAbsorption(event, target, damageBeforeAbsorption);
+    }
+
+    private static double previewDamageBeforeAbsorption(EntityDamageEvent event, PendingAdjustment pending) {
+        if (event == null) {
+            return 0.0;
+        }
+        double damageBeforeAbsorption = getDamageBeforeAbsorption(event);
+        if (!(event.getEntity() instanceof LivingEntity target)) {
+            return Math.max(0.0, damageBeforeAbsorption);
         }
         long now = System.currentTimeMillis();
         double totalPercent = resolveTotal(INCOMING, target.getUniqueId(), now);
@@ -142,14 +153,14 @@ public final class DamageModifier implements Listener {
             totalPercent += pending.percentDelta;
             flatAmount += pending.flatDelta;
         }
-        return Math.max(0.0, (finalDamage * percentToMultiplier(totalPercent)) + flatAmount);
+        return Math.max(0.0, (damageBeforeAbsorption * percentToMultiplier(totalPercent)) + flatAmount);
     }
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDamage(EntityDamageEvent event) {
         PendingAdjustment pending = PENDING.remove(event);
         OneShotFlatDamage oneShotFlatDamage = consumeOneShotFlatDamage(event);
-        if (!(event.getEntity() instanceof LivingEntity target)) {
+        if (!(event.getEntity() instanceof LivingEntity)) {
             return;
         }
         if (event.isCancelled()) {
@@ -159,12 +170,12 @@ public final class DamageModifier implements Listener {
             applyFinalDamage(event, oneShotFlatDamage.amount);
             return;
         }
-        double previewFinalDamage = previewFinalDamage(event, pending);
-        double currentFinalDamage = Math.max(0.0, event.getFinalDamage());
-        if (pending == null && Math.abs(previewFinalDamage - currentFinalDamage) < 1.0E-6) {
+        double previewDamageBeforeAbsorption = previewDamageBeforeAbsorption(event, pending);
+        double currentDamageBeforeAbsorption = getDamageBeforeAbsorption(event);
+        if (pending == null && Math.abs(previewDamageBeforeAbsorption - currentDamageBeforeAbsorption) < 1.0E-6) {
             return;
         }
-        applyFinalDamage(event, previewFinalDamage);
+        applyDamageBeforeAbsorption(event, previewDamageBeforeAbsorption);
     }
 
     private static void apply(Map<UUID, Map<String, ModifierEntry>> container, LivingEntity target, int ticks,
@@ -286,6 +297,93 @@ public final class DamageModifier implements Listener {
             return 0.0;
         }
         return clampPercent(total);
+    }
+
+    private static double getDamageBeforeAbsorption(EntityDamageEvent event) {
+        if (event == null) {
+            return 0.0;
+        }
+        // Bukkit final damage already subtracts absorption, but our modifiers must run before it.
+        double finalDamage = Math.max(0.0, event.getFinalDamage());
+        return Math.max(0.0, finalDamage + getAbsorptionReduction(event));
+    }
+
+    private static double applyAbsorption(EntityDamageEvent event, LivingEntity target, double damageBeforeAbsorption) {
+        double damage = Math.max(0.0, damageBeforeAbsorption);
+        if (damage <= DAMAGE_SEARCH_EPSILON) {
+            return 0.0;
+        }
+        return Math.max(0.0, damage - getAbsorptionCapacity(event, target));
+    }
+
+    @SuppressWarnings("deprecation")
+    private static double getAbsorptionReduction(EntityDamageEvent event) {
+        if (!isApplicable(event, EntityDamageEvent.DamageModifier.ABSORPTION)) {
+            return 0.0;
+        }
+        try {
+            return Math.max(0.0, -event.getDamage(EntityDamageEvent.DamageModifier.ABSORPTION));
+        } catch (IllegalArgumentException | UnsupportedOperationException ignored) {
+            return 0.0;
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    private static double getAbsorptionCapacity(EntityDamageEvent event, LivingEntity target) {
+        if (!isApplicable(event, EntityDamageEvent.DamageModifier.ABSORPTION)) {
+            return 0.0;
+        }
+        return Math.max(0.0, target.getAbsorptionAmount());
+    }
+
+    @SuppressWarnings("deprecation")
+    private static boolean isApplicable(EntityDamageEvent event, EntityDamageEvent.DamageModifier modifier) {
+        if (event == null || modifier == null) {
+            return false;
+        }
+        try {
+            return event.isApplicable(modifier);
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
+    }
+
+    private static void applyDamageBeforeAbsorption(EntityDamageEvent event, double targetDamageBeforeAbsorption) {
+        if (event == null) {
+            return;
+        }
+        double clampedTarget = Math.max(0.0, targetDamageBeforeAbsorption);
+        if (clampedTarget <= DAMAGE_SEARCH_EPSILON) {
+            event.setDamage(0.0);
+            return;
+        }
+
+        double high = Math.min(MAX_RAW_DAMAGE, Math.max(1.0, Math.max(event.getDamage(), clampedTarget)));
+        while (high < MAX_RAW_DAMAGE) {
+            event.setDamage(high);
+            if (getDamageBeforeAbsorption(event) >= clampedTarget - DAMAGE_SEARCH_EPSILON) {
+                break;
+            }
+            high = Math.min(MAX_RAW_DAMAGE, high * 2.0);
+        }
+
+        event.setDamage(high);
+        if (getDamageBeforeAbsorption(event) < clampedTarget - DAMAGE_SEARCH_EPSILON) {
+            return;
+        }
+
+        double low = 0.0;
+        for (int i = 0; i < DAMAGE_SEARCH_ITERATIONS; i++) {
+            double mid = (low + high) * 0.5;
+            event.setDamage(mid);
+            double damageBeforeAbsorption = getDamageBeforeAbsorption(event);
+            if (damageBeforeAbsorption < clampedTarget) {
+                low = mid;
+            } else {
+                high = mid;
+            }
+        }
+        event.setDamage(high);
     }
 
     private static void applyFinalDamage(EntityDamageEvent event, double targetFinalDamage) {
