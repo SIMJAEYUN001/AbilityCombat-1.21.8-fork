@@ -6,6 +6,8 @@ import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.ability.handler.ActiveHandler;
 import com.abilitycombat.game.Participant;
 import com.abilitycombat.utils.LocationUtil;
+import io.papermc.paper.event.entity.EntityKnockbackEvent;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
@@ -30,13 +32,14 @@ import java.util.concurrent.ThreadLocalRandom;
         "§7게임 시작 시 인벤토리의 §f검을 모두 회수§7합니다",
         "§7공격 사거리가 §c30% 감소§7합니다",
         "§7빈손 타격 성공 시 짧게 전진하고 §c추가 피해 8§7을 줍니다",
+        "§7타격 후 §f3초§7간 밀려나지 않습니다",
         "§7빈손 타격은 §f50% 확률§7로 한 번 더 적용됩니다",
         "",
         "§e§l[철괴 우클릭 - 풋워크]§f §8(쿨타임: 30초)",
         "§7자신에게 §b신속 II 8초§7를 부여합니다"
 }, summarize = {
         "§7패시브§f: 검 회수, 사거리 30% 감소",
-        "§7빈손 타격§f: 소폭 돌진 + 추가 피해 8, 50% 확률 2회 타격",
+        "§7빈손 타격§f: 돌진 + 추가 피해 8 + 3초 넉백 방지",
         "§7철괴 우클릭§f: 신속 II 8초 (30초)"
 })
 public class Boxer extends AbilityBase implements ActiveHandler {
@@ -48,8 +51,10 @@ public class Boxer extends AbilityBase implements ActiveHandler {
     private static final double DOUBLE_HIT_CHANCE = 0.5;
     private static final double LUNGE_SPEED = 0.42;
     private static final double LUNGE_Y = 0.06;
+    private static final int KNOCKBACK_IMMUNITY_TICKS = 60;
 
     private final Cooldown cooldown = new Cooldown(COOLDOWN_SECONDS);
+    private int knockbackImmuneUntilTick;
 
     public Boxer(Participant participant) {
         super(participant);
@@ -60,15 +65,20 @@ public class Boxer extends AbilityBase implements ActiveHandler {
         removeSwords();
         applyRangePenalty();
         subscribeEvent(EntityDamageByEntityEvent.class);
+        subscribeEvent(EntityKnockbackEvent.class);
     }
 
     @Override
     protected void onDeactivate() {
+        knockbackImmuneUntilTick = 0;
+        unsubscribeEvent(EntityDamageByEntityEvent.class);
+        unsubscribeEvent(EntityKnockbackEvent.class);
         removeRangePenalty();
     }
 
     @Override
     protected void onDestroy() {
+        knockbackImmuneUntilTick = 0;
         removeRangePenalty();
     }
 
@@ -94,8 +104,17 @@ public class Boxer extends AbilityBase implements ActiveHandler {
 
     @Override
     public void handleBridgeEvent(Event event) {
-        if (!(event instanceof EntityDamageByEntityEvent damageEvent)
-                || (event instanceof Cancellable cancellable && cancellable.isCancelled())) {
+        if (event instanceof EntityDamageByEntityEvent damageEvent) {
+            onDamageByEntity(damageEvent);
+            return;
+        }
+        if (event instanceof EntityKnockbackEvent knockbackEvent) {
+            onKnockback(knockbackEvent);
+        }
+    }
+
+    private void onDamageByEntity(EntityDamageByEntityEvent damageEvent) {
+        if (damageEvent instanceof Cancellable cancellable && cancellable.isCancelled()) {
             return;
         }
         Player player = getPlayer();
@@ -114,7 +133,40 @@ public class Boxer extends AbilityBase implements ActiveHandler {
         }
         damageEvent.setDamage(Math.max(0.0, damageEvent.getDamage() + bonusDamage));
         lungeToward(player, target);
+        grantKnockbackImmunity();
         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_STRONG, 0.7f, 1.45f);
+    }
+
+    private void onKnockback(EntityKnockbackEvent event) {
+        Player player = getPlayer();
+        if (player == null || !event.getEntity().getUniqueId().equals(player.getUniqueId())) {
+            return;
+        }
+        if (Bukkit.getCurrentTick() > knockbackImmuneUntilTick) {
+            return;
+        }
+        Vector velocity = player.getVelocity().clone();
+        event.setCancelled(true);
+        event.setKnockback(new Vector());
+        AbilityCombat plugin = AbilityCombat.getPlugin();
+        if (plugin != null) {
+            Bukkit.getScheduler().runTask(plugin, () -> restoreVelocity(player, velocity));
+        }
+    }
+
+    private void grantKnockbackImmunity() {
+        knockbackImmuneUntilTick = Math.max(knockbackImmuneUntilTick,
+                Bukkit.getCurrentTick() + KNOCKBACK_IMMUNITY_TICKS);
+    }
+
+    private void restoreVelocity(Player player, Vector velocity) {
+        if (player == null || velocity == null || !player.isOnline() || player.isDead()) {
+            return;
+        }
+        if (Bukkit.getCurrentTick() > knockbackImmuneUntilTick) {
+            return;
+        }
+        player.setVelocity(velocity);
     }
 
     private void removeSwords() {
