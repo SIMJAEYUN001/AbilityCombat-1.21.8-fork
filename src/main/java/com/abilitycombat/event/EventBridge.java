@@ -3,6 +3,7 @@ package com.abilitycombat.event;
 import com.abilitycombat.ability.AbilityBase;
 import com.abilitycombat.effect.CrowdControl;
 import com.abilitycombat.utils.collection.QueueOnIterateHashSet;
+import io.papermc.paper.event.entity.EntityKnockbackEvent;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -87,6 +88,11 @@ public final class EventBridge implements Listener {
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onEntityDamage(EntityDamageEvent event) {
         dispatch(event, EntityDamageEvent.class);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
+    public void onEntityKnockback(EntityKnockbackEvent event) {
+        dispatch(event, EntityKnockbackEvent.class);
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
