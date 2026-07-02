@@ -263,6 +263,7 @@ public class PuppetMaster extends AbilityBase implements ActiveHandler {
         puppet.setVelocity(new Vector());
         if (attackCooldown <= 0) {
             target.setNoDamageTicks(0);
+            puppet.swingMainHand();
             target.damage(PUPPET_DAMAGE, owner);
             attackCooldown = ATTACK_INTERVAL_TICKS;
             owner.getWorld().playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.5f, 1.25f);
