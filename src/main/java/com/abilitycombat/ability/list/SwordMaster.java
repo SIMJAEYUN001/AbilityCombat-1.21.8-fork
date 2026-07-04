@@ -17,7 +17,9 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
@@ -58,6 +60,7 @@ public class SwordMaster extends AbilityBase implements ActiveHandler {
     private static final EulerAngle DEFAULT_ARM_POSE = new EulerAngle(Math.toRadians(-10), 0, 0);
     private static final int SHOOT_MAX_TICKS = 40;
     private static final double SHOOT_SPEED = 2.0;
+    private static final double SWORD_DAMAGE_DIVISOR = 1.2;
 
     private final List<FloatingSword> swords = new ArrayList<>();
     private final List<ShootingProjectile> projectiles = new ArrayList<>();
@@ -134,10 +137,9 @@ public class SwordMaster extends AbilityBase implements ActiveHandler {
         return material != null && material.name().endsWith("_SWORD");
     }
 
-    private double getSwordDamage() {
+    private double getBaseSwordDamage() {
         Player player = getPlayer();
-        double baseDamage = player.getAttribute(Attribute.ATTACK_DAMAGE).getValue();
-        return baseDamage / 1.5;
+        return player.getAttribute(Attribute.ATTACK_DAMAGE).getValue();
     }
 
     @Override
@@ -196,7 +198,7 @@ public class SwordMaster extends AbilityBase implements ActiveHandler {
         if (chargeProgress >= CHARGE_REQUIRED_STEPS) {
             chargeProgress = 0;
             ItemStack swordItem = player.getInventory().getItemInMainHand().clone();
-            addSword(new FloatingSword(swordItem, getSwordDamage()));
+            addSword(new FloatingSword(swordItem, getBaseSwordDamage()));
             player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 0.3f, 2.0f);
         }
     }
@@ -281,11 +283,53 @@ public class SwordMaster extends AbilityBase implements ActiveHandler {
                 continue;
             }
             entity.setNoDamageTicks(0);
-            entity.damage(proj.damage, proj.shooter);
+            entity.damage(calculateProjectileDamage(proj, entity), proj.shooter);
             return true;
         }
 
         return false;
+    }
+
+    private double calculateProjectileDamage(ShootingProjectile projectile, LivingEntity target) {
+        double enchantmentDamage = getEnchantmentDamage(projectile.swordItem, target);
+        return Math.max(0.0, (projectile.baseDamage / SWORD_DAMAGE_DIVISOR) + enchantmentDamage);
+    }
+
+    private double getEnchantmentDamage(ItemStack swordItem, LivingEntity target) {
+        if (swordItem == null || target == null) {
+            return 0.0;
+        }
+        double damage = 0.0;
+        int sharpness = swordItem.getEnchantmentLevel(Enchantment.SHARPNESS);
+        if (sharpness > 0) {
+            damage += 0.5D + (0.5D * sharpness);
+        }
+
+        int smite = swordItem.getEnchantmentLevel(Enchantment.SMITE);
+        if (smite > 0 && isUndead(target.getType())) {
+            damage += 2.5D * smite;
+        }
+
+        int bane = swordItem.getEnchantmentLevel(Enchantment.BANE_OF_ARTHROPODS);
+        if (bane > 0 && isArthropod(target.getType())) {
+            damage += 2.5D * bane;
+        }
+        return damage;
+    }
+
+    private boolean isUndead(EntityType type) {
+        return switch (type) {
+            case BOGGED, DROWNED, GIANT, HUSK, PHANTOM, SKELETON, SKELETON_HORSE, STRAY, WITHER,
+                    WITHER_SKELETON, ZOGLIN, ZOMBIE, ZOMBIE_HORSE, ZOMBIE_VILLAGER, ZOMBIFIED_PIGLIN -> true;
+            default -> false;
+        };
+    }
+
+    private boolean isArthropod(EntityType type) {
+        return switch (type) {
+            case BEE, CAVE_SPIDER, ENDERMITE, SILVERFISH, SPIDER -> true;
+            default -> false;
+        };
     }
 
     public int getSwordCount() {
@@ -317,7 +361,7 @@ public class SwordMaster extends AbilityBase implements ActiveHandler {
                 .setRightArmPose(new EulerAngle(Math.toRadians(player.getLocation().getPitch() - 10), 0, 0));
 
         // 발사체 등록
-        projectiles.add(new ShootingProjectile(sword.armorStand, sword.damage, dir, player));
+        projectiles.add(new ShootingProjectile(sword.armorStand, sword.swordItem, sword.baseDamage, dir, player));
         SweepEffectAllowance.markAbilitySweepSound();
         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.0f, 1.0f);
         chargeProgress = 0;
@@ -346,14 +390,17 @@ public class SwordMaster extends AbilityBase implements ActiveHandler {
      */
     private static class ShootingProjectile {
         final ArmorStand armorStand;
-        final double damage;
+        final ItemStack swordItem;
+        final double baseDamage;
         final Vector direction;
         final Player shooter;
         int ticks;
 
-        ShootingProjectile(ArmorStand armorStand, double damage, Vector direction, Player shooter) {
+        ShootingProjectile(ArmorStand armorStand, ItemStack swordItem, double baseDamage, Vector direction,
+                Player shooter) {
             this.armorStand = armorStand;
-            this.damage = damage;
+            this.swordItem = swordItem;
+            this.baseDamage = baseDamage;
             this.direction = direction;
             this.shooter = shooter;
             this.ticks = 0;
@@ -366,11 +413,11 @@ public class SwordMaster extends AbilityBase implements ActiveHandler {
     private class FloatingSword {
         private ArmorStand armorStand;
         private final ItemStack swordItem;
-        private final double damage;
+        private final double baseDamage;
 
-        public FloatingSword(ItemStack swordItem, double damage) {
+        public FloatingSword(ItemStack swordItem, double baseDamage) {
             this.swordItem = swordItem;
-            this.damage = damage;
+            this.baseDamage = baseDamage;
             spawnArmorStand();
         }
 
