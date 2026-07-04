@@ -25,8 +25,9 @@ abilities:
     icon: DRAGON_EGG
     summary:
       - "회전 구체 3개"
-      - "접촉 시 피해 5 + 2초 구속"
-      - "철괴 우클릭: 최근접 적에게 구체 3개 발사"
+      - "접촉 시 별가루 +1"
+      - "철괴 우클릭: 최근접 적 1명에게 별가루 소모"
+      - "스택당 피해 0.5, 체력 이하 시 처형"
   - name: "글래디에이터 (Gladiator)"
     icon: IRON_BARS
     summary:

@@ -195,8 +195,8 @@ public class DecayRay extends AbilityBase implements ActiveHandler {
     private void applyScaleReduction(Player player, WeaknessData data) {
         AttributeInstance scale = player.getAttribute(Attribute.SCALE);
         if (scale != null) {
-            // 원래 크기 저장
-            data.originalScale = scale.getValue();
+            // 대시 같은 임시 modifier가 섞이지 않도록 능력이 소유한 base 크기만 저장합니다.
+            data.originalScale = scale.getBaseValue();
             scale.setBaseValue(data.originalScale * SIZE_REDUCTION);
         }
     }

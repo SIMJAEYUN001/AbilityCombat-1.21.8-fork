@@ -6,6 +6,7 @@ import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.game.GameManager;
 import com.abilitycombat.game.GameState;
 import com.abilitycombat.game.Participant;
+import com.abilitycombat.ui.SprintHudService;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.LivingEntity;
@@ -136,6 +137,11 @@ public class GiantSlayer extends AbilityBase {
     private double getEntityScale(LivingEntity entity) {
         if (entity == null) {
             return 1.0;
+        }
+        AbilityCombat plugin = AbilityCombat.getPlugin();
+        SprintHudService sprintHudService = plugin != null ? plugin.getSprintHudService() : null;
+        if (sprintHudService != null) {
+            return sprintHudService.getScaleWithoutDash(entity);
         }
         AttributeInstance scale = entity.getAttribute(Attribute.SCALE);
         if (scale != null) {
