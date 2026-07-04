@@ -59,8 +59,19 @@ import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockBurnEvent;
+import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.block.BlockFadeEvent;
+import org.bukkit.event.block.BlockFormEvent;
+import org.bukkit.event.block.BlockFromToEvent;
+import org.bukkit.event.block.BlockIgniteEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.block.BlockSpreadEvent;
+import org.bukkit.event.block.LeavesDecayEvent;
+import org.bukkit.event.block.MoistureChangeEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -78,6 +89,8 @@ import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
+import org.bukkit.event.player.PlayerBucketEmptyEvent;
+import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
@@ -4336,6 +4349,27 @@ public class GameManager implements Listener {
         return stand.getPersistentDataContainer().has(abilityArmorStandKey, PersistentDataType.BYTE);
     }
 
+    private boolean shouldProtectIdleBlockBreaks() {
+        return state == GameState.IDLE && !idleBlockBreakAllowed;
+    }
+
+    private boolean shouldProtectIdleBlockPlacements() {
+        return state == GameState.IDLE && !idleBlockPlaceAllowed;
+    }
+
+    private boolean shouldProtectIdleBlockChanges() {
+        return shouldProtectIdleBlockBreaks() || shouldProtectIdleBlockPlacements();
+    }
+
+    private boolean isLiquidBucket(Material type) {
+        return switch (type) {
+            case WATER_BUCKET, LAVA_BUCKET, POWDER_SNOW_BUCKET,
+                    COD_BUCKET, SALMON_BUCKET, PUFFERFISH_BUCKET, TROPICAL_FISH_BUCKET,
+                    AXOLOTL_BUCKET, TADPOLE_BUCKET -> true;
+            default -> false;
+        };
+    }
+
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent event) {
         if (isSpectator(event.getPlayer())) {
@@ -4352,23 +4386,122 @@ public class GameManager implements Listener {
     }
 
     @EventHandler
-    public void onBlockExplode(BlockExplodeEvent event) {
-        if (event.isCancelled()) {
+    public void onPlayerBucketEmpty(PlayerBucketEmptyEvent event) {
+        if (isSpectator(event.getPlayer())) {
+            event.setCancelled(true);
             return;
+        }
+        if (isLiquidBucket(event.getBucket()) && shouldProtectIdleBlockChanges()) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onPlayerBucketFill(PlayerBucketFillEvent event) {
+        if (isSpectator(event.getPlayer())) {
+            event.setCancelled(true);
+            return;
+        }
+        if (shouldProtectIdleBlockBreaks()) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onBlockDispense(BlockDispenseEvent event) {
+        if (isLiquidBucket(event.getItem().getType()) && shouldProtectIdleBlockChanges()) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onBlockExplode(BlockExplodeEvent event) {
+        if (!event.isCancelled() && shouldProtectIdleBlockBreaks()) {
+            event.blockList().clear();
         }
     }
 
     @EventHandler
     public void onEntityExplode(EntityExplodeEvent event) {
-        if (event.isCancelled()) {
-            return;
+        if (!event.isCancelled() && shouldProtectIdleBlockBreaks()) {
+            event.blockList().clear();
         }
     }
 
     @EventHandler
     public void onEntityChangeBlock(EntityChangeBlockEvent event) {
-        if (event.isCancelled()) {
-            return;
+        if (!event.isCancelled() && shouldProtectIdleBlockChanges()) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onBlockBurn(BlockBurnEvent event) {
+        if (shouldProtectIdleBlockBreaks()) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onBlockIgnite(BlockIgniteEvent event) {
+        if (shouldProtectIdleBlockChanges()) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onBlockSpread(BlockSpreadEvent event) {
+        if (shouldProtectIdleBlockChanges()) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onBlockFromTo(BlockFromToEvent event) {
+        if (shouldProtectIdleBlockChanges()) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onBlockFade(BlockFadeEvent event) {
+        if (shouldProtectIdleBlockBreaks()) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onBlockForm(BlockFormEvent event) {
+        if (shouldProtectIdleBlockChanges()) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onLeavesDecay(LeavesDecayEvent event) {
+        if (shouldProtectIdleBlockBreaks()) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onMoistureChange(MoistureChangeEvent event) {
+        if (shouldProtectIdleBlockBreaks()) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onBlockPistonExtend(BlockPistonExtendEvent event) {
+        if (shouldProtectIdleBlockChanges()) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onBlockPistonRetract(BlockPistonRetractEvent event) {
+        if (shouldProtectIdleBlockChanges()) {
+            event.setCancelled(true);
         }
     }
 
