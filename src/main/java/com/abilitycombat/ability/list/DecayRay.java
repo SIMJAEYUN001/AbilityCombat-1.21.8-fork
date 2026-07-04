@@ -5,6 +5,7 @@ import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.ability.handler.ActiveHandler;
 import com.abilitycombat.game.Participant;
 import com.abilitycombat.utils.ParticleUtil;
+import com.abilitycombat.utils.ScaleAttributeUtil;
 import com.abilitycombat.vfx.Circle;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
@@ -195,8 +196,7 @@ public class DecayRay extends AbilityBase implements ActiveHandler {
     private void applyScaleReduction(Player player, WeaknessData data) {
         AttributeInstance scale = player.getAttribute(Attribute.SCALE);
         if (scale != null) {
-            // 대시 같은 임시 modifier가 섞이지 않도록 능력이 소유한 base 크기만 저장합니다.
-            data.originalScale = scale.getBaseValue();
+            data.originalScale = ScaleAttributeUtil.getBaseScale(player);
             scale.setBaseValue(data.originalScale * SIZE_REDUCTION);
         }
     }

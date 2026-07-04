@@ -3,6 +3,7 @@ package com.abilitycombat.ui;
 import com.abilitycombat.AbilityCombat;
 import com.abilitycombat.npc.PlayerReplica;
 import com.abilitycombat.npc.ReplicaProfile;
+import com.abilitycombat.utils.ScaleAttributeUtil;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import net.kyori.adventure.bossbar.BossBar;
@@ -10,13 +11,10 @@ import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
-import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Pose;
@@ -148,8 +146,6 @@ public final class SprintHudService implements Listener {
     private static final String OVERLAY_1_21_6 = "betterhud_1_21_6";
     private static final double DASH_SPEED = 1.0;
     private static final double DASH_Y = 0.25;
-    private static final String DASH_SCALE_MODIFIER_KEY = "sprint_dash_scale";
-    private static final double DASH_SCALE_SCALAR = -0.5D;
     private static final double FULL_CHARGE_SPEED_BONUS = 0.15;
     private static final double FORWARD_OFFSET = 1.25;
     private static final double HEIGHT_OFFSET = 1.2;
@@ -164,7 +160,6 @@ public final class SprintHudService implements Listener {
     };
 
     private final AbilityCombat plugin;
-    private final NamespacedKey dashScaleKey;
     private final Map<UUID, Integer> sprintTicks = new HashMap<>();
     private final Map<UUID, Integer> jumpGraceTicks = new HashMap<>();
     private final Map<UUID, Integer> chargeInterruptGraceTicks = new HashMap<>();
@@ -195,7 +190,6 @@ public final class SprintHudService implements Listener {
 
     public SprintHudService(AbilityCombat plugin) {
         this.plugin = plugin;
-        this.dashScaleKey = new NamespacedKey(plugin, DASH_SCALE_MODIFIER_KEY);
     }
 
     public void start() {
@@ -315,7 +309,7 @@ public final class SprintHudService implements Listener {
         failsafeTask = null;
         for (Player player : Bukkit.getOnlinePlayers()) {
             stopDash(player);
-            clearDashScale(player);
+            ScaleAttributeUtil.clearDashScale(player);
         }
         for (Player player : Bukkit.getOnlinePlayers()) {
             BossBar bar = bars.remove(player.getUniqueId());
@@ -394,7 +388,7 @@ public final class SprintHudService implements Listener {
         hiddenByDash.remove(uuid);
         loadedPackPlayers.remove(uuid);
         stopDash(event.getPlayer());
-        clearDashScale(event.getPlayer());
+        ScaleAttributeUtil.clearDashScale(event.getPlayer());
         BossBar bar = bars.remove(uuid);
         if (bar != null) {
             event.getPlayer().hideBossBar(bar);
@@ -731,7 +725,7 @@ public final class SprintHudService implements Listener {
         DashState state = new DashState(player.getUniqueId(), player.isInvisible(), player.isCollidable(),
                 preserveViewerHide);
         dashStates.put(player.getUniqueId(), state);
-        applyDashScale(player);
+        ScaleAttributeUtil.applyDashScale(player);
         if (!preserveViewerHide) {
             hideRealPlayer(player);
         }
@@ -909,64 +903,6 @@ public final class SprintHudService implements Listener {
         return value > 0.0D ? value : 1.0D;
     }
 
-    public double getScaleWithoutDash(LivingEntity entity) {
-        if (entity == null) {
-            return 1.0D;
-        }
-        AttributeInstance scale = entity.getAttribute(Attribute.SCALE);
-        if (scale == null) {
-            return 1.0D;
-        }
-        double value = calculateAttributeValueWithoutDash(scale);
-        return value > 0.0D ? value : 1.0D;
-    }
-
-    private double calculateAttributeValueWithoutDash(AttributeInstance instance) {
-        double value = instance.getBaseValue();
-        for (AttributeModifier modifier : instance.getModifiers()) {
-            if (!isDashScaleModifier(modifier) && modifier.getOperation() == AttributeModifier.Operation.ADD_NUMBER) {
-                value += modifier.getAmount();
-            }
-        }
-        double multipliedBase = value;
-        for (AttributeModifier modifier : instance.getModifiers()) {
-            if (!isDashScaleModifier(modifier) && modifier.getOperation() == AttributeModifier.Operation.ADD_SCALAR) {
-                value += multipliedBase * modifier.getAmount();
-            }
-        }
-        for (AttributeModifier modifier : instance.getModifiers()) {
-            if (!isDashScaleModifier(modifier)
-                    && modifier.getOperation() == AttributeModifier.Operation.MULTIPLY_SCALAR_1) {
-                value *= 1.0D + modifier.getAmount();
-            }
-        }
-        return value;
-    }
-
-    private boolean isDashScaleModifier(AttributeModifier modifier) {
-        return modifier != null && dashScaleKey.equals(modifier.getKey());
-    }
-
-    private void applyDashScale(Player player) {
-        AttributeInstance scale = player.getAttribute(Attribute.SCALE);
-        if (scale == null) {
-            return;
-        }
-        scale.removeModifier(dashScaleKey);
-        scale.addTransientModifier(new AttributeModifier(dashScaleKey, DASH_SCALE_SCALAR,
-                AttributeModifier.Operation.ADD_SCALAR));
-    }
-
-    private void clearDashScale(Player player) {
-        if (player == null) {
-            return;
-        }
-        AttributeInstance scale = player.getAttribute(Attribute.SCALE);
-        if (scale != null) {
-            scale.removeModifier(dashScaleKey);
-        }
-    }
-
     private void hideRealPlayer(Player source) {
         hiddenByDash.put(source.getUniqueId(), source.isCollidable());
         for (Player viewer : Bukkit.getOnlinePlayers()) {
@@ -981,7 +917,7 @@ public final class SprintHudService implements Listener {
     }
 
     private void restoreDashVisuals(Player player, boolean invisible, boolean collidable, boolean preserveViewerHide) {
-        clearDashScale(player);
+        ScaleAttributeUtil.clearDashScale(player);
         if (!preserveViewerHide) {
             showRealPlayer(player);
         }
@@ -1005,7 +941,7 @@ public final class SprintHudService implements Listener {
             return;
         }
         stopDash(player);
-        clearDashScale(player);
+        ScaleAttributeUtil.clearDashScale(player);
         showRealPlayer(player);
         hiddenByDash.remove(player.getUniqueId());
         if (player.isInvisible()) {
