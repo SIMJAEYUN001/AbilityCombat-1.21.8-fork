@@ -6,6 +6,7 @@ import com.abilitycombat.ability.AbilityManifest;
 import com.abilitycombat.game.GameManager;
 import com.abilitycombat.game.GameState;
 import com.abilitycombat.game.Participant;
+import com.abilitycombat.utils.ScaleAttributeUtil;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Player;
@@ -23,6 +24,7 @@ public class Giant extends AbilityBase {
 
     // 크기 1.5배 (150%)
     private static final double SCALE_MULTIPLIER = 1.5;
+    private static final String SCALE_MODIFIER_KEY = "giant_scale";
     // 체력 1.5배 (30 HP)
     private static final double HEALTH_MULTIPLIER = 1.5;
     // 데미지 1.25배
@@ -129,9 +131,7 @@ public class Giant extends AbilityBase {
         if (player == null || scaleApplied) {
             return;
         }
-        AttributeInstance scale = player.getAttribute(Attribute.SCALE);
-        if (scale != null) {
-            scale.setBaseValue(scale.getDefaultValue() * SCALE_MULTIPLIER);
+        if (ScaleAttributeUtil.applyBaseScalar(player, SCALE_MODIFIER_KEY, SCALE_MULTIPLIER - 1.0D)) {
             scaleApplied = true;
         }
     }
@@ -140,10 +140,7 @@ public class Giant extends AbilityBase {
         if (player == null || !scaleApplied) {
             return;
         }
-        AttributeInstance scale = player.getAttribute(Attribute.SCALE);
-        if (scale != null) {
-            scale.setBaseValue(scale.getDefaultValue());
-        }
+        ScaleAttributeUtil.removeScaleModifier(player, SCALE_MODIFIER_KEY);
         scaleApplied = false;
     }
 

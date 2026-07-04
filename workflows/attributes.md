@@ -18,6 +18,7 @@
 - 새 Attribute 보정 능력을 추가할 때는 `onDeactivate()` / 게임 종료 / 사망 복구 경로를 먼저 설계합니다.
 - 같은 Attribute를 여러 능력이 건드릴 수 있으면 base 값을 직접 덮지 말고 modifier 기반으로 누적되게 구현합니다.
 - 플레이어 크기(SCALE) 변경 능력은 **무적 해제 후(게임 시작 시점)** 적용합니다.
+- 플레이어 크기(SCALE) 변경은 `ScaleAttributeUtil.applyBaseScalar(...)` 또는 `ScaleAttributeUtil.applyTotalScalar(...)` + `removeScaleModifier(...)`로 관리합니다.
 - 크기 판정/비교는 `ScaleAttributeUtil.getScaleWithoutDash(entity)`를 사용합니다. 대시처럼 충돌 회피용으로만 들어가는 임시 크기 보정은 능력 판정에 섞지 않습니다.
 - 크기 base 값을 저장해야 하는 효과는 `SCALE#getValue()`가 아니라 `ScaleAttributeUtil.getBaseScale(entity)`를 사용합니다.
 

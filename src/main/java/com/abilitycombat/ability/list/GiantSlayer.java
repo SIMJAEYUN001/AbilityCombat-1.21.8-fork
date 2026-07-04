@@ -7,8 +7,6 @@ import com.abilitycombat.game.GameManager;
 import com.abilitycombat.game.GameState;
 import com.abilitycombat.game.Participant;
 import com.abilitycombat.utils.ScaleAttributeUtil;
-import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
@@ -33,6 +31,7 @@ public class GiantSlayer extends AbilityBase {
 
     // 크기 0.8배 (80%)
     private static final double SCALE_MULTIPLIER = 0.8;
+    private static final String SCALE_MODIFIER_KEY = "giant_slayer_scale";
     // 크기 차이 10%당 15% 추가 데미지
     private static final double DAMAGE_PER_SIZE_DIFF = 0.15;
     private static final double SIZE_DIFF_THRESHOLD = 0.1;
@@ -145,9 +144,7 @@ public class GiantSlayer extends AbilityBase {
         if (player == null || scaleApplied) {
             return;
         }
-        AttributeInstance scale = player.getAttribute(Attribute.SCALE);
-        if (scale != null) {
-            scale.setBaseValue(scale.getDefaultValue() * SCALE_MULTIPLIER);
+        if (ScaleAttributeUtil.applyBaseScalar(player, SCALE_MODIFIER_KEY, SCALE_MULTIPLIER - 1.0D)) {
             scaleApplied = true;
         }
     }
@@ -156,10 +153,7 @@ public class GiantSlayer extends AbilityBase {
         if (player == null || !scaleApplied) {
             return;
         }
-        AttributeInstance scale = player.getAttribute(Attribute.SCALE);
-        if (scale != null) {
-            scale.setBaseValue(scale.getDefaultValue());
-        }
+        ScaleAttributeUtil.removeScaleModifier(player, SCALE_MODIFIER_KEY);
         scaleApplied = false;
     }
 

@@ -7,6 +7,8 @@ import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.LivingEntity;
 
+import java.util.Locale;
+
 public final class ScaleAttributeUtil {
 
     private static final String DASH_SCALE_MODIFIER_KEY = "sprint_dash_scale";
@@ -16,22 +18,29 @@ public final class ScaleAttributeUtil {
     }
 
     public static void applyDashScale(LivingEntity entity) {
-        AttributeInstance scale = getScaleAttribute(entity);
-        NamespacedKey key = dashScaleKey();
-        if (scale == null || key == null) {
-            return;
-        }
-        scale.removeModifier(key);
-        scale.addTransientModifier(new AttributeModifier(key, DASH_SCALE_SCALAR,
-                AttributeModifier.Operation.ADD_SCALAR));
+        applyBaseScalar(entity, DASH_SCALE_MODIFIER_KEY, DASH_SCALE_SCALAR);
     }
 
     public static void clearDashScale(LivingEntity entity) {
+        removeScaleModifier(entity, DASH_SCALE_MODIFIER_KEY);
+    }
+
+    public static boolean applyBaseScalar(LivingEntity entity, String keyName, double scalar) {
+        return applyScaleModifier(entity, keyName, scalar, AttributeModifier.Operation.ADD_SCALAR);
+    }
+
+    public static boolean applyTotalScalar(LivingEntity entity, String keyName, double scalar) {
+        return applyScaleModifier(entity, keyName, scalar, AttributeModifier.Operation.MULTIPLY_SCALAR_1);
+    }
+
+    public static boolean removeScaleModifier(LivingEntity entity, String keyName) {
         AttributeInstance scale = getScaleAttribute(entity);
-        NamespacedKey key = dashScaleKey();
-        if (scale != null && key != null) {
-            scale.removeModifier(key);
+        NamespacedKey key = scaleKey(keyName);
+        if (scale == null || key == null) {
+            return false;
         }
+        scale.removeModifier(key);
+        return true;
     }
 
     public static double getScaleWithoutDash(LivingEntity entity) {
@@ -39,7 +48,7 @@ public final class ScaleAttributeUtil {
         if (scale == null) {
             return 1.0D;
         }
-        NamespacedKey dashKey = dashScaleKey();
+        NamespacedKey dashKey = scaleKey(DASH_SCALE_MODIFIER_KEY);
         double value = calculateAttributeValue(scale, dashKey);
         return value > 0.0D ? value : 1.0D;
     }
@@ -55,6 +64,20 @@ public final class ScaleAttributeUtil {
 
     private static AttributeInstance getScaleAttribute(LivingEntity entity) {
         return entity != null ? entity.getAttribute(Attribute.SCALE) : null;
+    }
+
+    private static boolean applyScaleModifier(LivingEntity entity, String keyName, double amount,
+            AttributeModifier.Operation operation) {
+        AttributeInstance scale = getScaleAttribute(entity);
+        NamespacedKey key = scaleKey(keyName);
+        if (scale == null || key == null || operation == null || !Double.isFinite(amount)) {
+            return false;
+        }
+        scale.removeModifier(key);
+        if (Math.abs(amount) > 1.0E-6) {
+            scale.addTransientModifier(new AttributeModifier(key, amount, operation));
+        }
+        return true;
     }
 
     private static double calculateAttributeValue(AttributeInstance instance, NamespacedKey ignoredKey) {
@@ -85,8 +108,11 @@ public final class ScaleAttributeUtil {
         return modifier != null && key != null && key.equals(modifier.getKey());
     }
 
-    private static NamespacedKey dashScaleKey() {
+    private static NamespacedKey scaleKey(String keyName) {
+        if (keyName == null || keyName.isBlank()) {
+            return null;
+        }
         AbilityCombat plugin = AbilityCombat.getPlugin();
-        return plugin != null ? new NamespacedKey(plugin, DASH_SCALE_MODIFIER_KEY) : null;
+        return plugin != null ? new NamespacedKey(plugin, keyName.toLowerCase(Locale.ROOT)) : null;
     }
 }

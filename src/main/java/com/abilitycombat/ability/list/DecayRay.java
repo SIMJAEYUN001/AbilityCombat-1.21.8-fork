@@ -14,8 +14,6 @@ import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
-import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -75,7 +73,7 @@ public class DecayRay extends AbilityBase implements ActiveHandler {
         for (Map.Entry<UUID, WeaknessData> entry : weaknessMap.entrySet()) {
             Player target = org.bukkit.Bukkit.getPlayer(entry.getKey());
             if (target != null) {
-                restoreScale(target, entry.getValue());
+                restoreScale(target);
             }
         }
         weaknessMap.clear();
@@ -185,35 +183,25 @@ public class DecayRay extends AbilityBase implements ActiveHandler {
         data.stacks = Math.min(MAX_STACKS, data.stacks + stacksToAdd);
         data.remainingTicks = WEAKNESS_DURATION_TICKS;
 
-        // 크기 감소 적용 (1회만)
-        if (!data.sizeReduced) {
-            applyScaleReduction(target, data);
-            data.sizeReduced = true;
-        }
+        applyScaleReduction(target);
         registerTick();
     }
 
-    private void applyScaleReduction(Player player, WeaknessData data) {
-        AttributeInstance scale = player.getAttribute(Attribute.SCALE);
-        if (scale != null) {
-            data.originalScale = ScaleAttributeUtil.getBaseScale(player);
-            scale.setBaseValue(data.originalScale * SIZE_REDUCTION);
-        }
+    private void applyScaleReduction(Player player) {
+        ScaleAttributeUtil.applyTotalScalar(player, scaleModifierKey(), SIZE_REDUCTION - 1.0D);
     }
 
-    private void restoreScale(Player player, WeaknessData data) {
-        AttributeInstance scale = player.getAttribute(Attribute.SCALE);
-        if (scale != null && data != null && data.originalScale > 0) {
-            // 저장된 원래 크기로 복원
-            scale.setBaseValue(data.originalScale);
-        }
+    private void restoreScale(Player player) {
+        ScaleAttributeUtil.removeScaleModifier(player, scaleModifierKey());
+    }
+
+    private String scaleModifierKey() {
+        return "decay_ray_scale_" + getParticipant().getUniqueId().toString().replace("-", "");
     }
 
     private class WeaknessData {
         int stacks = 0;
         int remainingTicks = 0;
-        boolean sizeReduced = false;
-        double originalScale = 0;
     }
 
     @Override
@@ -237,7 +225,7 @@ public class DecayRay extends AbilityBase implements ActiveHandler {
                 if (data.remainingTicks <= 0) {
                     Player target = org.bukkit.Bukkit.getPlayer(entry.getKey());
                     if (target != null) {
-                        restoreScale(target, data);
+                        restoreScale(target);
                     }
                     iterator.remove();
                 } else {

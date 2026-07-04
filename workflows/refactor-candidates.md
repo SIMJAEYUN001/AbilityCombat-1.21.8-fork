@@ -8,7 +8,7 @@
 - 사거리 modifier 직접 관리: `Boxer`, `WraithForm`, `Gambler`
 - 사거리 base 값 직접 변경: `ApexScope`, `Giant`
 - 속도/스탯 modifier 중복 패턴: `Gambler`, `TapDancer`, `Slow`
-- 크기/중력 base 값 직접 변경: `Giant`, `GiantSlayer`, `DecayRay`, `GravityField`
+- 중력 base 값 직접 변경: `GravityField`
 
 우선순위: 사거리 증가/감소는 아직 통합 메서드가 없으므로 리팩터링 1순위.
 
